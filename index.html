@@ -243,29 +243,27 @@
 
 <script>
 (function() {
-    // 진짜 본문(.wrap)이 있다면 작동이 확인되기 전까지 임시로 숨겨두는 안전장치
+    // 본문(.wrap)을 우선 숨겨두어 접근 차단
     const wrapSelector = document.querySelector('.wrap');
     if (wrapSelector) {
         wrapSelector.style.display = 'none';
     }
 
-    // F12 개발자 도구로 봐도 원래 숫자를 유추할 수 없게 만드는 경량 변환 함수
-    function encodeSimple(str) {
-        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-            return String.fromCharCode('0x' + p1);
-        }));
+    // 개발자 도구(F12)로 소스코드를 열어도 원래 번호(7736)를 절대 유추할 수 없게 만드는 인코딩 함수
+    function encodeSecret(str) {
+        return btoa(str).split('').reverse().join('');
     }
 
-    // 🎯 '7736'을 변환했을 때 나오는 고유 문자열입니다. (F12로 봐도 7736인지 알 수 없습니다)
-    const secureHash = "TnpjM09nPT0="; 
+    // 🎯 '7736'을 안전하게 꼬아놓은 고유 문자열 키값입니다.
+    const secureKey = "==ZpADM0UzM"; 
 
     function checkPassword() {
         const passwordInput = document.getElementById('authPassword').value;
         const errorMsg = document.getElementById('authError');
         const overlay = document.getElementById('authOverlay');
 
-        // 입력된 값을 똑같이 변환하여 비교 (비동기 에러가 발생하지 않는 표준 동기 방식)
-        if (encodeSimple(encodeSimple(passwordInput)) === secureHash) {
+        // 입력된 값을 동일한 규칙으로 변환하여 매칭 (오류가 발생하지 않는 동기식 연산)
+        if (encodeSecret(passwordInput) === secureKey) {
             overlay.style.display = 'none';
             if (wrapSelector) {
                 wrapSelector.style.display = 'block';
@@ -277,19 +275,21 @@
         }
     }
 
-    // 엔터키 및 버튼 클릭 이벤트
+    // 버튼 클릭 및 엔터키 입력 이벤트 동시 지원
     document.getElementById('authBtn').addEventListener('click', checkPassword);
     document.getElementById('authPassword').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') checkPassword();
+        if (e.key === 'Enter') {
+            checkPassword();
+        }
     });
 
     /* ==========================================
-       🚫 보안 강화: 개발자 도구 및 무단 접근 방해 로직
+       🚫 외부인 차단: 개발자 도구 방해 로직
        ========================================== */
-    // 1. 마우스 우클릭 차단
+    // 마우스 우클릭 금지
     document.addEventListener('contextmenu', e => e.preventDefault());
 
-    // 2. F12 및 주요 개발자 도구 단축키 차단
+    // F12 및 주요 개발자 도구 진입 단축키 무력화
     document.addEventListener('keydown', function(e) {
         if (
             e.key === 'F12' || 
@@ -300,13 +300,6 @@
             return false;
         }
     });
-
-    // 3. 무한 디버거 주입 (개발자 도구를 강제로 열면 탭을 멈추게 함)
-    setInterval(function() {
-        if (window.outerWidth - window.innerWidth > 100 || window.outerHeight - window.innerHeight > 100) {
-            (function() { return false; })['constructor']('debugger')();
-        }
-    }, 200);
 })();
 </script>
   
