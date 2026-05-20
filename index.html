@@ -249,32 +249,75 @@
         wrapSelector.style.display = 'none';
     }
 
+    // 간단한 문자열 암호화 함수 (입력된 비밀번호를 외계어로 변환)
+    function cyrb128(str) {
+        let h1 = 1779033703, h2 = 302473254, h3 = 336245363, h4 = 50253601;
+        for (let i = 0, k; i < str.length; i++) {
+            k = str.charCodeAt(i);
+            h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+            h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+            h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+            h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+        }
+        h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+        h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+        h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+        h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+        return [(h1^h2^h3^h4)>>>0].toString(16);
+    }
+
+    // '7736'을 암호화했을 때 나오는 고유값 (이제 코드에 7736은 없습니다!)
+    const secureHash = "cb74a726"; 
+
     function checkPassword() {
         const passwordInput = document.getElementById('authPassword').value;
         const errorMsg = document.getElementById('authError');
         const overlay = document.getElementById('authOverlay');
 
-        if (passwordInput === '7736') {
-            // 비밀번호가 맞으면 잠금 화면을 없애고 진짜 화면을 보여줌
+        // 사용자가 입력한 값도 암호화해서 비교
+        if (cyrb128(passwordInput) === secureHash) {
             overlay.style.display = 'none';
             if (wrapSelector) {
                 wrapSelector.style.display = 'block';
             }
         } else {
-            // 틀리면 에러 메시지 노출 및 인풋창 초기화
             errorMsg.style.display = 'block';
             document.getElementById('authPassword').value = '';
             document.getElementById('authPassword').focus();
         }
     }
 
-    // 엔터키나 버튼 클릭 시 비밀번호 검사 실행
+    // 엔터키 및 버튼 클릭 이벤트
     document.getElementById('authBtn').addEventListener('click', checkPassword);
     document.getElementById('authPassword').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            checkPassword();
+        if (e.key === 'Enter') checkPassword();
+    });
+
+    /* ==========================================
+       🚫 보안 강화: 개발자 도구 및 무단 접근 방해 로직
+       ========================================== */
+    // 1. 마우스 우클릭 차단
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // 2. F12 및 주요 개발자 도구 단축키 차단
+    document.addEventListener('keydown', function(e) {
+        if (
+            e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
+            (e.ctrlKey && e.key === 'U')
+        ) {
+            e.preventDefault();
+            return false;
         }
     });
+
+    // 3. 무한 디버거 주입 (개발자 도구를 켜면 브라우저 탭을 먹통으로 만듦)
+    setInterval(function() {
+        if (window.outerWidth - window.innerWidth > 100 || window.outerHeight - window.innerHeight > 100) {
+            // 창 크기 변화로 개발자 도구가 감지되면 무한 브레이크를 걸어버림
+            (function() { return false; })['constructor']('debugger')();
+        }
+    }, 200);
 })();
 </script>
   
