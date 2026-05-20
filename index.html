@@ -780,6 +780,9 @@ function renderStockTable(rows) {
 /* ==========================================================================
    재고현황 전용 완전 독립 섹션 (헤더 위치 정렬 수정 버전)
    ========================================================================== */
+// 표의 제목(th)과 내용(td)을 무조건 강제로 가운데 정렬시키는 마법의 코드
+document.head.insertAdjacentHTML('beforeend', '<style>#stockTableBody td, .tab-content table th { text-align: center !important; vertical-align: middle !important; }</style>');
+  
 (function() {
     const STOCK_CONFIG = {
         ID: '1lu3P1g_CTFdofwpWITXQgGKisUoZLPdFD1mxC29wf_k',
