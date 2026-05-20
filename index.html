@@ -778,9 +778,9 @@ function renderStockTable(rows) {
 
 
 /* ==========================================================================
-   재고현황 전용 완전 독립 섹션 (전체 가운데 정렬 + 불필요 행 완벽 차단 버전)
+   재고현황 전용 완전 독립 섹션 (엇갈린 날짜 한 줄 조립 및 가운데 정렬 버전)
    ========================================================================== */
-// [정렬 해결] 표 전체의 헤더(th)와 본문(td)을 브라우저에 상관없이 무조건 강제 가운데 정렬
+// 표 전체의 헤더(th)와 본문(td)을 무조건 강제 가운데 정렬
 document.head.insertAdjacentHTML('beforeend', `
     <style>
         .tab-content table th, 
@@ -841,37 +841,106 @@ document.head.insertAdjacentHTML('beforeend', `
             return;
         }
 
+        // 엇갈린 행들을 하나로 조립해서 담아둘 가상 배열
+        const processedRows = [];
+        let currentItemCode = '';
+
         rows.forEach(row => {
             if (!row || !row.c) return;
-            
-            const itemCode = getCellValue(row.c[0]); // 품번
-            const lotInfo  = getCellValue(row.c[1]); // LOT 및 입고일
-            const boxSpec  = getCellValue(row.c[2]); // BOX
-            const curStock = getCellValue(row.c[3]); // 현재고
-            const totalBox = getCellValue(row.c[4]); // 총 BOX
-            const totalM2  = getCellValue(row.c[5]); // 총 재고(㎡)
 
-            // -------------------------------------------------------------
-            // [필터링 장치] 불필요한 유령 데이터 및 요약문 차단
-            // -------------------------------------------------------------
-            // 1. 모든 칸이 비어있으면 차단
+            const itemCode = getCellValue(row.c[0]);
+            const lotInfo  = getCellValue(row.c[1]);
+            const boxSpec  = getCellValue(row.c[2]);
+            const curStock = getCellValue(row.c[3]);
+            const totalBox = getCellValue(row.c[4]);
+            const totalM2  = getCellValue(row.c[5]);
+
+            // 1. 빈 행이나 제목줄, 요약줄은 원천 차단
             if (!itemCode && !lotInfo && !boxSpec && !curStock && !totalBox && !totalM2) return;
-            
-            // 2. '모든 자재 재고 통합' 문구가 들어가면 무조건 차단
-            if (itemCode.includes('모든 자재') || itemCode.includes('통합') || lotInfo.includes('통합')) return;
-            
-            // 3. 구글 시트의 헤더 제목줄('품번') 차단
-            if (itemCode === '품번') return;
-            
-            // 4. 캡처화면처럼 품번이 비어있는데 날짜만 덜렁 있고 수량이 '0'인 행 완전히 차단
-            if (!itemCode && (curStock === '0' || curStock === '') && (totalBox === '0' || totalBox === '')) return;
-            // -------------------------------------------------------------
+            if (itemCode === '품번' || itemCode.includes('모든 자재') || itemCode.includes('통합') || lotInfo.includes('통합')) return;
 
+            // 품번이 새로 나오면 기억해둡니다.
+            if (itemCode) {
+                currentItemCode = itemCode;
+            }
+
+            // 2. [핵심] 만약 품번이 비어있고 '날짜' 형태의 데이터만 덜렁 아랫줄에 내려와 있다면?
+            if (!itemCode && lotInfo.includes('/') && processedRows.length > 0) {
+                // 바로 직전에 쌓인 데이터 행을 찾아서 'LOT 및 입고일' 칸에 날짜를 합쳐버립니다.
+                const lastRow = processedRows[processedRows.length - 1];
+                lastRow.lotInfo = `${lastRow.lotInfo} (${lotInfo})`; 
+                return; // 아래로 새로 행을 만들지 않고 종료 (흡수 완료)
+            }
+
+            // 3. 일반적인 데이터 행인 경우 배열에 임시 저장
+            processedRows.push({
+                itemCode: itemCode || currentItemCode, // 품번이 비어있어도 위쪽 품번을 이어받음
+                lotInfo,
+                boxSpec,
+                curStock,
+                totalBox,
+                totalM2
+            });
+        });
+
+        // -------------------------------------------------------------
+        // 조립 완료된 데이터를 화면에 예쁘게 그리기
+        // -------------------------------------------------------------
+        processedRows.forEach(d => {
             let statusClass = '';
 
-            // 총 BOX 수량을 기준으로 신호등 색상 적용 (숫자만 걸러내기)
-            if (totalBox) {
-                const numBox = parseFloat(totalBox.replace(/[^0-9.-]/g, '')) || 0;
+            // 총 BOX 수량 기준 신호등
+            if (d.totalBox) {
+                const numBox = parseFloat(d.totalBox.replace(/[^0-9.-]/g, '')) || 0;
+                if (numBox < 10) statusClass = 'stock-red';
+                else if (numBox < 30) statusClass = 'stock-yellow';
+                else statusClass = 'stock-green';
+            }
+
+            const tr = document.createElement('tr');
+            if (statusClass) tr.className = `stock-row ${statusClass}`;
+
+            const m2Display = d.totalM2 ? (d.totalM2.includes('㎡') ? d.totalM2 : `${d.totalM2} ㎡`) : '-';
+
+            tr.innerHTML = `
+                <td style="text-align: center;"><strong>${d.itemCode}</strong></td>
+                <td style="text-align: center;">${d.lotInfo || '-'}</td>
+                <td style="text-align: center;">${d.boxSpec || '-'}</td>
+                <td style="text-align: center;">${d.curStock || '0'}</td>
+                <td style="text-align: center;">${d.totalBox || '0'}</td>
+                <td style="text-align: center;">${m2Display}</td>
+            `;
+
+            // 마우스 호버 툴팁
+            tr.addEventListener('mousemove', (e) => {
+                const tooltip = document.getElementById('stockTooltip');
+                if (tooltip && typeof products !== 'undefined') {
+                    const p = products.find(x => x.code === d.itemCode);
+                    tooltip.innerHTML = `<strong>${d.itemCode}</strong><br>규격: ${p ? p.spec : '규격 정보 없음'}`;
+                    tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
+                }
+            });
+
+            tr.addEventListener('mouseleave', () => {
+                const tooltip = document.getElementById('stockTooltip');
+                if (tooltip) tooltip.style.display = 'none';
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.dataset.tab === 'stockTab' || btn.getAttribute('data-tab') === 'stockTab') {
+                    fetchStockData();
+                }
+            });
+        });
+    });
+})();
 </script>
 </body>
 </html>
