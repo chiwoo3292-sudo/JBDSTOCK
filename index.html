@@ -100,56 +100,49 @@
 }
 
 /* ==========================================================================
-   계산기 모바일 반응형 레이아웃 최적화
+   사용자님 맞춤형 계산기 모바일 반응형 레이아웃 (최종 검수 버전)
    ========================================================================== */
 
-/* 1. 컴퓨터(PC) 화면일 때의 기본 배치 */
-.calc-container {
-    display: flex;
-    flex-direction: row; /* 가로로 나란히 */
-    gap: 20px;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    box-sizing: border-box;
-}
-
-/* 왼쪽 계산조건 구역 */
-.calc-inputs {
-    flex: 1;
-    min-width: 300px;
-}
-
-/* 오른쪽 계산결과 구역 */
-.calc-outputs {
-    flex: 1;
-    min-width: 300px;
-}
-
-/* 2. 스마트폰(모바일) 화면일 때 자동으로 바뀔 스타일 */
+/* 스마트폰/태블릿 (화면 폭 768px 이하)일 때만 작동하는 마법의 구역 */
 @media screen and (max-width: 768px) {
-    .calc-container {
-        flex-direction: column; /* 세로로 배치 (위아래) */
-        gap: 15px;
-        padding: 10px;
+    
+    /* 1. 계산기 전체 틀: 가로 배치를 세로(위아래) 배치로 변경 */
+    .container {
+        flex-direction: column !important; 
+        gap: 20px !important;
+        padding: 15px !important;
+        max-width: 100% !important;
     }
     
-    .calc-inputs {
-        width: 100% !important; /* 계산조건이 상단에 꽉 차게 */
+    /* 2. 상단 계산조건 구역: 가로 폭을 100%로 넓혀서 위쪽에 꽉 차게 */
+    .input-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
     
-    .calc-outputs {
-        width: 100% !important; /* 계산결과가 자연스럽게 하단으로 */
-        margin-top: 10px;
+    /* 3. 하단 계산결과 구역: 자연스럽게 조건 구역 아래로 떨어지며 꽉 차게 */
+    .result-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin-top: 5px !important;
+    }
+
+    /* 4. 모바일 터치 편의성: 입력창, 선택창, 버튼 크기를 시원시원하게 확대 */
+    .input-section input,
+    .input-section select,
+    .input-section button,
+    .result-section input {
+        font-size: 16px !important; /* 모바일 웹 특유의 강제 화면 줌인 현상 방지 */
+        padding: 12px !important;   /* 손가락으로 누르기 넉넉한 두께 */
+        box-sizing: border-box !important;
     }
     
-    /* 모바일에서 입력창과 버튼이 너무 작아 터치하기 힘든 것 방지 */
-    .calc-container input, 
-    .calc-container select, 
-    .calc-container button {
-        font-size: 16px !important; /* 모바일에서 자동 줌인 현상 방지하는 최적의 크기 */
-        padding: 12px !important;   /* 손가락으로 누르기 편하게 두께 조절 */
-        box-sizing: border-box;
+    /* 결과창 내 내부 정렬이 깨지는 것 방지 */
+    .result-grid {
+        grid-template-columns: 1fr !important; /* 결과 그리드도 필요시 세로 정렬 */
+        gap: 10px !important;
     }
 }
 
