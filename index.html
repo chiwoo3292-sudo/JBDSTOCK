@@ -778,7 +778,7 @@ function renderStockTable(rows) {
 
 
 /* ==========================================================================
-   재고현황 전용 완전 독립 섹션 (원본 데이터 1:1 매칭 & 가독성 최적화 버전)
+   재고현황 전용 완전 독립 섹션 (헤더 위치 정렬 수정 버전)
    ========================================================================== */
 (function() {
     const STOCK_CONFIG = {
@@ -814,10 +814,8 @@ function renderStockTable(rows) {
         }
     }
 
-    // 구글 시트 셀에서 데이터가 밀리지 않도록 안전하게 글자를 추출하는 함수
     function getCellValue(cell) {
         if (!cell) return '';
-        // 시트에 보이는 포맷(f)이 있으면 우선 사용, 없으면 원본 값(v)을 사용
         return cell.f !== undefined ? String(cell.f).trim() : (cell.v !== null && cell.v !== undefined ? String(cell.v).trim() : '');
     }
 
@@ -834,29 +832,26 @@ function renderStockTable(rows) {
         rows.forEach(row => {
             if (!row || !row.c) return;
             
-            // 시트의 1번째 칸부터 6번째 칸까지 1:1로 정확하게 텍스트 매칭
-            const itemCode = getCellValue(row.c[0]);
-            const lotInfo  = getCellValue(row.c[1]);
-            const boxSpec  = getCellValue(row.c[2]);
-            const curStock = getCellValue(row.c[3]);
-            const totalBox = getCellValue(row.c[4]);
-            const totalM2  = getCellValue(row.c[5]);
+            // [위치 수정] 상단 제목 순서에 맞춰 구글 시트 열 매칭을 재배치했습니다.
+            const itemCode = getCellValue(row.c[0]); // 품번
+            const lotInfo  = getCellValue(row.c[1]); // LOT 및 입고일 (차수)
+            const boxSpec  = getCellValue(row.c[2]); // BOX 규격
+            const curStock = getCellValue(row.c[3]); // 현재고
+            const totalBox = getCellValue(row.c[4]); // 총 BOX
+            const totalM2  = getCellValue(row.c[5]); // 총 재고(㎡)
 
-            // 모든 칸이 아예 텅 비어있는 빈 행이라면 출력을 건너뜁니다.
             if (!itemCode && !lotInfo && !boxSpec && !curStock && !totalBox && !totalM2) return;
 
-            // [가독성 보완] 시트 내부의 대제목, 통합요약줄, 테이블 헤더('품번') 구역 스타일 처리
             let rowStyle = '';
             let statusClass = '';
             let isHeaderOrSummary = false;
 
             if (itemCode === '품번' || itemCode.includes('통합') || itemCode.includes('모든 자재') || (!itemCode && lotInfo.includes('차수'))) {
-                // 요약줄이나 대제목 행은 배경색을 어둡게 하고 굵은 글씨로 가독성 확보
                 rowStyle = 'background-color: #f1f2f6; font-weight: bold; color: #2f3542;';
                 isHeaderOrSummary = true;
             }
 
-            // [신호등 로직] 일반 자재 데이터행에만 총BOX 기준 색상 적용
+            // 총 BOX(5번째 칸) 기준으로 신호등 색상 판단
             if (!isHeaderOrSummary && totalBox) {
                 const numBox = parseFloat(totalBox.replace(/[^0-9.-]/g, '')) || 0;
                 if (numBox < 10) statusClass = 'stock-red';
@@ -864,14 +859,13 @@ function renderStockTable(rows) {
                 else statusClass = 'stock-green';
             }
 
-            // 행(<tr>) 생성 및 칸(<td>) 분리 배정
             const tr = document.createElement('tr');
             if (statusClass) tr.className = `stock-row ${statusClass}`;
             if (rowStyle) tr.setAttribute('style', rowStyle);
 
-            // 단위(㎡)는 시트 본문에 이미 적혀있을 수 있으므로, 중복 방지를 위해 값에 이미 존재하면 붙이지 않음
             const m2Display = totalM2 ? (totalM2.includes('㎡') ? totalM2 : `${totalM2} ㎡`) : '';
 
+            // 상단 표 헤더 <품번/LOT 및 입고일/BOX/현재고/총 BOX/총 재고(㎡)> 와 1:1 대응하도록 <td> 배치
             tr.innerHTML = `
                 <td><strong>${itemCode}</strong></td>
                 <td>${lotInfo || '-'}</td>
@@ -881,14 +875,13 @@ function renderStockTable(rows) {
                 <td>${m2Display || '-'}</td>
             `;
 
-            // 호버 툴팁 기능 (단가표 products 변수가 존재하고 일반 자재 코드일 때만 작동)
             if (!isHeaderOrSummary && itemCode) {
                 tr.addEventListener('mousemove', (e) => {
                     const tooltip = document.getElementById('stockTooltip');
                     if (tooltip && typeof products !== 'undefined') {
                         const p = products.find(x => x.code === itemCode);
                         tooltip.innerHTML = `<strong>${itemCode}</strong><br>규격: ${p ? p.spec : '규격 정보 없음'}`;
-                        tooltip.style.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
+                        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
                     }
                 });
 
@@ -902,7 +895,6 @@ function renderStockTable(rows) {
         });
     }
 
-    // 탭 클릭 이벤트 안전 바인딩
     document.addEventListener('DOMContentLoaded', () => {
         const tabBtns = document.querySelectorAll('.tab-btn');
         tabBtns.forEach(btn => {
