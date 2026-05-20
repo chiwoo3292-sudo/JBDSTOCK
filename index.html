@@ -243,10 +243,10 @@
 
 <script>
 (function() {
-    // 본문(.wrap)을 우선 강제로 숨겨두어 접근을 차단합니다.
-    const wrapSelector = document.querySelector('.wrap');
-    if (wrapSelector) {
-        wrapSelector.style.display = 'none';
+    // [핵심 수정] 사용자님 파일의 진짜 메인 박스인 .container를 찾아 숨깁니다.
+    const mainContainer = document.querySelector('.container');
+    if (mainContainer) {
+        mainContainer.style.display = 'none';
     }
 
     function checkPassword() {
@@ -254,11 +254,11 @@
         const errorMsg = document.getElementById('authError');
         const overlay = document.getElementById('authOverlay');
 
-        // 복잡한 암호화 없이 입력한 숫자가 '7736'인지 곧바로 확인합니다.
+        // 입력한 숫자가 '7736'인지 곧바로 확인합니다.
         if (passwordInput === '7736') {
             overlay.style.display = 'none';
-            if (wrapSelector) {
-                wrapSelector.style.display = 'block';
+            if (mainContainer) {
+                mainContainer.style.display = 'block'; // 본 화면 활성화
             }
         } else {
             errorMsg.style.display = 'block';
@@ -278,10 +278,8 @@
     /* ==========================================
        🚫 기본적인 외부인 접근 제어 (우클릭 및 키 차단)
        ========================================== */
-    // 마우스 우클릭 방지
     document.addEventListener('contextmenu', e => e.preventDefault());
 
-    // F12 키 무력화
     document.addEventListener('keydown', function(e) {
         if (
             e.key === 'F12' || 
