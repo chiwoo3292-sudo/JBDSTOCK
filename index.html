@@ -827,7 +827,7 @@ function renderStockTable(rows) {
 /* ==========================================================================
    재고현황 전용 완전 독립 섹션 (신호등 제거 + 품번별 그룹 배경색 교차 버전)
    ========================================================================== */
-// 헤더(th)와 본문(td)을 몽땅 잡아서 무조건 정가운데로 정렬시키는 전역 스타일 주입
+// 헤더(th)와 본문(td) 정렬, 신호등 무력화, 그리고 헤더 스크롤 고정까지 한 번에 처리
 document.head.insertAdjacentHTML('beforeend', `
     <style>
         .tab-content table th, 
@@ -837,14 +837,29 @@ document.head.insertAdjacentHTML('beforeend', `
             text-align: center !important; 
             vertical-align: middle !important; 
         }
-        /* 품번 그룹별 구분을 위한 회색 배경 스타일 정의 */
-        .bg-group-gray {
-            background-color: #f9f9f9 !important; /* 부드럽고 연한 회색 */
+        
+        /* 기존 신호등 배경색 클래스 무력화 */
+        .stock-row, .stock-red, .stock-yellow, .stock-green {
+            background-color: transparent !important;
         }
-        .bg-group-white {
-            background-color: #ffffff !important; /* 깔끔한 흰색 */
+
+        /* 품번 그룹별 구분을 위한 회색/흰색 배경 스타일 */
+        tr.bg-group-gray {
+            background-color: #f9f9f9 !important;
+        }
+        tr.bg-group-white {
+            background-color: #ffffff !important;
+        }
+
+        /* [추가] 스크롤 내려도 품번, LOT 등 제목줄 최상단 강제 고정 */
+        #stockTable th {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 10 !important;
+            background-color: #f8f9fa !important;
         }
     </style>
+`);
 `);
 
 (function() {
