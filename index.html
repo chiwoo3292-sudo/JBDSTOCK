@@ -99,7 +99,59 @@
     pointer-events: none; line-height: 1.4;
 }
 
+/* ==========================================================================
+   계산기 모바일 반응형 레이아웃 최적화
+   ========================================================================== */
 
+/* 1. 컴퓨터(PC) 화면일 때의 기본 배치 */
+.calc-container {
+    display: flex;
+    flex-direction: row; /* 가로로 나란히 */
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* 왼쪽 계산조건 구역 */
+.calc-inputs {
+    flex: 1;
+    min-width: 300px;
+}
+
+/* 오른쪽 계산결과 구역 */
+.calc-outputs {
+    flex: 1;
+    min-width: 300px;
+}
+
+/* 2. 스마트폰(모바일) 화면일 때 자동으로 바뀔 스타일 */
+@media screen and (max-width: 768px) {
+    .calc-container {
+        flex-direction: column; /* 세로로 배치 (위아래) */
+        gap: 15px;
+        padding: 10px;
+    }
+    
+    .calc-inputs {
+        width: 100% !important; /* 계산조건이 상단에 꽉 차게 */
+    }
+    
+    .calc-outputs {
+        width: 100% !important; /* 계산결과가 자연스럽게 하단으로 */
+        margin-top: 10px;
+    }
+    
+    /* 모바일에서 입력창과 버튼이 너무 작아 터치하기 힘든 것 방지 */
+    .calc-container input, 
+    .calc-container select, 
+    .calc-container button {
+        font-size: 16px !important; /* 모바일에서 자동 줌인 현상 방지하는 최적의 크기 */
+        padding: 12px !important;   /* 손가락으로 누르기 편하게 두께 조절 */
+        box-sizing: border-box;
+    }
+}
 
 </style>
 </head>
