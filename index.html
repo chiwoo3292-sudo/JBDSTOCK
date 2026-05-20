@@ -843,16 +843,24 @@ function renderStockTable(rows) {
 
 
 /* ==========================================================================
-   재고현황 전용 완전 독립 섹션 (엇갈린 날짜 한 줄 조립 및 가운데 정렬 버전)
+   재고현황 전용 완전 독립 섹션 (신호등 제거 + 품번별 그룹 배경색 교차 버전)
    ========================================================================== */
-// 표 전체의 헤더(th)와 본문(td)을 무조건 강제 가운데 정렬
+// 헤더(th)와 본문(td)을 몽땅 잡아서 무조건 정가운데로 정렬시키는 전역 스타일 주입
 document.head.insertAdjacentHTML('beforeend', `
     <style>
         .tab-content table th, 
+        .tab-content table thead th,
         .tab-content table td, 
         #stockTableBody td { 
             text-align: center !important; 
             vertical-align: middle !important; 
+        }
+        /* 품번 그룹별 구분을 위한 회색 배경 스타일 정의 */
+        .bg-group-gray {
+            background-color: #f9f9f9 !important; /* 부드럽고 연한 회색 */
+        }
+        .bg-group-white {
+            background-color: #ffffff !important; /* 깔끔한 흰색 */
         }
     </style>
 `);
@@ -906,7 +914,6 @@ document.head.insertAdjacentHTML('beforeend', `
             return;
         }
 
-        // 엇갈린 행들을 하나로 조립해서 담아둘 가상 배열
         const processedRows = [];
         let currentItemCode = '';
 
@@ -920,26 +927,21 @@ document.head.insertAdjacentHTML('beforeend', `
             const totalBox = getCellValue(row.c[4]);
             const totalM2  = getCellValue(row.c[5]);
 
-            // 1. 빈 행이나 제목줄, 요약줄은 원천 차단
             if (!itemCode && !lotInfo && !boxSpec && !curStock && !totalBox && !totalM2) return;
             if (itemCode === '품번' || itemCode.includes('모든 자재') || itemCode.includes('통합') || lotInfo.includes('통합')) return;
 
-            // 품번이 새로 나오면 기억해둡니다.
             if (itemCode) {
                 currentItemCode = itemCode;
             }
 
-            // 2. [핵심] 만약 품번이 비어있고 '날짜' 형태의 데이터만 덜렁 아랫줄에 내려와 있다면?
             if (!itemCode && lotInfo.includes('/') && processedRows.length > 0) {
-                // 바로 직전에 쌓인 데이터 행을 찾아서 'LOT 및 입고일' 칸에 날짜를 합쳐버립니다.
                 const lastRow = processedRows[processedRows.length - 1];
                 lastRow.lotInfo = `${lastRow.lotInfo} (${lotInfo})`; 
-                return; // 아래로 새로 행을 만들지 않고 종료 (흡수 완료)
+                return;
             }
 
-            // 3. 일반적인 데이터 행인 경우 배열에 임시 저장
             processedRows.push({
-                itemCode: itemCode || currentItemCode, // 품번이 비어있어도 위쪽 품번을 이어받음
+                itemCode: itemCode || currentItemCode,
                 lotInfo,
                 boxSpec,
                 curStock,
@@ -949,21 +951,22 @@ document.head.insertAdjacentHTML('beforeend', `
         });
 
         // -------------------------------------------------------------
-        // 조립 완료된 데이터를 화면에 예쁘게 그리기
+        // [핵심 변경] 신호등 색상 완벽 제거 및 품번 그룹별 교차 배경색 로직
         // -------------------------------------------------------------
-        processedRows.forEach(d => {
-            let statusClass = '';
+        let lastSeenItemCode = '';
+        let isGrayGroup = false; // 회색 그룹 토글 스위치
 
-            // 총 BOX 수량 기준 신호등
-            if (d.totalBox) {
-                const numBox = parseFloat(d.totalBox.replace(/[^0-9.-]/g, '')) || 0;
-                if (numBox < 10) statusClass = 'stock-red';
-                else if (numBox < 30) statusClass = 'stock-yellow';
-                else statusClass = 'stock-green';
+        processedRows.forEach(d => {
+            // 새로운 품번이 등장할 때만 흰색 <-> 회색 상태를 변경합니다. (차수가 달라도 품번이 같으면 유지)
+            if (d.itemCode !== lastSeenItemCode) {
+                isGrayGroup = !isGrayGroup;
+                lastSeenItemCode = d.itemCode;
             }
 
             const tr = document.createElement('tr');
-            if (statusClass) tr.className = `stock-row ${statusClass}`;
+            
+            // 신호등 스타일 클래스명(stock-red 등)은 완전히 지우고, 품번 그룹 색상만 적용합니다.
+            tr.className = isGrayGroup ? 'bg-group-gray' : 'bg-group-white';
 
             const m2Display = d.totalM2 ? (d.totalM2.includes('㎡') ? d.totalM2 : `${d.totalM2} ㎡`) : '-';
 
