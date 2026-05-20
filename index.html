@@ -1025,11 +1025,23 @@ document.head.insertAdjacentHTML('beforeend', `
         });
 
         tbody.appendChild(tr);
-}
+        }); // 1. forEach의 닫는 괄호
+    } // 2. renderStockTable 함수의 닫는 괄호 (★사용자님이 말씀하신 것!)
+
+    // 3. 아래 이벤트 리스너 구역이 지워지지 않고 살아있는지 확인
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.dataset.tab === 'stockTab' || btn.getAttribute('data-tab') === 'stockTab') {
+                    fetchStockData();
+                }
             });
         });
     });
-})();
+})(); // 4. 전체 즉시실행함수의 닫는 괄호
+
+  
 </script>
 </body>
 </html>
