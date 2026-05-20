@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -7,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
-
+  
 .grid-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
   .grid-tabs .quick-preview-trigger .secondary { width: 100%; min-height: 44px; padding: 0 4px; border: 1px solid #d8d8d8; border-radius: 8px; background: #fff; color: #444; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; }
   * { box-sizing:border-box; }
@@ -87,6 +88,70 @@
 #stockTable th { background-color: #f8f9fa; color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; }
 #stockTable td { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: center; }
 
+/* ==========================================================================
+   제출해주신 스타일 맞춤형 계산기 모바일 반응형 & 재고 타이틀 가운데 정렬
+   ========================================================================== */
+
+/* [1] 재고현황 상단 타이틀 좌측 쏠림 해결 (정가운데 정렬) */
+#stockTable th {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* [2] 스마트폰/태블릿 모바일 화면(폭 768px 이하) 대응 마법의 구역 */
+@media screen and (max-width: 768px) {
+    
+    /* 전체 화면 여백 조절 */
+    .wrap {
+        padding: 8px !important;
+    }
+
+    /* 1. 계산기 레이아웃: 가로(좌/우) 배치를 무조건 세로(위/아래) 배치로 전환 */
+    .calc-layout {
+        grid-template-columns: 1fr !important; /* 420px 고정을 풀고 100% 꽉 차게 */
+        gap: 16px !important;
+    }
+
+    /* 2. 계산 조건 입력창 구역 최적화 */
+    .calc-form {
+        width: 100% !important;
+    }
+    
+    /* 3. 상단 계산조건 내부의 반반(1fr 1fr) 입력창 정렬 */
+    .form-grid-2 {
+        grid-template-columns: 1fr 1fr !important; /* 모바일에서도 반반 유지 혹은 필요시 1fr */
+        gap: 10px !important;
+    }
+
+    /* 4. 하단 계산 결과 카드가 모바일에서 3열로 찢어져 찌그러지는 현상 방지 */
+    .calc-result-grid {
+        grid-template-columns: 1fr !important; /* 결과 카드를 세로로 1줄씩 시원하게 나열 */
+        gap: 10px !important;
+    }
+
+    /* 5. 하단 최종 요약 리스트 좌우 폭 매칭 */
+    .summary-row {
+        grid-template-columns: 120px 1fr !important; /* 앞쪽 라벨 폭을 줄여 글자 잘림 방지 */
+        padding: 10px !important;
+        font-size: 12px !important;
+    }
+
+    /* 6. 모바일 터치 두께 확대 (입력창, 선택창 크기 보정) */
+    .calc-form select, 
+    input[type="text"], 
+    input[type="number"] {
+        height: 44px !important; /* 손가락으로 터치하기 편한 두께 */
+        font-size: 14px !important;
+    }
+    
+    /* 모바일 면적 입력창 폰트 미세 조절 */
+    .calc-area-input {
+        height: 64px !important;
+        font-size: 24px !important;
+    }
+}
+
+  
 /* 신호등 클래스 */
 .stock-row.stock-red { background-color: #fff5f5; color: #d63031; font-weight: bold; }
 .stock-row.stock-yellow { background-color: #fffdf0; color: #f39c12; font-weight: bold; }
@@ -99,52 +164,7 @@
     pointer-events: none; line-height: 1.4;
 }
 
-/* ==========================================================================
-   사용자님 맞춤형 계산기 모바일 반응형 레이아웃 (최종 검수 버전)
-   ========================================================================== */
 
-/* 스마트폰/태블릿 (화면 폭 768px 이하)일 때만 작동하는 마법의 구역 */
-@media screen and (max-width: 768px) {
-    
-    /* 1. 계산기 전체 틀: 가로 배치를 세로(위아래) 배치로 변경 */
-    .container {
-        flex-direction: column !important; 
-        gap: 20px !important;
-        padding: 15px !important;
-        max-width: 100% !important;
-    }
-    
-    /* 2. 상단 계산조건 구역: 가로 폭을 100%로 넓혀서 위쪽에 꽉 차게 */
-    .input-section {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-    }
-    
-    /* 3. 하단 계산결과 구역: 자연스럽게 조건 구역 아래로 떨어지며 꽉 차게 */
-    .result-section {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        margin-top: 5px !important;
-    }
-
-    /* 4. 모바일 터치 편의성: 입력창, 선택창, 버튼 크기를 시원시원하게 확대 */
-    .input-section input,
-    .input-section select,
-    .input-section button,
-    .result-section input {
-        font-size: 16px !important; /* 모바일 웹 특유의 강제 화면 줌인 현상 방지 */
-        padding: 12px !important;   /* 손가락으로 누르기 넉넉한 두께 */
-        box-sizing: border-box !important;
-    }
-    
-    /* 결과창 내 내부 정렬이 깨지는 것 방지 */
-    .result-grid {
-        grid-template-columns: 1fr !important; /* 결과 그리드도 필요시 세로 정렬 */
-        gap: 10px !important;
-    }
-}
 
 </style>
 </head>
