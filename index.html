@@ -228,16 +228,20 @@
 </head>
 <body>
 
-<div id="authOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f5f5; z-index: 99999; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-    <div style="background: #fff; padding: 30px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 360px; width: 90%; box-sizing: border-box;">
-        <h2 style="margin: 0 0 10px; font-size: 20px; color: #111; font-weight: 700;">시스템 잠금</h2>
-        <p style="margin: 0 0 20px; font-size: 13px; color: #666;">프로그램을 이용하려면 비밀번호를 입력하세요.</p>
+<div id="authOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 99999; display: flex; align-items: center; justify-content: center; font-family: sans-serif; padding: 20px; box-sizing: border-box;">
+    <div style="background: #fff; padding: 40px 30px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); text-align: center; max-width: 400px; width: 100%; box-sizing: border-box;">
         
-        <input type="password" id="authPassword" placeholder="비밀번호 입력" 
-               style="width: 100%; height: 44px; padding: 0 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; text-align: center; margin-bottom: 14px; -webkit-text-security: disc;">
+        <div style="font-size: 48px; margin-bottom: 15px;">🔒</div>
         
-        <button id="authBtn" style="width: 100%; height: 44px; background: #111; color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer;">확인</button>
-        <p id="authError" style="margin: 10px 0 0; font-size: 12px; color: #d63031; display: none; font-weight: bold;">❌ 비밀번호가 올바르지 않습니다.</p>
+        <h2 style="margin: 0 0 12px; font-size: 24px; color: #111; font-weight: 800; letter-spacing: -0.5px;">시스템 잠금</h2>
+        <p style="margin: 0 0 28px; font-size: 15px; color: #666; line-height: 1.4;">프로그램을 이용하려면<br>비밀번호를 입력해 주세요.</p>
+        
+        <input type="password" id="authPassword" placeholder="비밀번호 4자리 입력" 
+               style="width: 100%; height: 54px; padding: 0 15px; font-size: 18px; font-weight: bold; border: 2px solid #e0e0e0; border-radius: 14px; box-sizing: border-box; text-align: center; margin-bottom: 16px; -webkit-text-security: disc; outline: none; transition: border-color 0.2s;">
+        
+        <button id="authBtn" style="width: 100%; height: 54px; background: #111; color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s;">확인</button>
+        
+        <p id="authError" style="margin: 16px 0 0; font-size: 14px; color: #d63031; display: none; font-weight: bold;">❌ 비밀번호가 올바르지 않습니다.</p>
     </div>
 </div>
 
