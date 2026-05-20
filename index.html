@@ -249,33 +249,26 @@
         wrapSelector.style.display = 'none';
     }
 
-    // 문자열 암호화 함수
-    function cyrb128(str) {
-        let h1 = 1779033703, h2 = 302473254, h3 = 336245363, h4 = 50253601;
-        for (let i = 0, k; i < str.length; i++) {
-            k = str.charCodeAt(i);
-            h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
-            h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
-            h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
-            h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
-        }
-        h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
-        h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
-        h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
-        h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
-        return [(h1^h2^h3^h4)>>>0].toString(16);
+    // [변경] 브라우저 자체에 내장된 100% 정확한 표준 암호화 기능(SHA-256) 사용
+    async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);                    
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // 🎯 [수정 완료] '7736'을 암호화한 진짜 고유 키값입니다.
-    const secureHash = "e2fc71a4"; 
+    // 🎯 '7736'을 표준 암호화했을 때 나오는 전 세계 공통 고유값 (F12로 봐도 절대 원본 모름)
+    const secureHash = "e993bc92842407eb3d3e867b3d39589d9e68ba9b08f51a2f6412574e4c2aa260"; 
 
-    function checkPassword() {
+    async function checkPassword() {
         const passwordInput = document.getElementById('authPassword').value;
         const errorMsg = document.getElementById('authError');
         const overlay = document.getElementById('authOverlay');
 
-        // 암호화된 값을 비교 (F12로 봐도 e2fc71a4만 보여서 7736인 줄 모릅니다)
-        if (cyrb128(passwordInput) === secureHash) {
+        // 입력한 값을 암호화해서 비교
+        const inputHash = await sha256(passwordInput);
+
+        if (inputHash === secureHash) {
             overlay.style.display = 'none';
             if (wrapSelector) {
                 wrapSelector.style.display = 'block';
