@@ -957,65 +957,75 @@ document.head.insertAdjacentHTML('beforeend', `
             });
         });
 
-        // -------------------------------------------------------------
-        // [핵심 변경] 신호등 색상 완벽 제거 및 품번 그룹별 교차 배경색 로직
-        // -------------------------------------------------------------
-        let lastSeenItemCode = '';
-        let isGrayGroup = false; // 회색 그룹 토글 스위치
+// 퐁당퐁당 배경색과 품번 중복 제거를 위한 변수들 (forEach 바깥에 선언되어 있음)
+    let lastSeenItemCode = '';
+    let isGrayGroup = false;
 
-        processedRows.forEach(d => {
-            // 새로운 품번이 등장할 때만 흰색 <-> 회색 상태를 변경합니다. (차수가 달라도 품번이 같으면 유지)
-            if (d.itemCode !== lastSeenItemCode) {
-                isGrayGroup = !isGrayGroup;
-                lastSeenItemCode = d.itemCode;
+    rows.forEach((row) => {
+        // 빈 행 무시
+        if (!row || !row.c || !row.c[0] || row.c[0].v === null || row.c[0].v === '품번') return;
+
+        const itemCode = String(row.c[0]?.v || '').trim();
+        const lotInfo  = row.c[1]?.v || '-';
+        const boxSpec  = row.c[2]?.v || '-';
+        const curStock = row.c[3]?.v || 0;
+        const totalBox = row.c[4]?.v || '-';
+        const totalM2  = row.c[5]?.v || '-';
+
+        // [1] 품번 그룹별 배경색 퐁당퐁당 및 중복 글자 숨기기 처리
+        let displayItemCode = ''; // 실제 화면에 보여줄 품번 칸 텍스트
+
+        if (itemCode !== lastSeenItemCode) {
+            // 새로운 품번이 나타나면? 배경색 그룹을 바꾸고, 품번 이름을 정상 노출!
+            isGrayGroup = !isGrayGroup;
+            lastSeenItemCode = itemCode;
+            displayItemCode = `<strong>${itemCode}</strong>`; // 처음 등장할 땐 진하게 표시
+        } else {
+            // 똑같은 품번이 연속해서 등장하면? 이름 칸을 깔끔하게 빈칸("")으로 비워둠!
+            displayItemCode = ''; 
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = isGrayGroup ? 'bg-group-gray' : 'bg-group-white';
+
+        const m2Display = totalM2 ? (String(totalM2).includes('㎡') ? totalM2 : `${totalM2} ㎡`) : '-';
+
+        // 하이픈(-)만 빨간색으로 표시하는 로직
+        const totalBoxDisplay = (totalBox === '-' || !totalBox || totalBox === '0') 
+            ? `<span style="color: #d63031; font-weight: bold;">-</span>` 
+            : totalBox;
+
+        const totalM2Display = (m2Display === '-' || !m2Display || m2Display === '0 ㎡') 
+            ? `<span style="color: #d63031; font-weight: bold;">-</span>` 
+            : m2Display;
+
+        // [2] 화면에 그려주는 구역 (${itemCode} 대신 ${displayItemCode}를 넣었습니다)
+        tr.innerHTML = `
+            <td style="text-align: center;">${displayItemCode}</td>
+            <td style="text-align: center;">${lotInfo}</td>
+            <td style="text-align: center;">${boxSpec}</td>
+            <td style="text-align: center;">${curStock}</td>
+            <td style="text-align: center;">${totalBoxDisplay}</td>
+            <td style="text-align: center;">${totalM2Display}</td>
+        `;
+
+        // 마우스 호버 툴팁 (기존 유지)
+        tr.addEventListener('mousemove', (e) => {
+            const tooltip = document.getElementById('stockTooltip');
+            if (tooltip && typeof products !== 'undefined') {
+                const p = products.find(x => x.code === itemCode); // 툴팁은 원래 품번 기준으로 찾음
+                tooltip.innerHTML = `<strong>${itemCode}</strong><br>규격: ${p ? p.spec : '규격 정보 없음'}`;
+                tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
             }
-
-            const tr = document.createElement('tr');
-            
-            // 신호등 스타일 클래스명(stock-red 등)은 완전히 지우고, 품번 그룹 색상만 적용합니다.
-            tr.className = isGrayGroup ? 'bg-group-gray' : 'bg-group-white';
-
-            const m2Display = d.totalM2 ? (d.totalM2.includes('㎡') ? d.totalM2 : `${d.totalM2} ㎡`) : '-';
-
-            tr.innerHTML = `
-                <td style="text-align: center;"><strong>${d.itemCode}</strong></td>
-                <td style="text-align: center;">${d.lotInfo || '-'}</td>
-                <td style="text-align: center;">${d.boxSpec || '-'}</td>
-                <td style="text-align: center;">${d.curStock || '0'}</td>
-                <td style="text-align: center;">${d.totalBox || '0'}</td>
-                <td style="text-align: center;">${m2Display}</td>
-            `;
-
-            // 마우스 호버 툴팁
-            tr.addEventListener('mousemove', (e) => {
-                const tooltip = document.getElementById('stockTooltip');
-                if (tooltip && typeof products !== 'undefined') {
-                    const p = products.find(x => x.code === d.itemCode);
-                    tooltip.innerHTML = `<strong>${d.itemCode}</strong><br>규격: ${p ? p.spec : '규격 정보 없음'}`;
-                    tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
-                }
-            });
-
-            tr.addEventListener('mouseleave', () => {
-                const tooltip = document.getElementById('stockTooltip');
-                if (tooltip) tooltip.style.display = 'none';
-            });
-
-            tbody.appendChild(tr);
         });
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.dataset.tab === 'stockTab' || btn.getAttribute('data-tab') === 'stockTab') {
-                    fetchStockData();
-                }
-            });
+        tr.addEventListener('mouseleave', () => {
+            const tooltip = document.getElementById('stockTooltip');
+            if (tooltip) tooltip.style.display = 'none';
         });
+
+        tbody.appendChild(tr);
     });
-})();
 </script>
 </body>
 </html>
