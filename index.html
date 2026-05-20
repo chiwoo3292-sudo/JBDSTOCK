@@ -242,7 +242,6 @@
 </div>
 
 <style>
-/* 모든 주변 CSS 간섭을 원천 차단하는 초기화 스타일 */
 .auth-screen, .auth-screen * {
     box-sizing: border-box !important;
     margin: 0;
@@ -254,17 +253,17 @@
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    width: 100vw !important;
+    height: 100vh !important;
     background: #f8f9fa !important;
-    z-index: 9999999 !important;
+    z-index: 9999999 !important; /* 단가표 내부 툴팁보다 높은 최상위 레이어 */
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    align-items: center !important;     /* 세로 정중앙 */
+    justify-content: center !important;  /* 가로 정중앙 */
     font-family: sans-serif !important;
     padding: 20px !important;
-    overflow: hidden !important;
-    touch-action: none !important; /* 모바일에서 뒷화면 스크롤 들썩임 방지 */
+    overflow: hidden !important;        /* 뒷화면 스크롤 들썩임 원천 차단 */
+    touch-action: none !important;
 }
 .auth-box {
     background: #ffffff !important;
@@ -300,7 +299,7 @@
     width: 100% !important;
     height: 52px !important;
     padding: 0 15px !important;
-    font-size: 18px !important; /* 아이폰 자동 화면 확대 차단 */
+    font-size: 18px !important; /* 모바일 아이폰 자동 화면 확대(줌인) 현상 차단 */
     font-weight: bold !important;
     border: 2px solid #e2e8f0 !important;
     border-radius: 14px !important;
@@ -330,10 +329,11 @@
     font-weight: bold !important;
 }
 
+/* 📱 모바일(스마트폰) 환경 전용 레이아웃 보정 구역 */
 @media screen and (max-width: 768px) {
     .auth-screen {
         padding: 16px !important;
-        background: #ffffff !important;
+        background: #ffffff !important; /* 모바일은 일체감 있게 전체 흰색 배경으로 연출 가능 */
     }
     .auth-box {
         padding: 30px 20px !important;
@@ -342,10 +342,81 @@
         border-radius: 0 !important;
     }
     #authPassword, #authBtn {
-        height: 56px !important;
+        height: 56px !important; /* 한 손 터치가 용이하도록 두께 확대 */
     }
 }
 </style>
+
+<script>
+(function() {
+    // [수정 확인] 기존 원본 소스코드의 진짜 본문 클래스는 '.wrap'이므로 정확히 타겟팅합니다.
+    const mainContainer = document.querySelector('.wrap');
+    if (mainContainer) {
+        mainContainer.style.display = 'none';
+    }
+
+    // [복원] 기존 시스템에 내장되어 있던 표준 SHA-256 암호화 알고리즘 함수 고대로 복원
+    async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);                    
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // '7736' 검증용 고유 보안 해시 데이터 키값 그대로 매칭
+    const secureHash = "e993bc92842407eb3d3e867b3d39589d9e68ba9b08f51a2f6412574e4c2aa260"; 
+
+    async function checkPassword() {
+        const passwordInput = document.getElementById('authPassword').value;
+        const errorMsg = document.getElementById('authError');
+        const overlay = document.getElementById('authOverlay');
+
+        // 입력받은 비밀번호를 해시 암호화하여 대조 진행
+        const inputHash = await sha256(passwordInput);
+
+        if (inputHash === secureHash) {
+            // 모바일 잔상 및 레이아웃 홀딩 방지를 위해 완전히 노드 파괴(Remove) 처리
+            if (overlay) {
+                overlay.remove(); 
+            }
+            if (mainContainer) {
+                mainContainer.style.cssText = "display: block !important;"; // 본문(.wrap) 확실하게 활성화
+            }
+            // 모바일 소프트 키보드가 닫힌 직후 발생할 수 있는 뷰포트 배치 꼬임 방지 처리
+            window.scrollTo(0, 0);
+            window.dispatchEvent(new Event('resize'));
+        } else {
+            errorMsg.style.display = 'block';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authPassword').focus();
+        }
+    }
+
+    // 클릭 및 엔터 키 입력 감지 이벤트 바인딩
+    document.getElementById('authBtn').addEventListener('click', checkPassword);
+    document.getElementById('authPassword').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            checkPassword();
+        }
+    });
+
+    /* ==========================================
+       🚫 보안 유지 제어 (우클릭 및 키셋 차단)
+       ========================================== */
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    document.addEventListener('keydown', function(e) {
+        if (
+            e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
+            (e.ctrlKey && e.key === 'U')
+        ) {
+            e.preventDefault();
+            return false;
+        }
+    });
+})();
+</script>
 
 <script>
 (function() {
