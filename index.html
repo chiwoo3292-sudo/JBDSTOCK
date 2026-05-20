@@ -778,11 +778,20 @@ function renderStockTable(rows) {
 
 
 /* ==========================================================================
-   재고현황 전용 완전 독립 섹션 (헤더 위치 정렬 수정 버전)
+   재고현황 전용 완전 독립 섹션 (전체 가운데 정렬 + 불필요 행 완벽 차단 버전)
    ========================================================================== */
-// 표의 제목(th)과 내용(td)을 무조건 강제로 가운데 정렬시키는 마법의 코드
-document.head.insertAdjacentHTML('beforeend', '<style>#stockTableBody td, .tab-content table th { text-align: center !important; vertical-align: middle !important; }</style>');
-  
+// [정렬 해결] 표 전체의 헤더(th)와 본문(td)을 브라우저에 상관없이 무조건 강제 가운데 정렬
+document.head.insertAdjacentHTML('beforeend', `
+    <style>
+        .tab-content table th, 
+        .tab-content table td, 
+        #stockTableBody td { 
+            text-align: center !important; 
+            vertical-align: middle !important; 
+        }
+    </style>
+`);
+
 (function() {
     const STOCK_CONFIG = {
         ID: '1lu3P1g_CTFdofwpWITXQgGKisUoZLPdFD1mxC29wf_k',
@@ -835,81 +844,34 @@ document.head.insertAdjacentHTML('beforeend', '<style>#stockTableBody td, .tab-c
         rows.forEach(row => {
             if (!row || !row.c) return;
             
-            // [위치 수정] 상단 제목 순서에 맞춰 구글 시트 열 매칭을 재배치했습니다.
             const itemCode = getCellValue(row.c[0]); // 품번
-            const lotInfo  = getCellValue(row.c[1]); // LOT 및 입고일 (차수)
-            const boxSpec  = getCellValue(row.c[2]); // BOX 규격
+            const lotInfo  = getCellValue(row.c[1]); // LOT 및 입고일
+            const boxSpec  = getCellValue(row.c[2]); // BOX
             const curStock = getCellValue(row.c[3]); // 현재고
             const totalBox = getCellValue(row.c[4]); // 총 BOX
             const totalM2  = getCellValue(row.c[5]); // 총 재고(㎡)
 
+            // -------------------------------------------------------------
+            // [필터링 장치] 불필요한 유령 데이터 및 요약문 차단
+            // -------------------------------------------------------------
+            // 1. 모든 칸이 비어있으면 차단
             if (!itemCode && !lotInfo && !boxSpec && !curStock && !totalBox && !totalM2) return;
+            
+            // 2. '모든 자재 재고 통합' 문구가 들어가면 무조건 차단
+            if (itemCode.includes('모든 자재') || itemCode.includes('통합') || lotInfo.includes('통합')) return;
+            
+            // 3. 구글 시트의 헤더 제목줄('품번') 차단
+            if (itemCode === '품번') return;
+            
+            // 4. 캡처화면처럼 품번이 비어있는데 날짜만 덜렁 있고 수량이 '0'인 행 완전히 차단
+            if (!itemCode && (curStock === '0' || curStock === '') && (totalBox === '0' || totalBox === '')) return;
+            // -------------------------------------------------------------
 
-            let rowStyle = '';
             let statusClass = '';
-            let isHeaderOrSummary = false;
 
-            if (itemCode === '품번' || itemCode.includes('통합') || itemCode.includes('모든 자재') || (!itemCode && lotInfo.includes('차수'))) {
-                rowStyle = 'background-color: #f1f2f6; font-weight: bold; color: #2f3542;';
-                isHeaderOrSummary = true;
-            }
-
-            // 총 BOX(5번째 칸) 기준으로 신호등 색상 판단
-            if (!isHeaderOrSummary && totalBox) {
+            // 총 BOX 수량을 기준으로 신호등 색상 적용 (숫자만 걸러내기)
+            if (totalBox) {
                 const numBox = parseFloat(totalBox.replace(/[^0-9.-]/g, '')) || 0;
-                if (numBox < 10) statusClass = 'stock-red';
-                else if (numBox < 30) statusClass = 'stock-yellow';
-                else statusClass = 'stock-green';
-            }
-
-            const tr = document.createElement('tr');
-            if (statusClass) tr.className = `stock-row ${statusClass}`;
-            if (rowStyle) tr.setAttribute('style', rowStyle);
-
-            const m2Display = totalM2 ? (totalM2.includes('㎡') ? totalM2 : `${totalM2} ㎡`) : '';
-
-            // 상단 표 헤더 <품번/LOT 및 입고일/BOX/현재고/총 BOX/총 재고(㎡)> 와 1:1 대응하도록 <td> 배치
-            tr.innerHTML = `
-                <td><strong>${itemCode}</strong></td>
-                <td>${lotInfo || '-'}</td>
-                <td>${boxSpec || '-'}</td>
-                <td>${curStock || '0'}</td>
-                <td>${totalBox || '0'}</td>
-                <td>${m2Display || '-'}</td>
-            `;
-
-            if (!isHeaderOrSummary && itemCode) {
-                tr.addEventListener('mousemove', (e) => {
-                    const tooltip = document.getElementById('stockTooltip');
-                    if (tooltip && typeof products !== 'undefined') {
-                        const p = products.find(x => x.code === itemCode);
-                        tooltip.innerHTML = `<strong>${itemCode}</strong><br>규격: ${p ? p.spec : '규격 정보 없음'}`;
-                        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
-                    }
-                });
-
-                tr.addEventListener('mouseleave', () => {
-                    const tooltip = document.getElementById('stockTooltip');
-                    if (tooltip) tooltip.style.display = 'none';
-                });
-            }
-
-            tbody.appendChild(tr);
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.dataset.tab === 'stockTab' || btn.getAttribute('data-tab') === 'stockTab') {
-                    fetchStockData();
-                }
-            });
-        });
-    });
-})();
-
 </script>
 </body>
 </html>
