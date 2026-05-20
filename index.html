@@ -228,26 +228,138 @@
 </head>
 <body>
 
-<div id="authOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 99999; display: flex; align-items: center; justify-content: center; font-family: sans-serif; padding: 20px; box-sizing: border-box;">
-    <div style="background: #fff; padding: 40px 30px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); text-align: center; max-width: 400px; width: 100%; box-sizing: border-box;">
+<div id="authOverlay" class="auth-screen">
+    <div class="auth-box">
+        <div class="auth-icon">🔒</div>
+        <h2 class="auth-title">시스템 잠금</h2>
+        <p class="auth-desc">프로그램을 이용하려면<br>비밀번호를 입력해 주세요.</p>
         
-        <div style="font-size: 48px; margin-bottom: 15px;">🔒</div>
+        <input type="password" id="authPassword" placeholder="비밀번호 4자리 입력" autocomplete="off">
+        <button id="authBtn">확인</button>
         
-        <h2 style="margin: 0 0 12px; font-size: 24px; color: #111; font-weight: 800; letter-spacing: -0.5px;">시스템 잠금</h2>
-        <p style="margin: 0 0 28px; font-size: 15px; color: #666; line-height: 1.4;">프로그램을 이용하려면<br>비밀번호를 입력해 주세요.</p>
-        
-        <input type="password" id="authPassword" placeholder="비밀번호 4자리 입력" 
-               style="width: 100%; height: 54px; padding: 0 15px; font-size: 18px; font-weight: bold; border: 2px solid #e0e0e0; border-radius: 14px; box-sizing: border-box; text-align: center; margin-bottom: 16px; -webkit-text-security: disc; outline: none; transition: border-color 0.2s;">
-        
-        <button id="authBtn" style="width: 100%; height: 54px; background: #111; color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s;">확인</button>
-        
-        <p id="authError" style="margin: 16px 0 0; font-size: 14px; color: #d63031; display: none; font-weight: bold;">❌ 비밀번호가 올바르지 않습니다.</p>
+        <p id="authError" class="auth-error-msg">❌ 비밀번호가 올바르지 않습니다.</p>
     </div>
 </div>
 
+<style>
+/* 1. 기본 스타일 (PC 기준) */
+.auth-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.auth-box {
+    background: #fff;
+    padding: 40px 30px;
+    border-radius: 24px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+    text-align: center;
+    max-width: 380px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.auth-icon {
+    font-size: 44px;
+    margin-bottom: 12px;
+}
+.auth-title {
+    margin: 0 0 10px;
+    font-size: 22px;
+    color: #111;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+.auth-desc {
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+#authPassword {
+    width: 100%;
+    height: 50px;
+    padding: 0 15px;
+    font-size: 16px;
+    font-weight: bold;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    box-sizing: border-box;
+    text-align: center;
+    margin-bottom: 14px;
+    -webkit-text-security: disc;
+    outline: none;
+}
+#authBtn {
+    width: 100%;
+    height: 50px;
+    background: #111;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.auth-error-msg {
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: #d63031;
+    display: none;
+    font-weight: bold;
+}
+
+/* 2.📱 스마트폰 / 모바일 화면 전용 스타일 (화면 너비 768px 이하일 때 자동 작동) */
+@media screen and (max-width: 768px) {
+    .auth-screen {
+        padding: 16px; /* 주변 여백 최소화 */
+        background: #ffffff; /* 모바일에서는 깔끔하게 전체 흰색 배경으로 채우기 가능 */
+    }
+    .auth-box {
+        padding: 30px 20px; /* 내부 여백을 줄여 작은 화면에서도 꽉 차게 조절 */
+        box-shadow: none; /* 모바일 브라우저 부하 경감을 위해 그림자 제거 */
+        max-width: 100%;
+    }
+    .auth-icon {
+        font-size: 52px; /* 모바일에서 이모지 크기 확대 */
+        margin-bottom: 16px;
+    }
+    .auth-title {
+        font-size: 26px; /* 스마트폰에서 눈에 확 띄도록 제목 크기 확대 */
+    }
+    .auth-desc {
+        font-size: 15px; /* 본문 글자 크기 가독성 향상 */
+        margin-bottom: 32px;
+    }
+    #authPassword {
+        height: 56px; /* 손가락 터치 미스 방지를 위해 높이 대폭 확대 */
+        font-size: 18px; /* 아이폰 진입 시 화면이 강제로 확대(줌인)되는 현상 원천 차단 */
+        border-radius: 14px;
+    }
+    #authBtn {
+        height: 56px; /* 버튼 터치 영역 확대 */
+        font-size: 17px; /* 버튼 글자 크기 확대 */
+        border-radius: 14px;
+    }
+    .auth-error-msg {
+        font-size: 14px;
+        margin-top: 16px;
+    }
+}
+</style>
+
 <script>
 (function() {
-    // [핵심 수정] 사용자님 파일의 진짜 메인 박스인 .container를 찾아 숨깁니다.
+    // 본문(.container)을 우선 강제로 숨겨두어 접근을 차단합니다.
     const mainContainer = document.querySelector('.container');
     if (mainContainer) {
         mainContainer.style.display = 'none';
@@ -258,7 +370,7 @@
         const errorMsg = document.getElementById('authError');
         const overlay = document.getElementById('authOverlay');
 
-        // 입력한 숫자가 '7736'인지 곧바로 확인합니다.
+        // 입력한 숫자가 '7736'인지 확인합니다.
         if (passwordInput === '7736') {
             overlay.style.display = 'none';
             if (mainContainer) {
