@@ -151,12 +151,6 @@
     }
 }
 
-  
-/* 신호등 클래스 */
-.stock-row.stock-red { background-color: #fff5f5; color: #d63031; font-weight: bold; }
-.stock-row.stock-yellow { background-color: #fffdf0; color: #f39c12; font-weight: bold; }
-.stock-row.stock-green { background-color: #f8fff9; color: #27ae60; font-weight: bold; }
-
 /* 툴팁 */
 .stock-tooltip {
     position: absolute; display: none; background: rgba(0, 0, 0, 0.8); color: #fff;
@@ -803,23 +797,7 @@ function renderStockTable(rows) {
         const totalBox = row.c[4]?.v || 0; // 신호등 기준
         const totalM2  = row.c[5]?.v || '0';
 
-        // 신호등 로직
-        const count = Number(totalBox) || 0;
-        let statusClass = 'stock-green';
-        if (count < 10) statusClass = 'stock-red';
-        else if (count < 30) statusClass = 'stock-yellow';
-
-        const tr = document.createElement('tr');
-        tr.className = `stock-row ${statusClass}`;
-        tr.innerHTML = `
-            <td><strong>${itemCode}</strong></td>
-            <td>${lotInfo}</td>
-            <td>${boxSpec}</td>
-            <td>${curStock}</td>
-            <td>${totalBox}</td>
-            <td>${totalM2} ㎡</td>
-        `;
-
+        
         // 호버 툴팁 기능
         tr.addEventListener('mousemove', (e) => {
             const tooltip = document.getElementById('stockTooltip');
