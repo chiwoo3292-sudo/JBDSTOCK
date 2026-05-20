@@ -243,27 +243,19 @@
 
 <script>
 (function() {
-    // 본문(.wrap)을 우선 숨겨두어 접근 차단
+    // 본문(.wrap)을 우선 강제로 숨겨두어 접근을 차단합니다.
     const wrapSelector = document.querySelector('.wrap');
     if (wrapSelector) {
         wrapSelector.style.display = 'none';
     }
-
-    // 개발자 도구(F12)로 소스코드를 열어도 원래 번호(7736)를 절대 유추할 수 없게 만드는 인코딩 함수
-    function encodeSecret(str) {
-        return btoa(str).split('').reverse().join('');
-    }
-
-    // 🎯 '7736'을 안전하게 꼬아놓은 고유 문자열 키값입니다.
-    const secureKey = "==ZpADM0UzM"; 
 
     function checkPassword() {
         const passwordInput = document.getElementById('authPassword').value;
         const errorMsg = document.getElementById('authError');
         const overlay = document.getElementById('authOverlay');
 
-        // 입력된 값을 동일한 규칙으로 변환하여 매칭 (오류가 발생하지 않는 동기식 연산)
-        if (encodeSecret(passwordInput) === secureKey) {
+        // 복잡한 암호화 없이 입력한 숫자가 '7736'인지 곧바로 확인합니다.
+        if (passwordInput === '7736') {
             overlay.style.display = 'none';
             if (wrapSelector) {
                 wrapSelector.style.display = 'block';
@@ -275,7 +267,7 @@
         }
     }
 
-    // 버튼 클릭 및 엔터키 입력 이벤트 동시 지원
+    // 버튼 클릭 및 엔터키 입력 이벤트 처리
     document.getElementById('authBtn').addEventListener('click', checkPassword);
     document.getElementById('authPassword').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -284,12 +276,12 @@
     });
 
     /* ==========================================
-       🚫 외부인 차단: 개발자 도구 방해 로직
+       🚫 기본적인 외부인 접근 제어 (우클릭 및 키 차단)
        ========================================== */
-    // 마우스 우클릭 금지
+    // 마우스 우클릭 방지
     document.addEventListener('contextmenu', e => e.preventDefault());
 
-    // F12 및 주요 개발자 도구 진입 단축키 무력화
+    // F12 키 무력화
     document.addEventListener('keydown', function(e) {
         if (
             e.key === 'F12' || 
