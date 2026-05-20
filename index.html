@@ -824,12 +824,10 @@ function renderStockTable(rows) {
 }
 
 
-/* ==========================================================================
-   재고현황 전용 완전 독립 섹션 (신호등 제거 + 품번별 그룹 배경색 교차 버전)
-   ========================================================================== */
-// 헤더(th)와 본문(td) 정렬, 신호등 무력화, 그리고 헤더 스크롤 고정까지 한 번에 처리
+// 헤더 고정을 방해하는 바깥 틀(scroll, wrapper) 속성을 제어하고 th를 화면 상단에 박제
 document.head.insertAdjacentHTML('beforeend', `
     <style>
+        /* 1. 재고현황 탭 내부 정렬 */
         .tab-content table th, 
         .tab-content table thead th,
         .tab-content table td, 
@@ -838,12 +836,12 @@ document.head.insertAdjacentHTML('beforeend', `
             vertical-align: middle !important; 
         }
         
-        /* 기존 신호등 배경색 클래스 무력화 */
+        /* 2. 기존 신호등 배경색 클래스 무력화 */
         .stock-row, .stock-red, .stock-yellow, .stock-green {
             background-color: transparent !important;
         }
 
-        /* 품번 그룹별 구분을 위한 회색/흰색 배경 스타일 */
+        /* 3. 품번 그룹별 구분을 위한 회색/흰색 배경 스타일 */
         tr.bg-group-gray {
             background-color: #f9f9f9 !important;
         }
@@ -851,15 +849,27 @@ document.head.insertAdjacentHTML('beforeend', `
             background-color: #ffffff !important;
         }
 
-        /* [추가] 스크롤 내려도 품번, LOT 등 제목줄 최상단 강제 고정 */
+        /* 4. [핵심] 상단 타이틀 스크롤 고정 간섭 파괴 및 강제 고정 */
+        .tab-panel .scroll, 
+        .stock-table-wrapper {
+            overflow: visible !important; /* 내부 스크롤을 없애고 th가 브라우저 상단에 붙게 함 */
+            max-height: none !important;  /* 높이 제한을 풀어 전체 스크롤과 동기화 */
+        }
+
+        #stockTable {
+            border-collapse: separate !important; /* 찐득하게 붙도록 테두리 분리 계산 */
+            border-spacing: 0;
+        }
+
         #stockTable th {
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 10 !important;
-            background-color: #f8f9fa !important;
+            position: -webkit-sticky !important;
+            position: sticky !important;  /* 스크롤 내려도 그 자리에 고정 */
+            top: 0 !important;            /* 화면 맨 위 주소창 바로 아래에 고정 */
+            z-index: 100 !important;      /* 숫자들이 헤더 위로 침범하지 못하게 최상위 우선순위 */
+            background-color: #f8f9fa !important; /* 스크롤 시 뒤쪽 데이터가 비쳐 보이지 않게 배경색 차단 */
+            border-bottom: 2px solid #ddd !important;
         }
     </style>
-`);
 `);
 
 (function() {
