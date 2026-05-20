@@ -226,29 +226,7 @@
 
 </style
   
-<script>
-(function() {
-    // 1. 진짜 메인 본문 컨테이너 박스인 '.wrap'을 찾아서 잠금 해제 전까지 완전히 숨깁니다.
-    const mainContainer = document.querySelector('.wrap');
-    if (mainContainer) {
-        mainContainer.style.setProperty('display', 'none', 'important');
-    }
 
-    // 2. 안전한 SHA-256 비동기 암호화 연산 함수 정의
-    async function sha256(message) {
-        const msgBuffer = new TextEncoder().encode(message);                    
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    // 비밀번호 '7736'에 대응하는 고유 해시 타겟 키값 설정 
-    const secureHash = "e993bc92842407eb3d3e867b3d39589d9e68ba9b08f51a2f6412574e4c2aa260"; 
-
-    // ... (이하 생략, 이 암호화 관련 스크립트 하나만 남겨두시면 됩니다) ...
-</script>
-
- 
 <div class="wrap">
   <div class="tabs no-capture">
   <button type="button" class="tab-btn active" data-tab="pricingTab">단가표</button>
