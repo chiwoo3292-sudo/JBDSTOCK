@@ -1127,29 +1127,30 @@ document.head.insertAdjacentHTML('beforeend', `
                 <td style="text-align: center;">${totalM2Display}</td>
             `;
 
-           /// 마우스 호버 툴팁 (d.itemCode를 실제 변수인 d.code로 수정 및 기호·공백 오차 완벽 차단)
+           // 마우스 호버 툴팁 (공백 및 기호 불일치 완벽 원천 차단 매칭)
 tr.addEventListener('mousemove', (e) => {
     const tooltip = document.getElementById('stockTooltip');
     if (tooltip && typeof products !== 'undefined') {
         
-        // 비교할 품번에서 공백과 특수문자를 제거하는 함수
+        // 비교할 품번에서 모든 공백과 특수문자를 제거하고 대문자로 통일하는 함수
         const cleanString = (str) => {
             if (!str) return '';
             return str.replace(/[^a-zA-Z0-9가-힣]/g, '').toUpperCase();
         };
 
-        const targetCode = cleanString(d.code);
+        const targetCode = cleanString(d.itemCode);
         const p = products.find(x => cleanString(x.code) === targetCode); 
         
         if (p) {
-            // 정보가 정상 매칭되면 품명과 규격을 정확하게 출력
-            tooltip.innerHTML = `<strong>[${d.code}] ${p.name}</strong><br>규격: ${p.spec}`;
+            // 정보가 매칭되면 품명과 규격을 정확하게 띄웁니다.
+            tooltip.innerHTML = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec}`;
         } else {
-            tooltip.innerHTML = `<strong>[${d.code}]</strong><br>규격: 규격 정보 없음`;
+            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>규격: 규격 정보 없음`;
         }
         tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
     }
 });
+
             tr.addEventListener('mouseleave', () => {
                 const tooltip = document.getElementById('stockTooltip');
                 if (tooltip) tooltip.style.display = 'none';
