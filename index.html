@@ -1209,26 +1209,34 @@ document.head.insertAdjacentHTML('beforeend', `
                 <td style="text-align: center;">${totalM2Display}</td>
             `;
 
-           // 마우스 호버 툴팁 (공백 및 기호 불일치 완벽 원천 차단 매칭)
-tr.addEventListener('mousemove', (e) => {
+           tr.addEventListener('mouseover', (e) => {
     const tooltip = document.getElementById('stockTooltip');
-    if (tooltip && typeof products !== 'undefined') {
-        
-        // 비교할 품번에서 모든 공백과 특수문자를 제거하고 대문자로 통일하는 함수
-        const cleanString = (str) => {
-            if (!str) return '';
-            return str.replace(/[^a-zA-Z0-9가-힣]/g, '').toUpperCase();
-        };
+    const d = { itemCode: "호버된_품번" }; // 실제 데이터 객체
 
+    if (tooltip && typeof products !== 'undefined') {
+        const cleanString = (str) => str.replace(/[^a-zA-Z0-9가-힣]/g, '').toUpperCase();
         const targetCode = cleanString(d.itemCode);
+        
+        // 데이터에서 해당 품번 찾기
         const p = products.find(x => cleanString(x.code) === targetCode); 
         
         if (p) {
-            // 정보가 매칭되면 품명과 규격을 정확하게 띄웁니다.
-            tooltip.innerHTML = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec}`;
+            // [핵심 수정 부분]
+            let displayContent = "";
+            
+            // 단종 여부 확인 (시트의 상태 값이 '단종'인지 체크)
+            if (p.status === '단종') {
+                displayContent = `<strong>[${d.itemCode}] ${p.name}</strong><br><span style="color: red; font-weight: bold;">단종</span>`;
+            } else {
+                // 규격 정보가 있으면 표시
+                displayContent = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec || '정보 없음'}`;
+            }
+            
+            tooltip.innerHTML = displayContent;
         } else {
-            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>규격: 규격 정보 없음`;
+            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>정보 없음`;
         }
+        
         tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
     }
 });
