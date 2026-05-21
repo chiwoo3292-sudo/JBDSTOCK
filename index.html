@@ -928,18 +928,22 @@ function renderStockTable(rows) {
         const totalM2  = row.c[5]?.v || '0';
 
         
-        // 호버 툴팁 기능
-        tr.addEventListener('mousemove', (e) => {
-            const tooltip = document.getElementById('stockTooltip');
-            if (typeof products !== 'undefined') {
-                const p = products.find(x => x.code === itemCode);
-                const specInfo = p ? p.spec : '규격 정보 없음';
-                tooltip.innerHTML = `<strong>${itemCode}</strong><br>규격: ${specInfo}`;
-                tooltip.style.display = 'block';
-                tooltip.style.left = (e.pageX + 15) + 'px';
-                tooltip.style.top = (e.pageY + 15) + 'px';
-            }
-        });
+      // 마우스 호버 툴팁 (실제 품번 d.itemCode 기준 조회)
+tr.addEventListener('mousemove', (e) => {
+    const tooltip = document.getElementById('stockTooltip');
+    if (tooltip && typeof products !== 'undefined') {
+        // trim()과 대문자 변환 처리를 추가하여 품번 매칭 오류를 원천 차단합니다.
+        const p = products.find(x => x.code.trim().toUpperCase() === d.itemCode.trim().toUpperCase()); 
+
+        if (p) {
+            // 단가표의 실제 품명(name)과 스펙(spec) 데이터를 일치시켜 가져옵니다.
+            tooltip.innerHTML = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec}`;
+        } else {
+            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>규격: 규격 정보 없음`;
+        }
+        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
+    }
+});
 
         tr.addEventListener('mouseleave', () => {
             document.getElementById('stockTooltip').style.display = 'none';
