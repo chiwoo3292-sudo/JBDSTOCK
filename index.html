@@ -1127,15 +1127,29 @@ document.head.insertAdjacentHTML('beforeend', `
                 <td style="text-align: center;">${totalM2Display}</td>
             `;
 
-            // 마우스 호버 툴팁 (실제 품번 d.itemCode 기준 조회)
-            tr.addEventListener('mousemove', (e) => {
-                const tooltip = document.getElementById('stockTooltip');
-                if (tooltip && typeof products !== 'undefined') {
-                    const p = products.find(x => x.code === d.itemCode); 
-                    tooltip.innerHTML = `<strong>${d.itemCode}</strong><br>규격: ${p ? p.spec : '규격 정보 없음'}`;
-                    tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
-                }
-            });
+           // 마우스 호버 툴팁 (공백 및 기호 불일치 완벽 원천 차단 매칭)
+tr.addEventListener('mousemove', (e) => {
+    const tooltip = document.getElementById('stockTooltip');
+    if (tooltip && typeof products !== 'undefined') {
+        
+        // 비교할 품번에서 모든 공백과 특수문자를 제거하고 대문자로 통일하는 함수
+        const cleanString = (str) => {
+            if (!str) return '';
+            return str.replace(/[^a-zA-Z0-9가-힣]/g, '').toUpperCase();
+        };
+
+        const targetCode = cleanString(d.itemCode);
+        const p = products.find(x => cleanString(x.code) === targetCode); 
+        
+        if (p) {
+            // 정보가 매칭되면 품명과 규격을 정확하게 띄웁니다.
+            tooltip.innerHTML = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec}`;
+        } else {
+            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>규격: 규격 정보 없음`;
+        }
+        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
+    }
+});
 
             tr.addEventListener('mouseleave', () => {
                 const tooltip = document.getElementById('stockTooltip');
