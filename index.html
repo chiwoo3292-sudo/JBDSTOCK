@@ -808,7 +808,9 @@ if (memoArea) {
   document.querySelectorAll('.tab-panel').forEach(panel => {
     panel.style.display = panel.id === tabId ? 'block' : 'none';
   });
-}function formatDecimal(value) {
+}
+
+function formatDecimal(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) return '-';
   const rounded = Math.round(num * 100) / 100;
@@ -879,10 +881,10 @@ function runCalculator() {
   let total;
   if (inputMode === 'py') {
     // 평수 입력 시에도 최종 박스 면적 기준 평당가 적용
-    total = Math.round(finalCoveragePy * pyPrice);
+    total = Math.round((Math.round(finalCoveragePy * 100) * pyPrice) / 100);
   } else if (inputMode === 'sqm') {
     // ㎡ 입력 시 최종 박스 면적 기준 헤베 단가 적용
-    total = Math.round(finalCoverageSqm * sqmPrice);
+  total = Math.round((Math.round(finalCoverageSqm * 100) * sqmPrice) / 100);
   } else {
     total = calcBoxes * boxPrice;
   }
