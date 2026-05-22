@@ -997,110 +997,38 @@ function renderStockTable(rows) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    let processedRows = [];
     rows.forEach((row) => {
-        // 빈 행 무시 (헤더나 공백 행 제외)
+        // 빈 행 무시
         if (!row || !row.c || !row.c[0] || row.c[0].v === null || row.c[0].v === '품번') return;
-        
-        // [기존 데이터 추출] A~F열 (0~5번 인덱스)
+
+        // 열 순서: A(0)=품번, B(1)=LOT, C(2)=BOX규격, D(3)=현재고, E(4)=총BOX, F(5)=총재고m2
         const itemCode = String(row.c[0]?.v || '').trim();
-        const lotInfo = row.c[1]?.v || '-';
-        const boxSpec = row.c[2]?.v || '-';
-        const curStock = row.c[3]?.v !== null ? row.c[3].v : 0;
-        const totalBox = row.c[4]?.v !== null ? row.c[4].v : 0;
-        const totalM2 = row.c[5]?.v !== null ? row.c[5].v : 0;
+        const lotInfo  = row.c[1]?.v || '-';
+        const boxSpec  = row.c[2]?.v || '-';
+        const curStock = row.c[3]?.v || 0;
+        const totalBox = row.c[4]?.v || 0; // 신호등 기준
+        const totalM2  = row.c[5]?.v || '0';
 
-        // [신규 핵심 수정] H, I, J열에서 데이터 추출 (7, 8, 9번 인덱스)
-        const itemName = row.c[7]?.v ? String(row.c[7].v).trim() : '';
-        const itemSpec = row.c[8]?.v ? String(row.c[8].v).trim() : '';
-        const itemStatus = row.c[9]?.v ? String(row.c[9].v).trim() : '';
+        
+      // 마우스 호버 툴팁 (실제 품번 d.itemCode 기준 조회)
+tr.addEventListener('mousemove', (e) => {
+    const tooltip = document.getElementById('stockTooltip');
+    if (tooltip && typeof products !== 'undefined') {
+        // trim()과 대문자 변환 처리를 추가하여 품번 매칭 오류를 원천 차단합니다.
+        const p = products.find(x => x.code.trim().toUpperCase() === d.itemCode.trim().toUpperCase()); 
 
-        // 정제된 데이터를 객체 구조로 확장하여 보관
-        processedRows.push({
-            itemCode, 
-            lotInfo, 
-            boxSpec, 
-            curStock, 
-            totalBox, 
-            totalM2,
-            itemName,   // 품명 추가
-            itemSpec,   // 규격 추가
-            itemStatus  // 단종 여부(상태) 추가
-        });
-    });
-
-    // 2단계: 화면에 품번 중복 제거 처리 및 퐁당퐁당 배경색 그리며 테이블 생성
-    let lastSeenItemCode = '';
-    let isGrayGroup = false;
-
-    processedRows.forEach((d) => {
-        let displayItemCode = '';
-        if (d.itemCode !== lastSeenItemCode) {
-            isGrayGroup = !isGrayGroup;
-            lastSeenItemCode = d.itemCode;
-            displayItemCode = d.itemCode;
+        if (p) {
+            // 단가표의 실제 품명(name)과 스펙(spec) 데이터를 일치시켜 가져옵니다.
+            tooltip.innerHTML = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec}`;
+        } else {
+            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>규격: 규격 정보 없음`;
         }
+        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
+    }
+});
 
-        const tr = document.createElement('tr');
-        if (isGrayGroup) {
-            tr.style.backgroundColor = '#fcfcfc';
-        }
-
-        // 품번 칸 생성 시 연속된 동일 품번은 빈칸 처리
-        const tdCode = document.createElement('td');
-        tdCode.style.fontWeight = 'bold';
-        tdCode.textContent = displayItemCode;
-        tr.appendChild(tdCode);
-
-        // 나머지 열 채우기 (LOT, BOX규격, 현재고, 총BOX, 총재고)
-        [d.lotInfo, d.boxSpec, d.curStock, d.totalBox, d.totalM2].forEach((val, idx) => {
-            const td = document.createElement('td');
-            if (idx >= 2 && typeof val === 'number') {
-                td.textContent = val.toLocaleString(); // 숫자 가독성 콤마 처리
-            } else {
-                td.textContent = val;
-            }
-            tr.appendChild(td);
-        });
-
-        // [신규 마우스 호버 로직] 내부 products 대신 시트의 실시간 데이터 매핑
-        tr.addEventListener('mouseenter', (e) => {
-            const tooltip = document.getElementById('stockTooltip');
-            if (tooltip) {
-                let displayContent = "";
-
-                // 품명 정보가 존재할 때의 처리
-                if (d.itemName) {
-                    // J열(단종 여부)의 값이 '단종'인 경우 빨간색 강조 출력
-                    if (d.itemStatus === '단종') {
-                        displayContent = `<strong>[${d.itemCode}] ${d.itemName}</strong><br><span style="color: red; font-weight: bold;">단종</span>`;
-                    } else {
-                        // 규격 정보가 있으면 표시, 없으면 '정보 없음' 출력
-                        displayContent = ` = `<strong>[${d.itemCode}] ${d.itemName}</strong><br>규격: ${d.itemSpec || '정보 없음'}`;
-                    }
-                } else {
-                    // 구글 시트에 품명 정보 자체가 비어있을 때
-                    displayContent = `<strong>[${d.itemCode}]</strong><br>등록된 정보 없음`;
-                }
-
-                tooltip.innerHTML = displayContent;
-                tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
-            }
-        });
-
-        // 마우스가 행 안에서 움직일 때 툴팁이 커서를 매끄럽게 따라다니도록 추가 보정
-        tr.addEventListener('mousemove', (e) => {
-            const tooltip = document.getElementById('stockTooltip');
-            if (tooltip && tooltip.style.display === 'block') {
-                tooltip.style.left = `${e.pageX + 15}px`;
-                tooltip.style.top = `${e.pageY + 15}px`;
-            }
-        });
-
-        // 마우스가 행을 벗어나면 툴팁 숨김
         tr.addEventListener('mouseleave', () => {
-            const tooltip = document.getElementById('stockTooltip');
-            if (tooltip) tooltip.style.display = 'none';
+            document.getElementById('stockTooltip').style.display = 'none';
         });
 
         tbody.appendChild(tr);
