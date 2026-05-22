@@ -1209,48 +1209,45 @@ document.head.insertAdjacentHTML('beforeend', `
                 <td style="text-align: center;">${totalM2Display}</td>
             `;
 
-           // 1. 마우스 호버 시 툴팁 생성 및 H, I, J열 데이터 반영
-            tr.addEventListener('mouseenter', (e) => {
-                const p = products.find(prod => prod.code === d.itemCode);
-                const tooltip = document.getElementById('stockTooltip');
-                
-                if (tooltip) {
-                    if (p) {
-                        let displayContent = `<strong>[${d.itemCode}] ${p.name}</strong><br>`;
-                        
-                        // 단종 여부 확인
-                        if (p.status === '단종') {
-                            displayContent += `<span style="color: red; font-weight: bold;">[단종 제품]</span><br>`;
-                        } else {
-                            displayContent += `규격: ${p.spec || '정보 없음'}<br>`;
-                        }
-                        
-                        // 💡 [H, I, J열 실시간 데이터 연동 구역]
-                        // 구글 시트 API 연동 방식에 따라 d.colH, d.h 또는 d['헤더명'] 형태로 매칭됩니다.
-                        // 현재 유저님의 데이터 구조에 맞게 key값(h, i, j)을 연동합니다.
-                        const valH = d.h || d.colH || d['H열필드명'] || '0';
-                        const valI = d.i || d.colI || d['I열필드명'] || '0';
-                        const valJ = d.j || d.colJ || d['J열필드명'] || '0';
-                        
-                        displayContent += `<hr style="border:0; border-top:1px dashed #ddd; margin:6px 0;">`;
-                        displayContent += `<span style="color: #4da3ff; font-weight: bold;">재고현황 (H열):</span> ${valH}<br>`;
-                        displayContent += `<span style="color: #28a745; font-weight: bold;">입고예정 (I열):</span> ${valI}<br>`;
-                        displayContent += `<span style="color: #e0a800; font-weight: bold;">기타정보 (J열):</span> ${valJ}`;
-                        
-                        tooltip.innerHTML = displayContent;
-                    } else {
-                        tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br><span style="color:#999;">단가표 정보 없음</span>`;
-                    }
-                    
-                    tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
-                }
-            });
+           tr.addEventListener('mouseover', (e) => {
+    const tooltip = document.getElementById('stockTooltip');
+    const d = { itemCode: "호버된_품번" }; // 실제 데이터 객체
 
-            // 2. 마우스가 벗어났을 때 툴팁 숨기기
+    if (tooltip && typeof products !== 'undefined') {
+        const cleanString = (str) => str.replace(/[^a-zA-Z0-9가-힣]/g, '').toUpperCase();
+        const targetCode = cleanString(d.itemCode);
+        
+        // 데이터에서 해당 품번 찾기
+        const p = products.find(x => cleanString(x.code) === targetCode); 
+        
+        if (p) {
+            // [핵심 수정 부분]
+            let displayContent = "";
+            
+            // 단종 여부 확인 (시트의 상태 값이 '단종'인지 체크)
+            if (p.status === '단종') {
+                displayContent = `<strong>[${d.itemCode}] ${p.name}</strong><br><span style="color: red; font-weight: bold;">단종</span>`;
+            } else {
+                // 규격 정보가 있으면 표시
+                displayContent = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec || '정보 없음'}`;
+            }
+            
+            tooltip.innerHTML = displayContent;
+        } else {
+            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>정보 없음`;
+        }
+        
+        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
+    }
+});
+
             tr.addEventListener('mouseleave', () => {
                 const tooltip = document.getElementById('stockTooltip');
                 if (tooltip) tooltip.style.display = 'none';
             });
+
+            tbody.appendChild(tr);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
