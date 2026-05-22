@@ -610,7 +610,9 @@
 </div>
 <div id="toast" class="toast">복사 완료</div>
 <script>
-const products = [{"code": "A#1501", "name": "OAK CLASSIC", "spec": "12 x 165 x 1200 / 1.5T", "box_m2": 2.376, "sheets_per_box": 12, "vendor": {"py": 230000, "sqm": 71000, "box": 169000, "material": 195000}, "consumer": {"py": 280000, "sqm": 86500, "box": 206000, "material": 245000}}, {"code": "A#1502", "name": "NORDIC OAK", "spec": "12 x 165 x 1200 / 1.5T", "box_m2": 2.376, "sheets_per_box": 12, "vendor": {"py": 230000, "sqm": 71000, "box": 169000, "material": 195000}, "consumer": {"py": 280000, "sqm": 86500, "box": 206000, "material": 245000}}, {"code": "A#1503", "name": "NATIVE", "spec": "12 x 165 x 1200 / 1.5T", "box_m2": 2.376, "sheets_per_box": 12, "vendor": {"py": 230000, "sqm": 71000, "box": 169000, "material": 195000}, "consumer": {"py": 280000, "sqm": 86500, "box": 206000, "material": 245000}}, {"code": "A#1504", "name": "SIMPLY WHITE", "spec": "12 x 165 x 1200 / 1.5T", "box_m2": 2.376, "sheets_per_box": 12, "vendor": {"py": 230000, "sqm": 71000, "box": 169000, "material": 195000}, "consumer": {"py": 280000, "sqm": 86500, "box": 206000, "material": 245000}}, {"code": "A#1505", "name": "WASHED GREIGE", "spec": "12 x 165 x 1200 / 1.5T", "box_m2": 2.376, "sheets_per_box": 12, "vendor": {"py": 230000, "sqm": 71000, "box": 169000, "material": 195000}, "consumer": {"py": 280000, "sqm": 86500, "box": 206000, "material": 245000}}, {"code": "A#1506", "name": "CASHMERE BROWN", "spec": "12 x 165 x 1200 / 1.5T", "box_m2": 2.376, "sheets_per_box": 12, "vendor": {"py": 230000, "sqm": 71000, "box": 169000, "material": 195000}, "consumer": {"py": 280000, "sqm": 86500, "box": 206000, "material": 245000}}, {"code": "A#1507", "name": "CHARCOAL BLACK", "spec": "12 x 165 x 1200 / 1.5T / SAWCUT", "box_m2": 2.376, "sheets_per_box": 12, "vendor": {"py": 230000, "sqm": 71000, "box": 169000, "material": 195000}, "consumer": {"py": 280000, "sqm": 86500, "box": 206000, "material": 245000}}, {"code": "A#1601", "name": "NATURAL", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1602", "name": "WINTER OAK", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1603", "name": "SPRING CREEK", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1604", "name": "SEDONA", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1605", "name": "EARLY AMERICAN", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1606", "name": "PISTACHIO", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1607", "name": "SLATE GREY", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1608", "name": "AGED EBONY", "spec": "14 x 190 x 1900 / 2T / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1701", "name": "NATURAL", "spec": "14 x 190 x 1900 / 2T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 310000, "sqm": 95700, "box": 208000, "material": 265000}, "consumer": {"py": 370000, "sqm": 114200, "box": 248000, "material": 325000}}, {"code": "A#1702", "name": "SAND", "spec": "14 x 190 x 1900 / 2T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 310000, "sqm": 95700, "box": 208000, "material": 265000}, "consumer": {"py": 370000, "sqm": 114200, "box": 248000, "material": 325000}}, {"code": "A#1703", "name": "LIGHT NATURAL", "spec": "14 x 190 x 1900 / 2T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 310000, "sqm": 95700, "box": 208000, "material": 265000}, "consumer": {"py": 370000, "sqm": 114200, "box": 248000, "material": 325000}}, {"code": "A#1706", "name": "WARM GREY", "spec": "14 x 190 x 1900 / 2T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 310000, "sqm": 95700, "box": 208000, "material": 265000}, "consumer": {"py": 370000, "sqm": 114200, "box": 248000, "material": 325000}}, {"code": "A#1707", "name": "ENGLISH CHESTNUT", "spec": "14 x 190 x 1900 / 2T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 310000, "sqm": 95700, "box": 208000, "material": 265000}, "consumer": {"py": 370000, "sqm": 114200, "box": 248000, "material": 325000}}, {"code": "A#1708", "name": "SAVANNA", "spec": "14 x 190 x 1900 / 2T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 310000, "sqm": 95700, "box": 208000, "material": 265000}, "consumer": {"py": 370000, "sqm": 114200, "box": 248000, "material": 325000}}, {"code": "A#1709", "name": "JACOBEAN", "spec": "14 x 190 x 1900 / 2T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 310000, "sqm": 95700, "box": 208000, "material": 265000}, "consumer": {"py": 370000, "sqm": 114200, "box": 248000, "material": 325000}}, {"code": "A#17011", "name": "REAL OAK", "spec": "14 x 190 x 1900 / 1.5T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#17012", "name": "LIGHT OAK", "spec": "14 x 190 x 1900 / 1.5T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#17013", "name": "NATURAL LINEN", "spec": "14 x 190 x 1900 / 1.5T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#17014", "name": "APPLE CINNAMON", "spec": "14 x 190 x 1900 / 1.5T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "C#17015", "name": "IVORY DUNE", "spec": "14 x 190 x 1900 / 1.5T / AB / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "C#17016", "name": "EARTH BOUND", "spec": "14 x 190 x 1900 / 1.5T / AB / SAWCUT", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "C#17017", "name": "MUTED SOIL", "spec": "14 x 190 x 1900 / 1.5T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "C#17018", "name": "MURMUR GREY", "spec": "14 x 190 x 1900 / 1.5T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 320000, "sqm": 98800, "box": 214000, "material": 275000}, "consumer": {"py": 380000, "sqm": 117300, "box": 254000, "material": 335000}}, {"code": "A#1801", "name": "CLEAR", "spec": "14 x 190 x 1900 / 3T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 390000, "sqm": 120400, "box": 261000, "material": 345000}, "consumer": {"py": 450000, "sqm": 138900, "box": 301000, "material": 405000}}, {"code": "A#1802", "name": "PICKLED OAK", "spec": "14 x 190 x 1900 / 3T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 340000, "sqm": 105000, "box": 228000, "material": 295000}, "consumer": {"py": 400000, "sqm": 123500, "box": 268000, "material": 355000}}, {"code": "A#1804", "name": "SUMMER OAK", "spec": "14 x 190 x 1900 / 3T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 340000, "sqm": 105000, "box": 228000, "material": 295000}, "consumer": {"py": 400000, "sqm": 123500, "box": 268000, "material": 355000}}, {"code": "A#1805", "name": "MELANGE", "spec": "14 x 190 x 1900 / 3T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 340000, "sqm": 105000, "box": 228000, "material": 295000}, "consumer": {"py": 400000, "sqm": 123500, "box": 268000, "material": 355000}}, {"code": "A#1806", "name": "COCOA BROWN", "spec": "14 x 190 x 1900 / 3T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 340000, "sqm": 105000, "box": 228000, "material": 295000}, "consumer": {"py": 400000, "sqm": 123500, "box": 268000, "material": 355000}}, {"code": "A#1807", "name": "SMOKED HENNA", "spec": "14 x 190 x 1900 / 3T", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 340000, "sqm": 105000, "box": 228000, "material": 295000}, "consumer": {"py": 400000, "sqm": 123500, "box": 268000, "material": 355000}}, {"code": "A#18001", "name": "CLASSY OAK", "spec": "14 x 190 x 1900 / 3T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 390000, "sqm": 120400, "box": 261000, "material": 345000}, "consumer": {"py": 450000, "sqm": 138900, "box": 301000, "material": 405000}}, {"code": "A#18002", "name": "ZEN MIST", "spec": "14 x 190 x 1900 / 3T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 390000, "sqm": 120400, "box": 261000, "material": 345000}, "consumer": {"py": 450000, "sqm": 138900, "box": 301000, "material": 405000}}, {"code": "A#18003", "name": "OAT GRAIN", "spec": "14 x 190 x 1900 / 3T / AB", "box_m2": 2.166, "sheets_per_box": 6, "vendor": {"py": 390000, "sqm": 120400, "box": 261000, "material": 345000}, "consumer": {"py": 450000, "sqm": 138900, "box": 301000, "material": 405000}}, {"code": "C#1802", "name": "BUMPY GRAPHITE", "spec": "14 x 189 x 1860 / 3T", "box_m2": 2.11, "sheets_per_box": 6, "vendor": {"py": 360000, "sqm": 111200, "box": 235000, "material": 315000}, "consumer": {"py": 420000, "sqm": 129700, "box": 274000, "material": 375000}}, {"code": "C#1803", "name": "RUSTIC OAK", "spec": "14 x 189 x 1860 / 3T / SAWCUT", "box_m2": 2.11, "sheets_per_box": 6, "vendor": {"py": 360000, "sqm": 111200, "box": 235000, "material": 315000}, "consumer": {"py": 420000, "sqm": 129700, "box": 274000, "material": 375000}}, {"code": "C#1804", "name": "ROCK WOOD", "spec": "14 x 189 x 1860 / 3T / SAWCUT", "box_m2": 2.11, "sheets_per_box": 6, "vendor": {"py": 360000, "sqm": 111200, "box": 235000, "material": 315000}, "consumer": {"py": 420000, "sqm": 129700, "box": 274000, "material": 375000}}, {"code": "A#1901", "name": "LIGHT OAK", "spec": "15 x 240 x 2200 / 4T", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1902", "name": "OAK SOAP", "spec": "15 x 240 x 2200 / 4T / SAWCUT", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1903", "name": "RUSTIC GREY", "spec": "15 x 240 x 2200 / 4T / SAWCUT", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1904", "name": "PROVINCE BROWN", "spec": "15 x 240 x 2200 / 4T / SAWCUT", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1905", "name": "SIENNA", "spec": "15 x 240 x 2200 / 4T / SAWCUT", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1906", "name": "EBONY", "spec": "15 x 240 x 2200 / 4T / SAWCUT", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1907", "name": "PEBBLE GREY", "spec": "15 x 240 x 2200 / 4T", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1908", "name": "PEPPERCORN", "spec": "15 x 240 x 2200 / 4T", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1909", "name": "NUTMAG", "spec": "15 x 240 x 2200 / 4T", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1910", "name": "NEUTRAL", "spec": "15 x 240 x 2200 / 4T", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#1911", "name": "TRUE BLACK", "spec": "15 x 240 x 2200 / 4T / SAWCUT", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "A#19001", "name": "CREMY OAK", "spec": "15 x 240 x 2200 / 4T / AB", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}, "consumer": {"py": 550000, "sqm": 169800, "box": 359000, "material": 500000}}, {"code": "C#1905", "name": "ESPRESSO", "spec": "15 x 240 x 2200 / 4T", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "C#1906", "name": "AGED BARREL", "spec": "15 x 240 x 2200 / 4T", "box_m2": 2.112, "sheets_per_box": 4, "vendor": {"py": 410000, "sqm": 126600, "box": 268000, "material": 360000}, "consumer": {"py": 480000, "sqm": 148200, "box": 313000, "material": 430000}}, {"code": "E#1801", "name": "HEIMISH OAK", "spec": "14 x 190 x 1710 / 3T / SAWCUT", "box_m2": 1.95, "sheets_per_box": 4, "vendor": {"py": 360000, "sqm": 111200, "box": 217000, "material": 315000}, "consumer": {"py": 420000, "sqm": 129700, "box": 253000, "material": 375000}}];
+// products 배열은 PRICE 시트에서 동적으로 로드됩니다.
+let products = [];
+
 const templates = {
   sample: [
   '안녕하세요.',
@@ -759,52 +761,6 @@ function setTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabId);
   });
-
-
-// 업무 메모장 입력 시 화면 튕김(최하단 고정) 방지 및 자동 높이 조절
-const memoArea = document.getElementById('workMemo');
-if (memoArea) {
-    // 1. 최초 로드 시 저장된 메모 불러오기
-    memoArea.value = localStorage.getItem('baram_work_memo') || '';
-    
-    // 내용에 맞게 높이를 조절하되, 스크롤이 튕기지 않도록 보정하는 함수
-    const autoResizeMemo = () => {
-        // 현재 사용자가 보고 있는 브라우저의 스크롤 위치를 기억합니다.
-        const scrollX = window.scrollX;
-        const scrollY = window.scrollY;
-
-        memoArea.style.height = 'auto';
-        // 최소 높이를 250px로 보장하고 콘텐츠 길이에 맞춰 늘어납니다.
-        memoArea.style.height = Math.max(250, memoArea.scrollHeight) + 'px';
-
-        // 높이가 재계산된 직후, 기억해 둔 원래 스크롤 위치로 화면을 강제 고정합니다.
-        window.scrollTo(scrollX, scrollY);
-    };
-
-    // 2. 글자 타이핑할 때마다 실행
-    memoArea.addEventListener('input', () => {
-        localStorage.setItem('baram_work_memo', memoArea.value);
-        autoResizeMemo();
-    });
-
-    // 3. 메모장 탭을 클릭해서 활성화할 때도 높이를 한 번 맞춰줍니다.
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (btn.getAttribute('data-tab') === 'memoTab') {
-                setTimeout(autoResizeMemo, 50);
-            }
-        });
-    });
-}
-  
-
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if(btn.dataset.tab === 'memoTab') {
-        setTimeout(() => autoResize(memoArea), 10);
-      }
-    });
-  });
   document.querySelectorAll('.tab-panel').forEach(panel => {
     panel.style.display = panel.id === tabId ? 'block' : 'none';
   });
@@ -912,7 +868,7 @@ function runCalculator() {
 }
 
 function resetCalculator() { $('calcAudienceSelect').value='consumer'; $('calcPriceModeSelect').value='included'; $('calcInputModeSelect').value='py'; $('calcAreaInput').value=''; if($('calcLossRateInput')) $('calcLossRateInput').value=''; syncCalcInputUi(); resetCalcResults(); runCalculator(); }
-function runSelfTests() { console.assert(fmt(12000)==='12,000원','fmt formats'); console.assert(getUnitValue(products[0],'consumer','sqm','included')===products[0].consumer.sqm,'included sqm'); console.assert(getUnitValue(products[0],'consumer','box','included')===products[0].consumer.box,'box raw'); console.assert(getUnitValue(products[0],'consumer','sqm','material')===Math.ceil(products[0].consumer.material/3.24/100)*100,'material sqm calc'); }
+function runSelfTests() { console.assert(fmt(12000)==='12,000원','fmt formats'); if(products.length>0){ console.assert(getUnitValue(products[0],'consumer','sqm','included')===products[0].consumer.sqm,'included sqm'); console.assert(getUnitValue(products[0],'consumer','box','included')===products[0].consumer.box,'box raw'); console.assert(getUnitValue(products[0],'consumer','sqm','material')===Math.ceil(products[0].consumer.material/3.24/100)*100,'material sqm calc'); } }
 function initApp() {
   fillSelect(); initPreviews(); renderAll(); syncCalcInputUi(); resetCalcResults(); runCalculator(); runSelfTests();
   $('addBtn').addEventListener('click',()=>addCode($('productSelect').value));
@@ -931,64 +887,135 @@ function initApp() {
   document.querySelectorAll('.js-copy-template').forEach(btn=>btn.addEventListener('click',()=>copyToClipboard(templates[btn.dataset.template] || '')));
   document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>setTab(btn.dataset.tab)));
 }
-const memoArea = document.getElementById('workMemo');
-  const clearBtn = document.getElementById('clearMemo');
-
-  // 높이 자동 조절 함수
-  const autoResize = (el) => {
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
-  };
-
-  if (memoArea) {
-    memoArea.value = localStorage.getItem('jb_memo_data') || '';
-    
-    // 로드 시 높이 맞추기
-    setTimeout(() => autoResize(memoArea), 100);
-
-    memoArea.addEventListener('input', () => {
-      localStorage.setItem('jb_memo_data', memoArea.value);
-      autoResize(memoArea); // 입력할 때마다 높이 조절
-    });
-  }
-
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      if (confirm('메모를 모두 삭제하시겠습니까?')) {
-        memoArea.value = '';
-        localStorage.removeItem('jb_memo_data');
-        autoResize(memoArea); // 삭제 후 높이 초기화
-      }
-    });
-  }if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initApp); else initApp();
+// PRICE 시트에서 products 로드 후 앱 초기화
+async function startApp() {
+    try {
+        await loadProducts();
+    } catch (e) {
+        console.error('단가 데이터 로드 실패:', e.message);
+        // 로드 실패 시에도 UI는 띄움 (products = [] 상태)
+    }
+    initApp();
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp);
+} else {
+    startApp();
+}
 
 
-const SHEET_ID = '1lu3P1g_CTFdofwpWITXQgGKisUoZLPdFD1mxC29wf_k';
-const SHEET_NAME = 'STOCK'; 
+// ============================================================
+//  구글 시트 설정 (단일 ID, 탭 이름만 구분)
+// ============================================================
+const SHEET_CONFIG = {
+    ID: '1lu3P1g_CTFdofwpWITXQgGKisUoZLPdFD1mxC29wf_k',
+    PRICE:   'PRCIE',
+    STOCK:   'STOCK',
+    TOOLTIP: 'TOOLTIP'
+};
 
+// 구글 시트 gviz JSON 파싱 공통 함수
+async function fetchSheetJson(sheetName) {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(sheetName)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`네트워크 오류 (${sheetName})`);
+    const text = await res.text();
+    const start = text.indexOf('{');
+    const end   = text.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error(`JSON 파싱 실패 (${sheetName})`);
+    const json = JSON.parse(text.substring(start, end + 1));
+    if (json.status === 'error') throw new Error(`시트 접근 오류 (${sheetName})`);
+    return json.table.rows;
+}
+
+function getCellVal(cell) {
+    if (!cell) return '';
+    if (cell.f !== undefined) return String(cell.f).trim();
+    return (cell.v !== null && cell.v !== undefined) ? String(cell.v).trim() : '';
+}
+
+// 쉼표·공백·원 기호 등 제거 후 숫자로 변환
+function toNum(cell) {
+    const raw = getCellVal(cell).replace(/[,\s₩원]/g, "");
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+// ============================================================
+//  PRICE 시트 → products 배열 로드
+//  컬럼 순서: 품번(0) 품명(1) 스펙(2) 박스면적(3) 박스당장수(4)
+//            소비자가PY(5) 자재소비자가PY(6) 소비자가m²(7) 소비자가BOX(8)
+//            업체가PY(9) 자재업체가PY(10) 업체가m²(11) 업체가BOX(12)
+// ============================================================
+async function loadProducts() {
+    const rows = await fetchSheetJson(SHEET_CONFIG.PRICE);
+    products = rows
+        .filter(row => row && row.c && getCellVal(row.c[0]) && getCellVal(row.c[0]) !== '품번')
+        .map(row => ({
+            code:           getCellVal(row.c[0]),
+            name:           getCellVal(row.c[1]),
+            spec:           getCellVal(row.c[2]),
+            box_m2:         parseFloat(getCellVal(row.c[3]).replace(/[,\s₩원]/g, '')) || 0,
+            sheets_per_box: toNum(row.c[4]),
+            consumer: {
+                py:       toNum(row.c[5]),
+                material: toNum(row.c[6]),
+                sqm:      toNum(row.c[7]),
+                box:      toNum(row.c[8])
+            },
+            vendor: {
+                py:       toNum(row.c[9]),
+                material: toNum(row.c[10]),
+                sqm:      toNum(row.c[11]),
+                box:      toNum(row.c[12])
+            }
+        }));
+}
+
+// ============================================================
+//  TOOLTIP 시트 캐시
+//  컬럼: 품번(0) 품명(1) 스펙(2)  — 스펙값이 '단종'이면 단종 표시
+// ============================================================
+let tooltipMap = null;
+
+async function loadTooltipMap() {
+    if (tooltipMap) return;
+    try {
+        const rows = await fetchSheetJson(SHEET_CONFIG.TOOLTIP);
+        tooltipMap = {};
+        rows.forEach(row => {
+            if (!row || !row.c) return;
+            const code = getCellVal(row.c[0]);
+            if (!code || code === '품번') return;
+            tooltipMap[code.toUpperCase()] = {
+                name: getCellVal(row.c[1]),
+                spec: getCellVal(row.c[2])
+            };
+        });
+    } catch (e) {
+        console.warn('툴팁 데이터 로드 실패:', e.message);
+        tooltipMap = {};
+    }
+}
+
+// ============================================================
+//  재고현황 (STOCK 시트) — 단일 정의
+// ============================================================
 async function fetchStockData() {
-    // 시트 이름 부분을 더 안전하게 처리한 URL입니다.
-    const url = `https://docs.google.com/spreadsheets/d/${STOCK_CONFIG.ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(STOCK_CONFIG.NAME)}`;
+    const tbody = document.getElementById('stockTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:#888;">데이터를 불러오는 중...</td></tr>`;
 
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('네트워크 응답 에러');
-        
-        const text = await response.text();
-        // 구글 데이터의 특정 구간을 더 유연하게 찾아내는 로직
-        const startIdx = text.indexOf('{');
-        const endIdx = text.lastIndexOf('}');
-        const jsonData = JSON.parse(text.substring(startIdx, endIdx + 1));
-        
-        if (jsonData.status === 'error') {
-            throw new Error('시트 이름을 찾을 수 없거나 권한이 없습니다.');
-        }
-
-        renderStockTable(jsonData.table.rows);
+        // 재고 + 툴팁 병렬 로드
+        await Promise.all([
+            fetchSheetJson(SHEET_CONFIG.STOCK).then(rows => renderStockTable(rows)),
+            loadTooltipMap()
+        ]);
     } catch (error) {
-        console.error('상세에러:', error);
-        const body = document.getElementById('stockTableBody');
-        if (body) body.innerHTML = `<tr><td colspan="6" style="padding:20px; color:red;">${error.message}</td></tr>`;
+        console.error('재고 로드 실패:', error);
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:25px;color:#d63031;font-weight:bold;text-align:center;">
+            시트 데이터를 읽을 수 없습니다. (원인: ${error.message})</td></tr>`;
     }
 }
 
@@ -997,270 +1024,118 @@ function renderStockTable(rows) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    rows.forEach((row) => {
-        // 빈 행 무시
-        if (!row || !row.c || !row.c[0] || row.c[0].v === null || row.c[0].v === '품번') return;
-
-        // 열 순서: A(0)=품번, B(1)=LOT, C(2)=BOX규격, D(3)=현재고, E(4)=총BOX, F(5)=총재고m2
-        const itemCode = String(row.c[0]?.v || '').trim();
-        const lotInfo  = row.c[1]?.v || '-';
-        const boxSpec  = row.c[2]?.v || '-';
-        const curStock = row.c[3]?.v || 0;
-        const totalBox = row.c[4]?.v || 0; // 신호등 기준
-        const totalM2  = row.c[5]?.v || '0';
-
-        
-      // 마우스 호버 툴팁 (실제 품번 d.itemCode 기준 조회)
-tr.addEventListener('mousemove', (e) => {
-    const tooltip = document.getElementById('stockTooltip');
-    if (tooltip && typeof products !== 'undefined') {
-        // trim()과 대문자 변환 처리를 추가하여 품번 매칭 오류를 원천 차단합니다.
-        const p = products.find(x => x.code.trim().toUpperCase() === d.itemCode.trim().toUpperCase()); 
-
-        if (p) {
-            // 단가표의 실제 품명(name)과 스펙(spec) 데이터를 일치시켜 가져옵니다.
-            tooltip.innerHTML = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec}`;
-        } else {
-            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>규격: 규격 정보 없음`;
-        }
-        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
+    if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#777;">표시할 데이터가 없습니다.</td></tr>';
+        return;
     }
-});
+
+    // 1단계: 빈 행 제거 및 LOT 병합 처리
+    const processedRows = [];
+    let currentItemCode = '';
+
+    rows.forEach(row => {
+        if (!row || !row.c) return;
+        const itemCode = getCellVal(row.c[0]);
+        const lotInfo  = getCellVal(row.c[1]);
+        const boxSpec  = getCellVal(row.c[2]);
+        const curStock = getCellVal(row.c[3]);
+        const totalBox = getCellVal(row.c[4]);
+        const totalM2  = getCellVal(row.c[5]);
+
+        if (!itemCode && !lotInfo && !boxSpec && !curStock && !totalBox && !totalM2) return;
+        if (itemCode === '품번' || itemCode.includes('모든 자재') || itemCode.includes('통합') || lotInfo.includes('통합')) return;
+
+        if (itemCode) currentItemCode = itemCode;
+
+        if (!itemCode && lotInfo.includes('/') && processedRows.length > 0) {
+            processedRows[processedRows.length - 1].lotInfo += ` (${lotInfo})`;
+            return;
+        }
+
+        processedRows.push({
+            itemCode: itemCode || currentItemCode,
+            lotInfo:  lotInfo  || '-',
+            boxSpec:  boxSpec  || '-',
+            curStock: curStock || 0,
+            totalBox: totalBox || '-',
+            totalM2:  totalM2  || '-'
+        });
+    });
+
+    // 2단계: 화면 렌더링
+    let lastSeenItemCode = '';
+    let isGrayGroup = false;
+
+    processedRows.forEach(d => {
+        let displayItemCode = '';
+        if (d.itemCode !== lastSeenItemCode) {
+            isGrayGroup = !isGrayGroup;
+            lastSeenItemCode = d.itemCode;
+            displayItemCode = `<strong>${d.itemCode}</strong>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = isGrayGroup ? 'bg-group-gray' : 'bg-group-white';
+
+        const m2Raw = String(d.totalM2);
+        const m2Display = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
+            ? `<span style="color:#d63031;font-weight:bold;">-</span>`
+            : (m2Raw.includes('㎡') ? m2Raw : `${m2Raw} ㎡`);
+
+        const totalBoxDisplay = (!d.totalBox || d.totalBox === '-' || d.totalBox === '0')
+            ? `<span style="color:#d63031;font-weight:bold;">-</span>`
+            : d.totalBox;
+
+        tr.innerHTML = `
+            <td style="text-align:center;">${displayItemCode}</td>
+            <td style="text-align:center;">${d.lotInfo}</td>
+            <td style="text-align:center;">${d.boxSpec}</td>
+            <td style="text-align:center;">${d.curStock}</td>
+            <td style="text-align:center;">${totalBoxDisplay}</td>
+            <td style="text-align:center;">${m2Display}</td>
+        `;
+
+        // 툴팁 — TOOLTIP 시트 기반
+        tr.addEventListener('mousemove', async (e) => {
+            const tooltip = document.getElementById('stockTooltip');
+            if (!tooltip) return;
+
+            // tooltipMap 아직 안 로드됐으면 로드 후 재시도
+            if (!tooltipMap) await loadTooltipMap();
+
+            const key = d.itemCode.trim().toUpperCase();
+            const info = tooltipMap[key];
+
+            if (info) {
+                if (info.spec === '단종') {
+                    tooltip.innerHTML = `<strong>[${d.itemCode}] ${info.name}</strong><br><span style="color:#ff4d4d;font-weight:bold;">단종</span>`;
+                } else {
+                    tooltip.innerHTML = `<strong>[${d.itemCode}] ${info.name}</strong><br>규격: ${info.spec || '정보 없음'}`;
+                }
+            } else {
+                tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>정보 없음`;
+            }
+
+            tooltip.style.cssText = `display:block;left:${e.pageX + 15}px;top:${e.pageY + 15}px;`;
+        });
 
         tr.addEventListener('mouseleave', () => {
-            document.getElementById('stockTooltip').style.display = 'none';
+            const tooltip = document.getElementById('stockTooltip');
+            if (tooltip) tooltip.style.display = 'none';
         });
 
         tbody.appendChild(tr);
     });
 }
 
-
-// 헤더 고정을 방해하는 바깥 틀(scroll, wrapper) 속성을 제어하고 th를 화면 상단에 박제
-document.head.insertAdjacentHTML('beforeend', `
-    <style>
-        /* 1. 재고현황 탭 내부 정렬 */
-        .tab-content table th, 
-        .tab-content table thead th,
-        .tab-content table td, 
-        #stockTableBody td { 
-            text-align: center !important; 
-            vertical-align: middle !important; 
-        }
-        
-        /* 2. 기존 신호등 배경색 클래스 무력화 */
-        .stock-row, .stock-red, .stock-yellow, .stock-green {
-            background-color: transparent !important;
-        }
-
-        /* 3. 품번 그룹별 구분을 위한 회색/흰색 배경 스타일 */
-        tr.bg-group-gray {
-            background-color: #f9f9f9 !important;
-        }
-        tr.bg-group-white {
-            background-color: #ffffff !important;
-        }
-
-        /* 4. [핵심] 상단 타이틀 스크롤 고정 간섭 파괴 및 강제 고정 */
-        .tab-panel .scroll, 
-        .stock-table-wrapper {
-            overflow: visible !important; /* 내부 스크롤을 없애고 th가 브라우저 상단에 붙게 함 */
-            max-height: none !important;  /* 높이 제한을 풀어 전체 스크롤과 동기화 */
-        }
-
-        #stockTable {
-            border-collapse: separate !important; /* 찐득하게 붙도록 테두리 분리 계산 */
-            border-spacing: 0;
-        }
-
-        #stockTable th {
-            position: -webkit-sticky !important;
-            position: sticky !important;  /* 스크롤 내려도 그 자리에 고정 */
-            top: 0 !important;            /* 화면 맨 위 주소창 바로 아래에 고정 */
-            z-index: 100 !important;      /* 숫자들이 헤더 위로 침범하지 못하게 최상위 우선순위 */
-            background-color: #f8f9fa !important; /* 스크롤 시 뒤쪽 데이터가 비쳐 보이지 않게 배경색 차단 */
-            border-bottom: 2px solid #ddd !important;
-        }
-    </style>
-`);
-
-(function() {
-    const STOCK_CONFIG = {
-        ID: '1lu3P1g_CTFdofwpWITXQgGKisUoZLPdFD1mxC29wf_k',
-        NAME: '재고현황'
-    };
-
-    async function fetchStockData() {
-        const url = `https://docs.google.com/spreadsheets/d/${STOCK_CONFIG.ID}/gviz/tq?tqx=out:json&headers=0&sheet=${encodeURIComponent(STOCK_CONFIG.NAME)}`;
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('네트워크 응답 에러');
-            
-            const text = await response.text();
-            const startIdx = text.indexOf('{');
-            const endIdx = text.lastIndexOf('}');
-            if (startIdx === -1 || endIdx === -1) throw new Error('JSON 구조 분석 실패');
-            
-            const jsonData = JSON.parse(text.substring(startIdx, endIdx + 1));
-            if (jsonData.status === 'error') {
-                throw new Error('구글 시트 데이터 반환 오류');
-            }
-
-            renderStockTable(jsonData.table.rows);
-        } catch (error) {
-            console.error('재고 로드 실패:', error);
-            const body = document.getElementById('stockTableBody');
-            if (body) {
-                body.innerHTML = `<tr><td colspan="6" style="padding:25px; color:#d63031; font-weight:bold; text-align:center;">
-                    시트 데이터를 읽을 수 없습니다. (원인: ${error.message})
-                </td></tr>`;
-            }
-        }
-    }
-
-    function getCellValue(cell) {
-        if (!cell) return '';
-        return cell.f !== undefined ? String(cell.f).trim() : (cell.v !== null && cell.v !== undefined ? String(cell.v).trim() : '');
-    }
-
-    function renderStockTable(rows) {
-        const tbody = document.getElementById('stockTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-
-        if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="padding:20px; text-align:center; color:#777;">표에 표시할 데이터가 없습니다.</td></tr>';
-            return;
-        }
-
-        // [1 단계] 원본 데이터를 순회하며 빈 행을 제외하고 온전한 배열(processedRows)로 합치기
-        const processedRows = [];
-        let currentItemCode = '';
-
-        rows.forEach(row => {
-            if (!row || !row.c) return;
-
-            const itemCode = getCellValue(row.c[0]);
-            const lotInfo  = getCellValue(row.c[1]);
-            const boxSpec  = getCellValue(row.c[2]);
-            const curStock = getCellValue(row.c[3]);
-            const totalBox = getCellValue(row.c[4]);
-            const totalM2  = getCellValue(row.c[5]);
-
-            if (!itemCode && !lotInfo && !boxSpec && !curStock && !totalBox && !totalM2) return;
-            if (itemCode === '품번' || itemCode.includes('모든 자재') || itemCode.includes('통합') || lotInfo.includes('통합')) return;
-
-            if (itemCode) {
-                currentItemCode = itemCode;
-            }
-
-            if (!itemCode && lotInfo.includes('/') && processedRows.length > 0) {
-                const lastRow = processedRows[processedRows.length - 1];
-                lastRow.lotInfo = `${lastRow.lotInfo} (${lotInfo})`; 
-                return;
-            }
-
-            processedRows.push({
-                itemCode: itemCode || currentItemCode,
-                lotInfo: lotInfo || '-',
-                boxSpec: boxSpec || '-',
-                curStock: curStock || 0,
-                totalBox: totalBox || '-',
-                totalM2: totalM2 || '-'
-            });
-        });
-
-        // [2 단계] 완전히 정제된 processedRows 배열을 바탕으로 화면에 품번 중복제거 + 퐁당퐁당 그리기
-        let lastSeenItemCode = '';
-        let isGrayGroup = false;
-
-        processedRows.forEach((d) => {
-            let displayItemCode = ''; 
-
-            // 품번이 연속으로 같으면 숨기고, 달라지면 노출하며 배경색 교체
-            if (d.itemCode !== lastSeenItemCode) {
-                isGrayGroup = !isGrayGroup;
-                lastSeenItemCode = d.itemCode;
-                displayItemCode = `<strong>${d.itemCode}</strong>`; 
-            } else {
-                displayItemCode = ''; 
-            }
-
-            const tr = document.createElement('tr');
-            tr.className = isGrayGroup ? 'bg-group-gray' : 'bg-group-white';
-
-            const m2Display = d.totalM2 ? (String(d.totalM2).includes('㎡') ? d.totalM2 : `${d.totalM2} ㎡`) : '-';
-
-            // 하이픈(-)만 빨간색으로 표시하는 가독성 보정 로직
-            const totalBoxDisplay = (d.totalBox === '-' || !d.totalBox || d.totalBox === '0') 
-                ? `<span style="color: #d63031; font-weight: bold;">-</span>` 
-                : d.totalBox;
-
-            const totalM2Display = (m2Display === '-' || !m2Display || m2Display === '0 ㎡') 
-                ? `<span style="color: #d63031; font-weight: bold;">-</span>` 
-                : m2Display;
-
-            tr.innerHTML = `
-                <td style="text-align: center;">${displayItemCode}</td>
-                <td style="text-align: center;">${d.lotInfo}</td>
-                <td style="text-align: center;">${d.boxSpec}</td>
-                <td style="text-align: center;">${d.curStock}</td>
-                <td style="text-align: center;">${totalBoxDisplay}</td>
-                <td style="text-align: center;">${totalM2Display}</td>
-            `;
-
-           tr.addEventListener('mouseover', (e) => {
-    const tooltip = document.getElementById('stockTooltip');
-    const d = { itemCode: "호버된_품번" }; // 실제 데이터 객체
-
-    if (tooltip && typeof products !== 'undefined') {
-        const cleanString = (str) => str.replace(/[^a-zA-Z0-9가-힣]/g, '').toUpperCase();
-        const targetCode = cleanString(d.itemCode);
-        
-        // 데이터에서 해당 품번 찾기
-        const p = products.find(x => cleanString(x.code) === targetCode); 
-        
-        if (p) {
-            // [핵심 수정 부분]
-            let displayContent = "";
-            
-            // 단종 여부 확인 (시트의 상태 값이 '단종'인지 체크)
-            if (p.status === '단종') {
-                displayContent = `<strong>[${d.itemCode}] ${p.name}</strong><br><span style="color: red; font-weight: bold;">단종</span>`;
-            } else {
-                // 규격 정보가 있으면 표시
-                displayContent = `<strong>[${d.itemCode}] ${p.name}</strong><br>규격: ${p.spec || '정보 없음'}`;
-            }
-            
-            tooltip.innerHTML = displayContent;
-        } else {
-            tooltip.innerHTML = `<strong>[${d.itemCode}]</strong><br>정보 없음`;
-        }
-        
-        tooltip.style.cssText = `display: block; left: ${e.pageX + 15}px; top: ${e.pageY + 15}px;`;
-    }
-});
-
-            tr.addEventListener('mouseleave', () => {
-                const tooltip = document.getElementById('stockTooltip');
-                if (tooltip) tooltip.style.display = 'none';
-            });
-
-            tbody.appendChild(tr);
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.dataset.tab === 'stockTab' || btn.getAttribute('data-tab') === 'stockTab') {
-                    fetchStockData();
-                }
-            });
+// 재고 탭 클릭 시 데이터 로드
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.tab === 'stockTab') fetchStockData();
         });
     });
-})();
+});
 </script>
 </body>
 </html>
