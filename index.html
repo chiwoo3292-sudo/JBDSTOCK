@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>바람 단가 안내 시스템</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -230,15 +230,13 @@
 </head>
 <body spellcheck="false">
 
-<div id="authOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; min-height: -webkit-fill-available; background: #f5f5f5; z-index: 99999; display: flex; align-items: center; justify-content: center; font-family: sans-serif; padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); box-sizing: border-box;">
-    <div style="background: #fff; padding: 24px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 340px; width: 100%; box-sizing: border-box; margin: auto;">
+<div id="authOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #f5f5f5; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; box-sizing: border-box;">
+    <div style="background: #fff; padding: 32px 24px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: calc(100% - 48px); max-width: 340px; box-sizing: border-box;">
         <h2 style="margin: 0 0 10px; font-size: 20px; color: #111; font-weight: 700;">시스템 잠금</h2>
         <p style="margin: 0 0 20px; font-size: 13px; color: #666;">프로그램을 이용하려면 비밀번호를 입력하세요.</p>
-        
-        <input type="password" id="authPassword" placeholder="비밀번호 입력" 
-               style="width: 100%; height: 44px; padding: 0 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; text-align: center; margin-bottom: 14px; -webkit-appearance: none;">
-        
-        <button id="authBtn" style="width: 100%; height: 44px; background: #111; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;">확인</button>
+        <input type="password" id="authPassword" placeholder="비밀번호 입력"
+               style="width: 100%; height: 48px; padding: 0 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; text-align: center; margin-bottom: 14px; outline: none;">
+        <button id="authBtn" style="width: 100%; height: 48px; background: #111; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;">확인</button>
         <p id="authError" style="margin: 10px 0 0; font-size: 12px; color: #d63031; display: none; font-weight: bold;">❌ 비밀번호가 올바르지 않습니다.</p>
     </div>
 </div>
@@ -250,10 +248,29 @@
     const mainContainer = document.querySelector('.wrap');
     const overlay = document.getElementById('authOverlay');
 
+    // 오버레이 높이를 실제 뷰포트에 정확히 맞춤 (모바일 주소창 포함 오차 제거)
+    function fixOverlayHeight() {
+        if (overlay) overlay.style.height = window.innerHeight + 'px';
+    }
+    fixOverlayHeight();
+    window.addEventListener('resize', fixOverlayHeight);
+
+    // 인증 후 viewport scale 강제 리셋 (iOS 줌인 현상 해결)
+    function resetViewportScale() {
+        const meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) return;
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        // 일시적으로 변경 후 원래대로 복구하면 iOS가 scale을 재계산함
+        setTimeout(() => {
+            meta.content = 'width=device-width, initial-scale=1.0';
+        }, 300);
+    }
+
     function unlock() {
         overlay.style.display = 'none';
+        window.removeEventListener('resize', fixOverlayHeight);
         if (mainContainer) mainContainer.style.display = 'block';
-        // iOS에서 키보드로 틀어진 뷰포트 복구
+        resetViewportScale();
         window.scrollTo(0, 0);
     }
 
@@ -269,7 +286,9 @@
         const errorMsg = document.getElementById('authError');
         if (val === PASS) {
             sessionStorage.setItem(SESSION_KEY, '1');
-            unlock();
+            // 키보드 먼저 내리고 unlock (iOS 뷰포트 안정화)
+            document.getElementById('authPassword').blur();
+            setTimeout(unlock, 150);
         } else {
             errorMsg.style.display = 'block';
             document.getElementById('authPassword').value = '';
@@ -757,8 +776,8 @@ function renderLeftTable() {
     const tr=document.createElement('tr');
     const isNatural = tooltipMap && tooltipMap[p.code.toUpperCase()]?.natural;
     if (isNatural) tr.style.cssText = 'background:#fffbeb; border-left:3px solid #f59e0b;';
-    const naturalBadge = isNatural ? ' <span style="display:inline-block;font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:4px;padding:1px 5px;vertical-align:middle;margin-left:4px;">N</span>' : '';
-    tr.innerHTML=`<td>${p.code}${naturalBadge}</td><td class="name">${p.name}</td><td class="spec-left">${p.spec}</td><td>${fmt(p.consumer.py)}</td><td>${fmt(p.vendor.py)}</td><td>${fmt(p.consumer.material)}</td><td>${fmt(p.vendor.material)}</td>`;
+    const naturalBadge = '';
+    tr.innerHTML=`<td>${p.code}</td><td class="name">${p.name}</td><td class="spec-left">${p.spec}</td><td>${fmt(p.consumer.py)}</td><td>${fmt(p.vendor.py)}</td><td>${fmt(p.consumer.material)}</td><td>${fmt(p.vendor.material)}</td>`;
     tr.addEventListener('dblclick',()=>addCode(p.code));
     frag.appendChild(tr);
   });
