@@ -726,7 +726,10 @@ function formatQuoteDate(dateObj = new Date()) { const y = dateObj.getFullYear()
 function updateQuoteDate(dateObj = new Date()) { const el = $('quoteDate'); if(el) el.textContent = formatQuoteDate(dateObj); }
 function getUnitValue(product, party, unit, priceMode=state.priceMode) {
   if (unit === 'py') return priceMode === 'material' ? product[party].material : product[party].py;
-  if (unit === 'sqm') return priceMode === 'material' ? ceilTo(product[party].material / 3.24, 100) : product[party].sqm;
+  if (unit === 'sqm') {
+    const basePy = priceMode === 'material' ? product[party].material : product[party].py;
+    return ceilTo(basePy / 3.24, 100);
+  }
   if (unit === 'box') return product[party].box;
   return product[party][unit];
 }
@@ -868,7 +871,7 @@ function runCalculator() {
 }
 
 function resetCalculator() { $('calcAudienceSelect').value='consumer'; $('calcPriceModeSelect').value='included'; $('calcInputModeSelect').value='py'; $('calcAreaInput').value=''; if($('calcLossRateInput')) $('calcLossRateInput').value=''; syncCalcInputUi(); resetCalcResults(); runCalculator(); }
-function runSelfTests() { console.assert(fmt(12000)==='12,000원','fmt formats'); if(products.length>0){ console.assert(getUnitValue(products[0],'consumer','sqm','included')===products[0].consumer.sqm,'included sqm'); console.assert(getUnitValue(products[0],'consumer','box','included')===products[0].consumer.box,'box raw'); console.assert(getUnitValue(products[0],'consumer','sqm','material')===Math.ceil(products[0].consumer.material/3.24/100)*100,'material sqm calc'); } }
+function runSelfTests() { console.assert(fmt(12000)==='12,000원','fmt formats'); if(products.length>0){ console.assert(getUnitValue(products[0],'consumer','sqm','included')===ceilTo(products[0].consumer.py/3.24,100),'included sqm calc'); console.assert(getUnitValue(products[0],'consumer','sqm','material')===ceilTo(products[0].consumer.material/3.24,100),'material sqm calc'); console.assert(getUnitValue(products[0],'consumer','box','included')===products[0].consumer.box,'box raw'); } }
 function initApp() {
   fillSelect(); initPreviews(); renderAll(); syncCalcInputUi(); resetCalcResults(); runCalculator(); runSelfTests();
   $('addBtn').addEventListener('click',()=>addCode($('productSelect').value));
