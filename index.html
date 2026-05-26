@@ -36,6 +36,7 @@
   th, td { padding:9px 10px; border-bottom:1px solid #eee; text-align:left; vertical-align:top; font-size:13px; line-height:1.45; }
   th { background:#fafafa; color:#444; font-size:12px; position:sticky; top:0; z-index:1; }
   td.name, td.spec-left, td.spec-right { white-space:nowrap; }
+  td.price { white-space:nowrap; }
   .muted { color:#777; font-size:12px; }
 .notice { margin-top:4px; font-size:11px; color:#555; line-height:1.3; }
 .notice ul { margin:2px 0 0 14px; padding:0; }
@@ -199,8 +200,8 @@
     }
 
     /* 5. 텍스트가 절대 잘리지 않아야 하는 중요한 규격/이름 칸 안전장치 */
-    td.name, td.spec-left, td.spec-right {
-        white-space: nowrap !important; /* 줄바꿈되어 깨지지 않고 가로로 유지 */
+    td.name, td.spec-left, td.spec-right, td.price {
+        white-space: nowrap !important;
     }
 
     /* 6. 모바일 복사 버튼이나 링크들이 있는 구역 정렬 */
@@ -230,14 +231,37 @@
 </head>
 <body spellcheck="false">
 
-<div id="authOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #f5f5f5; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; box-sizing: border-box;">
-    <div style="background: #fff; padding: 32px 24px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: calc(100% - 48px); max-width: 340px; box-sizing: border-box;">
+<style>
+#authOverlay {
+    position: fixed;
+    inset: 0;
+    background: #f5f5f5;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+#authOverlay .auth-card {
+    background: #fff;
+    padding: 32px 24px;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 340px;
+    box-sizing: border-box;
+}
+</style>
+<div id="authOverlay">
+    <div class="auth-card">
         <h2 style="margin: 0 0 10px; font-size: 20px; color: #111; font-weight: 700;">시스템 잠금</h2>
         <p style="margin: 0 0 20px; font-size: 13px; color: #666;">프로그램을 이용하려면 비밀번호를 입력하세요.</p>
         <input type="password" id="authPassword" placeholder="비밀번호 입력"
-               style="width: 100%; height: 48px; padding: 0 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; text-align: center; margin-bottom: 14px; outline: none;">
-        <button id="authBtn" style="width: 100%; height: 48px; background: #111; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;">확인</button>
-        <p id="authError" style="margin: 10px 0 0; font-size: 12px; color: #d63031; display: none; font-weight: bold;">❌ 비밀번호가 올바르지 않습니다.</p>
+               style="width:100%; height:48px; padding:0 12px; font-size:16px; border:1px solid #ddd; border-radius:12px; box-sizing:border-box; text-align:center; margin-bottom:14px;">
+        <button id="authBtn" style="width:100%; height:48px; background:#111; color:#fff; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer;">확인</button>
+        <p id="authError" style="margin:10px 0 0; font-size:12px; color:#d63031; display:none; font-weight:bold;">❌ 비밀번호가 올바르지 않습니다.</p>
     </div>
 </div>
 
@@ -248,33 +272,23 @@
     const mainContainer = document.querySelector('.wrap');
     const overlay = document.getElementById('authOverlay');
 
-    // 오버레이 높이를 실제 뷰포트에 정확히 맞춤 (모바일 주소창 포함 오차 제거)
-    function fixOverlayHeight() {
-        if (overlay) overlay.style.height = window.innerHeight + 'px';
-    }
-    fixOverlayHeight();
-    window.addEventListener('resize', fixOverlayHeight);
-
-    // 인증 후 viewport scale 강제 리셋 (iOS 줌인 현상 해결)
-    function resetViewportScale() {
+    // iOS 줌인 해제: scale을 0.1로 찍었다가 1.0으로 복구하면 Safari가 재계산
+    function resetScale() {
         const meta = document.querySelector('meta[name="viewport"]');
         if (!meta) return;
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-        // 일시적으로 변경 후 원래대로 복구하면 iOS가 scale을 재계산함
-        setTimeout(() => {
-            meta.content = 'width=device-width, initial-scale=1.0';
-        }, 300);
+        meta.content = 'width=device-width, initial-scale=0.1';
+        requestAnimationFrame(() => {
+            meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        });
     }
 
     function unlock() {
         overlay.style.display = 'none';
-        window.removeEventListener('resize', fixOverlayHeight);
         if (mainContainer) mainContainer.style.display = 'block';
-        resetViewportScale();
         window.scrollTo(0, 0);
+        resetScale();
     }
 
-    // 이미 이번 세션에서 인증했으면 바로 통과
     if (sessionStorage.getItem(SESSION_KEY) === '1') {
         unlock();
     } else {
@@ -286,9 +300,8 @@
         const errorMsg = document.getElementById('authError');
         if (val === PASS) {
             sessionStorage.setItem(SESSION_KEY, '1');
-            // 키보드 먼저 내리고 unlock (iOS 뷰포트 안정화)
             document.getElementById('authPassword').blur();
-            setTimeout(unlock, 150);
+            setTimeout(unlock, 100);
         } else {
             errorMsg.style.display = 'block';
             document.getElementById('authPassword').value = '';
@@ -777,7 +790,7 @@ function renderLeftTable() {
     const isNatural = tooltipMap && tooltipMap[p.code.toUpperCase()]?.natural;
     if (isNatural) tr.style.cssText = 'background:#fffbeb; border-left:3px solid #f59e0b;';
     const naturalBadge = '';
-    tr.innerHTML=`<td>${p.code}</td><td class="name">${p.name}</td><td class="spec-left">${p.spec}</td><td>${fmt(p.consumer.py)}</td><td>${fmt(p.vendor.py)}</td><td>${fmt(p.consumer.material)}</td><td>${fmt(p.vendor.material)}</td>`;
+    tr.innerHTML=`<td>${p.code}</td><td class="name">${p.name}</td><td class="spec-left">${p.spec}</td><td class="price">${fmt(p.consumer.py)}</td><td class="price">${fmt(p.vendor.py)}</td><td class="price">${fmt(p.consumer.material)}</td><td class="price">${fmt(p.vendor.material)}</td>`;
     tr.addEventListener('dblclick',()=>addCode(p.code));
     frag.appendChild(tr);
   });
