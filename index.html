@@ -1251,11 +1251,14 @@ function initExcelUpload() {
                     const totalBox = colMap ? row[colMap.box] : row[row.length - 2];
                     const totalM2  = colMap ? row[colMap.m2]  : row[row.length - 1];
 
+                    // 보조행 스킵 (입고날짜+단가 행: A열 비어있고 D열 BOX도 없는 행)
+                    if (!raw0 && (raw3 === '' || raw3 === null || raw3 === undefined)) return;
+
                     // 완전 빈 행 스킵
                     if (!raw0 && !raw1 && !raw2 && (raw3 === '' || raw3 === null || raw3 === undefined)) return;
 
                     // 헤더/타이틀 행 스킵
-                    if (raw0 === '수종' || String(raw1) === '입고날짜') return;
+                    if (raw0 === '수종' || raw0 === '시리즈' || String(raw1) === '입고날짜') return;
                     if (raw0.includes('재고사항') || raw0.includes('재고사황') || raw0.includes('재고상황')) return;
                     if (raw0.includes('시리즈') && !raw0.match(/[A-Z]#\d/)) return;
 
