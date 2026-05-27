@@ -3,10 +3,11 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>바람 단가 안내 시스템</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   
 .grid-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
@@ -319,19 +320,16 @@
 }
 
 function unlock() {
-    // 1. 오버레이 제거
-    overlay.style.display = 'none';
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) overlay.style.display = 'none';
     if (mainContainer) mainContainer.style.display = 'block';
 
-    // 2. 화면 강제 리셋 (렌더링 꼬임 방지)
-    // 화면을 아주 살짝 줌인했다가 즉시 1.0으로 되돌려 브라우저가 계산을 다시 하게 함
-    const meta = document.querySelector('meta[name="viewport"]');
-    const originalContent = meta.content;
-    
-    meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes';
-    
-    // 3. 레이아웃 재배치 및 상단 정렬
-    window.scrollTo(0, 0);
+    // 렌더링 직후 무조건 최상단으로 이동
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0; 
+        document.documentElement.scrollTop = 0;
+    }, 0);
 }
 
     if (sessionStorage.getItem(SESSION_KEY) === '1') {
@@ -341,18 +339,21 @@ function unlock() {
     }
 
     function checkPassword() {
-        const val = document.getElementById('authPassword').value;
-        const errorMsg = document.getElementById('authError');
-        if (val === PASS) {
-            sessionStorage.setItem(SESSION_KEY, '1');
-            document.getElementById('authPassword').blur();
-            setTimeout(unlock, 100);
-        } else {
-            errorMsg.style.display = 'block';
-            document.getElementById('authPassword').value = '';
-            document.getElementById('authPassword').focus();
-        }
+    const pwdInput = document.getElementById('authPassword');
+    const val = pwdInput.value;
+    const errorMsg = document.getElementById('authError');
+    
+    if (val === PASS) {
+        sessionStorage.setItem(SESSION_KEY, '1');
+        pwdInput.blur(); // 포커스 해제
+        unlock();
+    } else {
+        errorMsg.style.display = 'block';
+        pwdInput.value = '';
+        // 핵심: { preventScroll: true } 추가
+        pwdInput.focus({ preventScroll: true }); 
     }
+}
 
     document.getElementById('authBtn').addEventListener('click', checkPassword);
     document.getElementById('authPassword').addEventListener('keypress', function(e) {
@@ -629,7 +630,8 @@ function unlock() {
         });
 
         // 3. 상단 탭 버튼 클릭하여 메모장 켜질 때 스크롤 초기 세팅
-        document.querySelectorAll('.tab-btn').forEach(btn => {
+      // 3. 상단 탭 버튼 클릭하여 메모장 켜질 때 스크롤 초기 세팅
+document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         setTimeout(() => {
             if (btn.getAttribute('data-tab') === 'memoTab') {
@@ -639,7 +641,6 @@ function unlock() {
         }, 50);
     });
 });
-
 
         // 전체 삭제 기능 연동
         const clearBtn = document.getElementById('clearMemo');
@@ -657,7 +658,32 @@ function unlock() {
 
 <section id="stockTab" class="tab-panel">
     <div class="content-card">
-        <h2 class="card-title">실시간 자재 재고 현황</h2>
+
+        <!-- 타이틀 + 시계 -->
+        <div style="text-align:center; margin-bottom:16px;">
+            <h2 style="margin:0 0 5px; font-size:20px; font-weight:800;">실시간 자재 재고 현황</h2>
+            <div id="stockClock" style="font-size:13px; color:#888; font-weight:500;"></div>
+        </div>
+
+        <!-- 엑셀 업로드 영역 -->
+        <div id="uploadArea" style="border:2px dashed #d0d0d0; border-radius:16px; padding:20px 24px; margin-bottom:16px; background:#fafafa; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px;">
+                <div style="font-size:14px; font-weight:700; color:#333; margin-bottom:4px;">📂 재고 엑셀 파일 업로드</div>
+                <div style="font-size:12px; color:#888; line-height:1.5;">엑셀 파일(.xlsx)을 선택하면 구글시트에 자동으로 반영됩니다.<br>직원분이 작성한 엑셀 파일을 그대로 올려주세요.</div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                <label for="excelUpload" style="display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 18px; background:#111; color:#fff; border-radius:12px; font-size:13px; font-weight:700; cursor:pointer;">
+                    📁 파일 선택
+                </label>
+                <input type="file" id="excelUpload" accept=".xlsx,.xls" style="display:none;" />
+                <div id="uploadStatus" style="font-size:12px; color:#888; text-align:right;">선택된 파일 없음</div>
+            </div>
+            <button id="uploadBtn" type="button" style="min-height:40px; padding:0 20px; background:#2d7ef7; color:#fff; border:none; border-radius:12px; font-size:13px; font-weight:700; cursor:pointer; display:none;">
+                ⬆ 구글시트에 반영
+            </button>
+        </div>
+
+        <!-- 재고 테이블 -->
         <div class="stock-table-wrapper">
             <table id="stockTable">
                 <thead>
@@ -672,7 +698,7 @@ function unlock() {
                 </thead>
                 <tbody id="stockTableBody">
                     <tr>
-                        <td colspan="6" style="text-align:center; padding:30px;">
+                        <td colspan="6" style="text-align:center; padding:30px; color:#888;">
                             데이터를 불러오는 중입니다...
                         </td>
                     </tr>
@@ -1108,6 +1134,223 @@ async function loadTooltipMap() {
 }
 
 // ============================================================
+//  Apps Script 웹앱 URL
+// ============================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbycqipsEpR-JzkRdeMhqtYRxfGej3RXvJjyNGDr3oGlMjnXqV8RNEOFFAhoLofm1qvR/exec';
+
+// ============================================================
+//  재고현황 실시간 시계
+// ============================================================
+let stockClockInterval = null;
+function startStockClock() {
+    const el = document.getElementById('stockClock');
+    if (!el) return;
+    function tick() {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const days = ['일','월','화','수','목','금','토'];
+        el.textContent =
+            `${now.getFullYear()}년 ${pad(now.getMonth()+1)}월 ${pad(now.getDate())}일 (${days[now.getDay()]}) ` +
+            `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} 기준`;
+    }
+    tick();
+    if (stockClockInterval) clearInterval(stockClockInterval);
+    stockClockInterval = setInterval(tick, 1000);
+}
+
+// ============================================================
+//  엑셀 업로드 → Apps Script → 구글시트 STOCK 반영
+// ============================================================
+function initExcelUpload() {
+    const fileInput  = document.getElementById('excelUpload');
+    const uploadBtn  = document.getElementById('uploadBtn');
+    const statusEl   = document.getElementById('uploadStatus');
+    if (!fileInput || !uploadBtn || !statusEl) return;
+
+    let selectedFile = null;
+
+    // 파일 선택 시
+    fileInput.addEventListener('change', function () {
+        selectedFile = this.files[0];
+        if (!selectedFile) return;
+        statusEl.textContent = `📄 ${selectedFile.name}`;
+        statusEl.style.color = '#2d7ef7';
+        uploadBtn.style.display = 'inline-flex';
+    });
+
+    // 업로드 버튼 클릭 시
+    uploadBtn.addEventListener('click', async function () {
+        if (!selectedFile) return;
+
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = '⏳ 처리 중...';
+        statusEl.style.color = '#888';
+        statusEl.textContent = '엑셀을 읽는 중...';
+
+        try {
+            // 1. SheetJS로 엑셀 읽기
+            const arrayBuffer = await selectedFile.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+            // 2. 모든 시트를 STOCK 형식으로 정제해서 합치기
+            // 출력 형식: [품번, LOT및입고일, BOX규격, 현재고BOX, 총BOX, 총재고㎡]
+            const matrixData = [];
+            // 헤더
+            matrixData.push(['품번', 'LOT 및 입고일', 'BOX', '현재고', '총 BOX', '총 재고(㎡)']);
+
+            // 시트별 총BOX/총재고㎡ 열 인덱스 (0-based)
+            const COL_MAP = {
+                'C#14':         { box: 15, m2: 16 },
+                'C#15':         { box: 19, m2: 20 },
+                'C#18':         { box: 15, m2: 16 },
+                'C#19':         { box: 15, m2: 16 },
+                'A#14':         { box: 15, m2: 16 },
+                'A#15':         { box: 17, m2: 18 },
+                'A#16':         { box: 17, m2: 18 },
+                'A#171':        { box: 19, m2: 20 },
+                'A#17':         { box: 19, m2: 20 },
+                'A#18':         { box: 33, m2: 34 },
+                'A#19':         { box: 17, m2: 18 },
+                'A#20':         { box: 17, m2: 18 },
+                'D#,E#,선일,성원특': { box: 16, m2: 17 },
+                '바람1':         { box: 13, m2: 14 },
+            };
+
+            // 엑셀 날짜 시리얼 → 문자열 변환
+            function excelDateToStr(serial) {
+                try {
+                    if (typeof serial !== 'number' || serial < 40000) return String(serial);
+                    const date = new Date((serial - 25569) * 86400 * 1000);
+                    const y = date.getUTCFullYear();
+                    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+                    const d = String(date.getUTCDate()).padStart(2, '0');
+                    return `${y}/${m}/${d}`;
+                } catch(e) { return String(serial); }
+            }
+
+            workbook.SheetNames.forEach(sheetName => {
+                const ws = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                if (!rows || rows.length < 4) return;
+
+                // 해당 시트의 열 매핑 (없으면 마지막 두 열로 폴백)
+                const colMap = COL_MAP[sheetName];
+
+                let currentItemCode = '';
+
+                rows.forEach((row, i) => {
+                    // 앞 4행(타이틀/헤더) 스킵
+                    if (i < 4) return;
+
+                    const raw0 = String(row[0] || '').trim(); // 수종/품번
+                    const raw1 = row[1];                       // 입고날짜/LOT
+                    const raw2 = String(row[2] || '').trim(); // 규격
+                    const raw3 = row[3];                       // BOX(현재고)
+
+                    // 총BOX, 총재고㎡ — 시트별 고정 열 사용
+                    const totalBox = colMap ? row[colMap.box] : row[row.length - 2];
+                    const totalM2  = colMap ? row[colMap.m2]  : row[row.length - 1];
+
+                    // 완전 빈 행 스킵
+                    if (!raw0 && !raw1 && !raw2 && (raw3 === '' || raw3 === null || raw3 === undefined)) return;
+
+                    // 헤더/타이틀 행 스킵
+                    if (raw0 === '수종' || String(raw1) === '입고날짜') return;
+                    if (raw0.includes('재고사항') || raw0.includes('재고사황') || raw0.includes('재고상황')) return;
+                    if (raw0.includes('시리즈') && !raw0.match(/[A-Z]#\d/)) return;
+
+                    // 품번 추출 (앞에 색상명이 붙는 경우 처리)
+                    let itemCode = '';
+                    const codeMatch = raw0.match(/[A-Z]#\s*\d+[\w]*/);
+                    if (codeMatch) {
+                        itemCode = codeMatch[0].replace(/\s+/g, '');
+                    } else if (raw0 && !raw0.includes('NEW') && raw0 !== '') {
+                        itemCode = raw0;
+                    }
+
+                    if (itemCode) currentItemCode = itemCode;
+                    if (!currentItemCode) return;
+
+                    // 입고날짜 처리
+                    let lotInfo = '';
+                    if (typeof raw1 === 'number' && raw1 > 40000) {
+                        lotInfo = excelDateToStr(raw1);
+                    } else {
+                        lotInfo = String(raw1 || '').trim();
+                    }
+
+                    // 규격 없고 BOX도 없으면 스킵
+                    if (!raw2 && (raw3 === '' || raw3 === null || raw3 === undefined)) return;
+
+                    // BOX 수치
+                    const boxVal = typeof raw3 === 'number' ? raw3 : parseFloat(raw3) || 0;
+
+                    // 총BOX, 총재고㎡ 소수점 2자리
+                    const totalBoxVal = typeof totalBox === 'number' ? Math.round(totalBox * 100) / 100 : (totalBox || '');
+                    const totalM2Val  = typeof totalM2  === 'number' ? Math.round(totalM2  * 100) / 100 : (totalM2  || '');
+
+                    matrixData.push([
+                        itemCode || currentItemCode,
+                        lotInfo || '-',
+                        raw2 || '-',
+                        boxVal,
+                        totalBoxVal !== '' ? totalBoxVal : '-',
+                        totalM2Val  !== '' ? totalM2Val  : '-'
+                    ]);
+                });
+            });
+
+            if (matrixData.length <= 1) throw new Error('엑셀에서 읽을 데이터가 없습니다.');
+
+            statusEl.textContent = '구글시트에 전송 중...';
+
+            // 3. Apps Script로 POST 전송
+            const res = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' }, // CORS 우회
+                body: JSON.stringify({
+                    spreadsheetId: SHEET_CONFIG.ID,
+                    sheetName: SHEET_CONFIG.STOCK,
+                    matrixData: matrixData
+                })
+            });
+
+            const result = await res.json();
+
+            if (result.status === 'success') {
+                statusEl.textContent = '✅ 구글시트 반영 완료!';
+                statusEl.style.color = '#00a854';
+                uploadBtn.textContent = '✅ 완료';
+                showToast('재고 데이터가 구글시트에 반영되었습니다!');
+
+                // 테이블 새로고침
+                setTimeout(() => fetchStockData(), 1500);
+
+                // 버튼 초기화
+                setTimeout(() => {
+                    uploadBtn.textContent = '⬆ 구글시트에 반영';
+                    uploadBtn.disabled = false;
+                    uploadBtn.style.display = 'none';
+                    fileInput.value = '';
+                    selectedFile = null;
+                    statusEl.textContent = '선택된 파일 없음';
+                    statusEl.style.color = '#888';
+                }, 3000);
+            } else {
+                throw new Error(result.message || '서버 오류');
+            }
+
+        } catch (err) {
+            console.error('업로드 오류:', err);
+            statusEl.textContent = '❌ 실패: ' + err.message;
+            statusEl.style.color = '#d63031';
+            uploadBtn.textContent = '⬆ 구글시트에 반영';
+            uploadBtn.disabled = false;
+        }
+    });
+}
+
+// ============================================================
 //  재고현황 (STOCK 시트) — 단일 정의
 // ============================================================
 async function fetchStockData() {
@@ -1237,11 +1480,15 @@ function renderStockTable(rows) {
     });
 }
 
-// 재고 탭 클릭 시 데이터 로드
+// 재고 탭 클릭 시 데이터 로드 + 시계 + 업로드 초기화
 document.addEventListener('DOMContentLoaded', () => {
+    initExcelUpload();
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (btn.dataset.tab === 'stockTab') fetchStockData();
+            if (btn.dataset.tab === 'stockTab') {
+                startStockClock();
+                fetchStockData();
+            }
         });
     });
 });
