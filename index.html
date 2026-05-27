@@ -1213,7 +1213,7 @@ function initExcelUpload() {
             };
 
             function excelDateToStr(val) {
-                if (val === '' || val === null || val === undefined) return '';
+                if (val === null || val === undefined) return '';
                 if (typeof val === 'number' && val > 40000) {
                     const d = new Date((val - 25569) * 86400 * 1000);
                     return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}`;
@@ -1225,16 +1225,26 @@ function initExcelUpload() {
                 return typeof v === 'number' ? Math.round(v * 100) / 100 : v;
             }
 
-            // 보조행 판단: boxCol이 비어있으면 보조행
-            // (단가행은 반드시 BOX열이 비어있음 — 연속차수 데이터행은 BOX에 값 있음)
+            // defval을 쓰지 않고 raw 배열로 읽어서 직접 undefined 체크
+            // 보조행 = boxCol 위치에 값이 없거나 undefined (단가행은 BOX열이 항상 비어있음)
+            function getCell(row, col) {
+                return row.length > col ? row[col] : undefined;
+            }
+
+            function hasValue(v) {
+                return v !== null && v !== undefined && v !== '';
+            }
+
             function isSubRow(row, cm) {
-                const boxVal = row[cm.boxCol];
-                return boxVal === '' || boxVal === null || boxVal === undefined;
+                const boxVal = getCell(row, cm.boxCol);
+                // BOX열에 값이 없으면 보조행
+                return !hasValue(boxVal);
             }
 
             workbook.SheetNames.forEach(sheetName => {
                 const ws = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+                // defval 없이 읽어서 빈 셀은 진짜 undefined로 남김
+                const rows = XLSX.utils.sheet_to_json(ws, { header:1, raw:true });
                 if (!rows || rows.length < 5) return;
 
                 const cm = COL_MAP[sheetName];
@@ -1245,14 +1255,13 @@ function initExcelUpload() {
 
                 while (i < rows.length) {
                     const row = rows[i];
-                    const boxVal  = row[cm.boxCol];
-                    const boxEmpty = boxVal === '' || boxVal === null || boxVal === undefined;
+                    const boxVal = getCell(row, cm.boxCol);
 
-                    // 보조행(단가행): BOX열 비어있음 → 스킵
-                    if (boxEmpty) { i++; continue; }
+                    // BOX열 없으면 보조행 → 스킵
+                    if (!hasValue(boxVal)) { i++; continue; }
 
-                    // 품번 셀 (줄바꿈 제거)
-                    const rawItem = String(row[cm.itemCol] || '').replace(/\n|\r/g,' ').trim();
+                    // 품번 셀
+                    const rawItem = String(getCell(row, cm.itemCol) || '').replace(/\n|\r/g,' ').trim();
 
                     // 헤더/타이틀 스킵
                     if (rawItem === '수종' || rawItem === '시리즈' ||
@@ -1260,7 +1269,7 @@ function initExcelUpload() {
                         i++; continue;
                     }
 
-                    // 품번 추출 (색상명+품번 혼합: "스모크 오크C#1801" → "C#1801")
+                    // 품번 추출
                     let itemCode = '';
                     const codeMatch = rawItem.match(/[A-Z]#\s*\d+\w*/);
                     if (codeMatch) {
@@ -1272,29 +1281,29 @@ function initExcelUpload() {
                     if (!currentItemCode) { i++; continue; }
 
                     // 차수/LOT
-                    const chasu = excelDateToStr(row[cm.lotCol]);
+                    const chasu = excelDateToStr(getCell(row, cm.lotCol));
 
-                    // 다음 행이 보조행(BOX 비어있음)이면 소비 → 날짜/텍스트 읽기
+                    // 다음 행이 보조행이면 소비 → 날짜/텍스트
                     let subInfo = '';
                     if (i + 1 < rows.length && isSubRow(rows[i+1], cm)) {
-                        const subVal = rows[i+1][cm.lotCol];
+                        const subVal = getCell(rows[i+1], cm.lotCol);
                         subInfo = excelDateToStr(subVal);
                         i++; // 보조행 소비
                     }
 
-                    // LOT 최종 조합
+                    // LOT 조합
                     let lotStr = chasu || '-';
                     if (subInfo) lotStr = `${chasu}(${subInfo})`;
 
                     // 수치
-                    const m2Val    = row[cm.m2Col];
-                    const totalBox = row[cm.totalBoxCol];
-                    const totalM2  = row[cm.totalM2Col];
+                    const m2Val    = getCell(row, cm.m2Col);
+                    const totalBox = getCell(row, cm.totalBoxCol);
+                    const totalM2  = getCell(row, cm.totalM2Col);
 
-                    const box    = typeof boxVal   === 'number' ? boxVal   : (parseFloat(String(boxVal))   || 0);
-                    const curM2  = roundNum(typeof m2Val === 'number' ? m2Val : (parseFloat(String(m2Val)) || 0));
-                    const totBox = typeof totalBox === 'number' ? roundNum(totalBox) : (totalBox || '-');
-                    const totM2  = typeof totalM2  === 'number' ? roundNum(totalM2)  : (totalM2  || '-');
+                    const box    = typeof boxVal === 'number' ? boxVal : (parseFloat(String(boxVal)) || 0);
+                    const curM2  = roundNum(typeof m2Val === 'number' ? m2Val : (parseFloat(String(m2Val||0)) || 0));
+                    const totBox = typeof totalBox === 'number' ? roundNum(totalBox) : (hasValue(totalBox) ? totalBox : '-');
+                    const totM2  = typeof totalM2  === 'number' ? roundNum(totalM2)  : (hasValue(totalM2)  ? totalM2  : '-');
 
                     matrixData.push([currentItemCode, lotStr, box, curM2, totBox, totM2]);
                     i++;
