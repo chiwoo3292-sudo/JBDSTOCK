@@ -1337,7 +1337,17 @@ const debugRows = matrixData.filter(row => {
 const c1402Count = debugRows.filter(row => String(row[0] || '').trim() === 'C#1402').length;
 const c1403Count = debugRows.filter(row => String(row[0] || '').trim() === 'C#1403').length;
 
-console.log('[STOCK 업로드 진단] C#1402/C#1403 행:', debugRows);
+console.log('[Apps Script 응답]', result);
+
+alert(
+    `Apps Script 응답 확인\n\n` +
+    `status: ${result.status}\n` +
+    `rows: ${result.rows || '(없음)'}\n` +
+    `cols: ${result.cols || '(없음)'}\n` +
+    `c1402Count: ${result.c1402Count || '(없음)'}\n` +
+    `c1403Count: ${result.c1403Count || '(없음)'}\n` +
+    `message: ${result.message || '(없음)'}`
+);
 
 const debugMessage =
     `업로드 직전 데이터 확인\n\n` +
