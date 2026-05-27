@@ -1409,10 +1409,8 @@ function renderStockTable(rows) {
 
         if (itemCode) currentItemCode = itemCode;
 
-        if (!itemCode && lotInfo.includes('/') && processedRows.length > 0) {
-            processedRows[processedRows.length - 1].lotInfo += ` (${lotInfo})`;
-            return;
-        }
+        // 보조행 스킵 (엑셀 업로드 시 이미 차수+날짜 합쳐서 올라오므로 불필요)
+        if (!itemCode && !boxSpec && !curStock && !totalBox && !totalM2) return;
 
         processedRows.push({
             itemCode: itemCode || currentItemCode,
