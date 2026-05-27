@@ -1243,39 +1243,39 @@ function initExcelUpload() {
 
             workbook.SheetNames.forEach(sheetName => {
                 const ws = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
                 const rowsRaw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
-                if (!rows || rows.length < 5) return;
+                if (!rowsRaw || rowsRaw.length < 5) return;
 
                 const cm = COL_MAP[sheetName];
                 if (!cm) return; // 매핑 없는 시트 스킵
 
                 let currentItemCode = '';
 
-                rowsRaw.forEach((row, i) => {
-                    // 앞 4행 스킵 (타이틀/헤더)
-                    if (i < 4) return;
+                // 2줄 한 세트 구조:
+                //   홀수(데이터행): 품번 | 차수 | 규격 | BOX | 현재고㎡ | ... | 총BOX | 총재고㎡
+                //   짝수(보조행):  빈칸 | 입고날짜or텍스트 | 단가 | 빈칸 ...
+                // → 홀수행 읽을 때 바로 아래 짝수행의 LOT열 값을 괄호 안에 합치기
 
-                    const col0 = String(row[0] || '').trim();   // 품번/수종
-                    const col1 = row[cm.lotCol];                 // LOT/차수
-                    const boxVal  = row[cm.boxCol];              // BOX 수량
-                    const m2Val   = row[cm.m2Col];               // 현재고㎡
-                    const totalBox = row[cm.totalBoxCol];        // 총BOX
-                    const totalM2  = row[cm.totalM2Col];         // 총재고㎡
-
-                    // 보조행 스킵: A열 비어있고 BOX열도 비어있는 행 (입고날짜+단가 행)
-                    const boxEmpty = boxVal === '' || boxVal === null || boxVal === undefined;
-                    if (!col0 && boxEmpty) return;
+                let i = 4; // 앞 4행 스킵
+                while (i < rowsRaw.length) {
+                    const row = rowsRaw[i];
+                    const col0 = String(row[0] || '').trim(); // 품번/수종
 
                     // 헤더/타이틀 행 스킵
-                    if (col0 === '수종' || col0 === '시리즈') return;
-                    if (col0.includes('재고사항') || col0.includes('재고사황') || col0.includes('재고상황')) return;
-                    if (col0.includes('시리즈') && !col0.match(/[A-Z]#\d/)) return;
-                    if (col0 === 'NEW' || col0 === '') {
-                        if (boxEmpty) return;
+                    if (col0 === '수종' || col0 === '시리즈' ||
+                        col0.includes('재고사항') || col0.includes('재고사황') || col0.includes('재고상황') ||
+                        (col0.includes('시리즈') && !col0.match(/[A-Z]#\d/))) {
+                        i++;
+                        continue;
                     }
 
-                    // 품번 추출 (색상명 앞에 붙는 경우 처리: "스모크오크C#1801" → "C#1801")
+                    const boxVal   = row[cm.boxCol];
+                    const boxEmpty = boxVal === '' || boxVal === null || boxVal === undefined;
+
+                    // A열도 비어있고 BOX도 없으면 보조행이 단독으로 온 경우 → 스킵
+                    if (!col0 && boxEmpty) { i++; continue; }
+
+                    // 품번 추출
                     let itemCode = '';
                     const codeMatch = col0.match(/[A-Z]#\s*\d+\w*/);
                     if (codeMatch) {
@@ -1284,28 +1284,55 @@ function initExcelUpload() {
                         itemCode = col0;
                     }
                     if (itemCode) currentItemCode = itemCode;
-                    if (!currentItemCode) return;
+                    if (!currentItemCode) { i++; continue; }
 
-                    // LOT/차수 텍스트 처리
-                    const lotStr = col1 !== '' && col1 !== null && col1 !== undefined
-                        ? excelDateToStr(col1)
-                        : '-';
+                    // 차수(1번째 행의 LOT열)
+                    const chasu = String(row[cm.lotCol] || '').trim();
 
-                    // BOX, 현재고㎡ 수치
-                    const box  = typeof boxVal  === 'number' ? boxVal  : (parseFloat(boxVal)  || 0);
-                    const curM2 = typeof m2Val  === 'number' ? roundNum(m2Val)  : (m2Val  || '-');
+                    // 바로 아래 보조행 확인 (짝수행: A열 비어있고 BOX열 비어있는 행)
+                    let subInfo = '';
+                    if (i + 1 < rowsRaw.length) {
+                        const nextRow = rowsRaw[i + 1];
+                        const nextCol0 = String(nextRow[0] || '').trim();
+                        const nextBox  = nextRow[cm.boxCol];
+                        const nextBoxEmpty = nextBox === '' || nextBox === null || nextBox === undefined;
+                        if (!nextCol0 && nextBoxEmpty) {
+                            // 보조행 맞음 → LOT열 값 읽기
+                            const subVal = nextRow[cm.lotCol];
+                            if (subVal !== '' && subVal !== null && subVal !== undefined) {
+                                subInfo = excelDateToStr(subVal);
+                            }
+                            i++; // 보조행 소비
+                        }
+                    }
+
+                    // LOT 문자열 조합: 차수(입고일) or 차수 only
+                    let lotStr = chasu || '-';
+                    if (subInfo) lotStr = `${chasu}(${subInfo})`;
+
+                    // 수치 처리
+                    const m2Val    = row[cm.m2Col];
+                    const totalBox = row[cm.totalBoxCol];
+                    const totalM2  = row[cm.totalM2Col];
+
+                    const box    = typeof boxVal   === 'number' ? boxVal   : (parseFloat(boxVal)   || 0);
+                    const curM2  = typeof m2Val    === 'number' ? roundNum(m2Val)    : (m2Val    || '-');
                     const totBox = typeof totalBox === 'number' ? roundNum(totalBox) : (totalBox || '-');
                     const totM2  = typeof totalM2  === 'number' ? roundNum(totalM2)  : (totalM2  || '-');
 
-                    matrixData.push([
-                        itemCode || currentItemCode,
-                        lotStr,
-                        box,
-                        curM2,
-                        totBox,
-                        totM2
-                    ]);
-                });
+                    if (!boxEmpty) {
+                        matrixData.push([
+                            itemCode || currentItemCode,
+                            lotStr,
+                            box,
+                            curM2,
+                            totBox,
+                            totM2
+                        ]);
+                    }
+
+                    i++;
+                }
             });
 
             if (matrixData.length <= 1) throw new Error('엑셀에서 읽을 데이터가 없습니다.');
