@@ -1328,6 +1328,31 @@ function initExcelUpload() {
 
             if (matrixData.length <= 1) throw new Error('엑셀에서 읽을 데이터가 없습니다.');
 
+          // 진단용: Apps Script로 보내기 직전 matrixData 확인
+const debugRows = matrixData.filter(row => {
+    const itemCode = String(row[0] || '').trim();
+    return itemCode === 'C#1402' || itemCode === 'C#1403';
+});
+
+const c1402Count = debugRows.filter(row => String(row[0] || '').trim() === 'C#1402').length;
+const c1403Count = debugRows.filter(row => String(row[0] || '').trim() === 'C#1403').length;
+
+console.log('[STOCK 업로드 진단] C#1402/C#1403 행:', debugRows);
+
+const debugMessage =
+    `업로드 직전 데이터 확인\n\n` +
+    `C#1402 행 개수: ${c1402Count}\n` +
+    `C#1403 행 개수: ${c1403Count}\n\n` +
+    debugRows.map(row => row.join(' | ')).join('\n') +
+    `\n\n이대로 구글시트에 전송할까요?`;
+
+if (!confirm(debugMessage)) {
+    statusEl.textContent = '진단 확인 후 업로드를 취소했습니다.';
+    uploadBtn.textContent = '⬆ 구글시트에 반영';
+    uploadBtn.disabled = false;
+    return;
+}
+
             statusEl.textContent = '구글시트에 전송 중...';
 
             // 3. Apps Script로 POST 전송
