@@ -1193,39 +1193,33 @@ function initExcelUpload() {
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
             // 2. 모든 시트를 STOCK 형식으로 정제해서 합치기
-            // 출력 형식: [품번, LOT및입고일, BOX, 현재고(㎡), 총BOX, 총재고(㎡)]
+            // 출력: [품번, LOT및입고일, BOX, 현재고(㎡), 총BOX, 총재고(㎡)]
             const matrixData = [];
             matrixData.push(['품번', 'LOT 및 입고일', 'BOX', '현재고(㎡)', '총 BOX', '총 재고(㎡)']);
 
-            // 시트별 컬럼 매핑 (0-based 인덱스)
-            // 기본 시트: 품번A(0) LOT/차수B(1) 규격C(2) BOX D(3) 현재고㎡E(4) ... 총BOXP~ 총재고㎡Q~
-            // 특수 시트(D#,바람1): 품번A(0) LOT B(1) [빈칸or파스 C(2)] 규격D(3) BOX E(4) 현재고㎡F(5)
+            // 시트별 컬럼 매핑 (0-based)
+            // itemCol: 품번열, lotCol: 차수/LOT열, boxCol: BOX열, m2Col: 현재고㎡열
+            // subLotCol: 보조행의 날짜/텍스트 열 (lotCol과 같은 경우가 대부분)
             const COL_MAP = {
-                'C#14':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:15, totalM2Col:16 },
-                'C#15':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:19, totalM2Col:20 },
-                'C#18':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:15, totalM2Col:16 },
-                'C#19':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:15, totalM2Col:16 },
-                'A#14':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:15, totalM2Col:16 },
-                'A#15':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:17, totalM2Col:18 },
-                'A#16':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:17, totalM2Col:18 },
-                'A#171':            { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:19, totalM2Col:20 },
-                'A#17':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:19, totalM2Col:20 },
-                'A#18':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:33, totalM2Col:34 },
-                'A#19':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:17, totalM2Col:18 },
-                'A#20':             { lotCol:1, boxCol:3, m2Col:4, totalBoxCol:17, totalM2Col:18 },
-                'D#,E#,선일,성원특':  { lotCol:1, boxCol:4, m2Col:5, totalBoxCol:16, totalM2Col:17 },
-                '바람1':             { lotCol:2, boxCol:4, m2Col:5, totalBoxCol:13, totalM2Col:14 },
+                'C#14':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:15, totalM2Col:16 },
+                'C#15':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:19, totalM2Col:20 },
+                'C#18':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:15, totalM2Col:16 },
+                'C#19':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:15, totalM2Col:16 },
+                'A#14':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:15, totalM2Col:16 },
+                'A#15':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:17, totalM2Col:18 },
+                'A#16':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:17, totalM2Col:18 },
+                'A#171':          { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:19, totalM2Col:20 },
+                'A#17':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:19, totalM2Col:20 },
+                'A#18':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:33, totalM2Col:34 },
+                'A#19':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:17, totalM2Col:18 },
+                'A#20':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:17, totalM2Col:18 },
+                'D#,E#,선일,성원특': { itemCol:0, lotCol:1, boxCol:4, m2Col:5, totalBoxCol:16, totalM2Col:17 },
+                '바람1':           { itemCol:1, lotCol:2, boxCol:4, m2Col:5, totalBoxCol:13, totalM2Col:14 },
             };
 
-            // 엑셀 날짜 → 문자열 변환
+            // 날짜 시리얼 or 문자열 → 표시용 문자열
             function excelDateToStr(val) {
                 try {
-                    if (val instanceof Date) {
-                        const y = val.getFullYear();
-                        const m = String(val.getMonth()+1).padStart(2,'0');
-                        const d = String(val.getDate()).padStart(2,'0');
-                        return y+'/'+m+'/'+d;
-                    }
                     if (typeof val === 'number' && val > 40000) {
                         const date = new Date((val - 25569) * 86400 * 1000);
                         const y = date.getUTCFullYear();
@@ -1233,12 +1227,21 @@ function initExcelUpload() {
                         const d = String(date.getUTCDate()).padStart(2,'0');
                         return y+'/'+m+'/'+d;
                     }
-                    return String(val || '').trim();
+                    // 줄바꿈 제거 후 반환
+                    return String(val || '').replace(/\n|\r/g, ' ').trim();
                 } catch(e) { return String(val || ''); }
             }
 
             function roundNum(v) {
                 return typeof v === 'number' ? Math.round(v * 100) / 100 : v;
+            }
+
+            // 보조행 판단: itemCol과 boxCol이 모두 비어있으면 보조행
+            function isSubRow(row, cm) {
+                const itemEmpty = row[cm.itemCol] === '' || row[cm.itemCol] === null || row[cm.itemCol] === undefined;
+                const boxVal = row[cm.boxCol];
+                const boxEmpty = boxVal === '' || boxVal === null || boxVal === undefined;
+                return itemEmpty && boxEmpty;
             }
 
             workbook.SheetNames.forEach(sheetName => {
@@ -1247,89 +1250,83 @@ function initExcelUpload() {
                 if (!rowsRaw || rowsRaw.length < 5) return;
 
                 const cm = COL_MAP[sheetName];
-                if (!cm) return; // 매핑 없는 시트 스킵
+                if (!cm) return;
 
                 let currentItemCode = '';
+                let i = 4; // 앞 4행(타이틀+헤더) 스킵
 
-                // 2줄 한 세트 구조:
-                //   홀수(데이터행): 품번 | 차수 | 규격 | BOX | 현재고㎡ | ... | 총BOX | 총재고㎡
-                //   짝수(보조행):  빈칸 | 입고날짜or텍스트 | 단가 | 빈칸 ...
-                // → 홀수행 읽을 때 바로 아래 짝수행의 LOT열 값을 괄호 안에 합치기
-
-                let i = 4; // 앞 4행 스킵
                 while (i < rowsRaw.length) {
                     const row = rowsRaw[i];
-                    const col0 = String(row[0] || '').trim(); // 품번/수종
+
+                    // 품번 셀 값 (줄바꿈 제거)
+                    const rawItem = String(row[cm.itemCol] || '').replace(/\n|\r/g, ' ').trim();
 
                     // 헤더/타이틀 행 스킵
-                    if (col0 === '수종' || col0 === '시리즈' ||
-                        col0.includes('재고사항') || col0.includes('재고사황') || col0.includes('재고상황') ||
-                        (col0.includes('시리즈') && !col0.match(/[A-Z]#\d/))) {
-                        i++;
-                        continue;
+                    if (rawItem === '수종' || rawItem === '시리즈' || rawItem === '수종 시리즈' ||
+                        rawItem.includes('재고사항') || rawItem.includes('재고사황') || rawItem.includes('재고상황')) {
+                        i++; continue;
                     }
 
                     const boxVal   = row[cm.boxCol];
                     const boxEmpty = boxVal === '' || boxVal === null || boxVal === undefined;
 
-                    // A열도 비어있고 BOX도 없으면 보조행이 단독으로 온 경우 → 스킵
-                    if (!col0 && boxEmpty) { i++; continue; }
+                    // 보조행 단독 등장 (itemCol, boxCol 둘 다 비어있음) → 스킵
+                    if (isSubRow(row, cm)) { i++; continue; }
 
-                    // 품번 추출
+                    // 품번 추출 — 줄바꿈 포함된 경우 정규식으로 코드만 추출
+                    // 예: "스모크 오크C#1801" → "C#1801", "오크 C#1803" → "C#1803"
                     let itemCode = '';
-                    const codeMatch = col0.match(/[A-Z]#\s*\d+\w*/);
+                    const codeMatch = rawItem.match(/[A-Z]#\s*\d+\w*/);
                     if (codeMatch) {
                         itemCode = codeMatch[0].replace(/\s+/g, '');
-                    } else if (col0 && col0 !== 'NEW') {
-                        itemCode = col0;
+                    } else if (rawItem && rawItem !== 'NEW') {
+                        itemCode = rawItem;
                     }
                     if (itemCode) currentItemCode = itemCode;
                     if (!currentItemCode) { i++; continue; }
 
-                    // 차수(1번째 행의 LOT열)
-                    const chasu = String(row[cm.lotCol] || '').trim();
+                    // 차수/LOT (데이터행의 lotCol)
+                    const chasuRaw = row[cm.lotCol];
+                    const chasu = chasuRaw !== '' && chasuRaw !== null && chasuRaw !== undefined
+                        ? excelDateToStr(chasuRaw)
+                        : '';
 
-                    // 바로 아래 보조행 확인 (짝수행: A열 비어있고 BOX열 비어있는 행)
+                    // 바로 아래 보조행 확인 → 있으면 소비하고 괄호 안 내용으로 사용
                     let subInfo = '';
-                    if (i + 1 < rowsRaw.length) {
+                    if (i + 1 < rowsRaw.length && isSubRow(rowsRaw[i + 1], cm)) {
                         const nextRow = rowsRaw[i + 1];
-                        const nextCol0 = String(nextRow[0] || '').trim();
-                        const nextBox  = nextRow[cm.boxCol];
-                        const nextBoxEmpty = nextBox === '' || nextBox === null || nextBox === undefined;
-                        if (!nextCol0 && nextBoxEmpty) {
-                            // 보조행 맞음 → LOT열 값 읽기
-                            const subVal = nextRow[cm.lotCol];
-                            if (subVal !== '' && subVal !== null && subVal !== undefined) {
-                                subInfo = excelDateToStr(subVal);
-                            }
-                            i++; // 보조행 소비
+                        const subVal = nextRow[cm.lotCol];
+                        if (subVal !== '' && subVal !== null && subVal !== undefined) {
+                            subInfo = excelDateToStr(subVal);
                         }
+                        i++; // 보조행 소비
                     }
 
-                    // LOT 문자열 조합: 차수(입고일) or 차수 only
+                    // LOT 최종 조합
                     let lotStr = chasu || '-';
-                    if (subInfo) lotStr = `${chasu}(${subInfo})`;
+                    if (subInfo) lotStr = chasu ? `${chasu}(${subInfo})` : `(${subInfo})`;
 
-                    // 수치 처리
+                    // 수치
                     const m2Val    = row[cm.m2Col];
                     const totalBox = row[cm.totalBoxCol];
                     const totalM2  = row[cm.totalM2Col];
 
-                    const box    = typeof boxVal   === 'number' ? boxVal   : (parseFloat(boxVal)   || 0);
+                    const box    = typeof boxVal   === 'number' ? boxVal   : (parseFloat(String(boxVal))   || 0);
                     const curM2  = typeof m2Val    === 'number' ? roundNum(m2Val)    : (m2Val    || '-');
                     const totBox = typeof totalBox === 'number' ? roundNum(totalBox) : (totalBox || '-');
                     const totM2  = typeof totalM2  === 'number' ? roundNum(totalM2)  : (totalM2  || '-');
 
-                    if (!boxEmpty) {
-                        matrixData.push([
-                            itemCode || currentItemCode,
-                            lotStr,
-                            box,
-                            curM2,
-                            totBox,
-                            totM2
-                        ]);
-                    }
+                    // BOX 없는 행 스킵 (집계용 빈 행 등)
+                    if (boxEmpty) { i++; continue; }
+
+                    matrixData.push([
+                        currentItemCode,
+                        lotStr,
+                        box,
+                        curM2,
+                        totBox,
+                        totM2
+                    ]);
 
                     i++;
                 }
