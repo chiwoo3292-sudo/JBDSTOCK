@@ -101,6 +101,9 @@
 /* 단종 품번 빨간색 */
 #stockTable td.discontinued-code { color: #d63031 !important; font-weight: 700; }
 
+/* 총BOX, 총재고 빨간색 */
+#stockTable td.total-value { color: #d63031; font-weight: 700; }
+
   /* [2] 스마트폰/태블릿 모바일 화면(폭 768px 이하) 대응 마법의 구역 */
 @media screen and (max-width: 768px) {
     
@@ -363,6 +366,7 @@ function unlock() {
   <button type="button" class="tab-btn" data-tab="calculatorTab">계산기</button>
   <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
   <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
+  <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
 </div>
 
   <section id="pricingTab" class="tab-panel active">
@@ -640,21 +644,22 @@ function unlock() {
         </div>
 
         <!-- 엑셀 업로드 영역 -->
-        <div id="uploadArea" style="border:2px dashed #d0d0d0; border-radius:16px; padding:20px 24px; margin-bottom:16px; background:#fafafa; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:200px;">
-                <div style="font-size:14px; font-weight:700; color:#333; margin-bottom:4px;">📂 재고 엑셀 파일 업로드</div>
-                <div style="font-size:12px; color:#888; line-height:1.5;">엑셀 파일(.xlsx)을 선택하면 구글시트에 자동으로 반영됩니다.<br>직원분이 작성한 엑셀 파일을 그대로 올려주세요.</div>
+        <div id="uploadArea" style="border:1px solid #e0e0e0; border-radius:16px; padding:16px 20px; margin-bottom:16px; background:#fafafa; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:180px;">
+                <div style="font-size:13px; font-weight:700; color:#333; margin-bottom:2px;">📂 재고 엑셀 업로드</div>
+                <div style="font-size:11px; color:#999; line-height:1.5;">xlsx 파일 선택 후 구글시트에 반영하세요</div>
+                <div id="lastUploadTime" style="font-size:11px; color:#888; margin-top:4px;"></div>
             </div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
-                <label for="excelUpload" style="display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 18px; background:#111; color:#fff; border-radius:12px; font-size:13px; font-weight:700; cursor:pointer;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <label for="excelUpload" style="display:inline-flex; align-items:center; gap:6px; height:38px; padding:0 16px; background:#fff; color:#444; border:1px solid #ccc; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; transition:background .15s;">
                     📁 파일 선택
                 </label>
                 <input type="file" id="excelUpload" accept=".xlsx,.xls" style="display:none;" />
-                <div id="uploadStatus" style="font-size:12px; color:#888; text-align:right;">선택된 파일 없음</div>
+                <div id="uploadStatus" style="font-size:12px; color:#888; white-space:nowrap; max-width:160px; overflow:hidden; text-overflow:ellipsis;">선택된 파일 없음</div>
+                <button id="uploadBtn" type="button" style="display:none; height:38px; padding:0 18px; background:#111; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">
+                    ⬆ 구글시트에 반영
+                </button>
             </div>
-            <button id="uploadBtn" type="button" style="min-height:40px; padding:0 20px; background:#2d7ef7; color:#fff; border:none; border-radius:12px; font-size:13px; font-weight:700; cursor:pointer; display:none;">
-                ⬆ 구글시트에 반영
-            </button>
         </div>
 
         <!-- 재고 테이블 -->
@@ -685,8 +690,235 @@ function unlock() {
 <!-- 호버 툴팁 엘리먼트 (탭 밖, body 하단에 두는 것이 좋음) -->
 <div id="stockTooltip" class="stock-tooltip"></div>
 
+<!-- ===================== 견적서 탭 ===================== -->
+<section id="invoiceTab" class="tab-panel" style="display:none;">
+<style>
+/* ---- 견적서 탭 스타일 ---- */
+.inv-wrap { display:grid; grid-template-columns:400px 1fr; gap:18px; align-items:start; }
+.inv-form-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
+.inv-form-card h2 { margin:0 0 16px; font-size:15px; font-weight:700; }
+.inv-field { margin-bottom:12px; }
+.inv-label { font-size:11px; color:#888; margin-bottom:4px; font-weight:600; }
+.inv-field input, .inv-field select, .inv-field textarea {
+  width:100%; height:38px; padding:0 12px; border:1px solid #ddd; border-radius:10px;
+  font-family:inherit; font-size:13px; background:#fff;
+}
+.inv-field textarea { height:auto; padding:10px 12px; resize:none; }
+.inv-field input:focus, .inv-field select:focus { outline:none; border-color:#aaa; }
+.inv-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.inv-item-box { background:#f9f9f9; border:1px solid #eee; border-radius:12px; padding:14px; margin-bottom:10px; }
+.inv-item-title { font-size:12px; font-weight:700; color:#555; margin-bottom:10px; }
+.inv-actions { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.inv-actions button { flex:1; min-height:40px; font-size:13px; }
 
+/* ---- 견적서 미리보기 ---- */
+.inv-preview-wrap { background:#fff; border:1px solid #e0e0e0; border-radius:18px; padding:20px; }
+.inv-preview-label { font-size:11px; color:#888; font-weight:600; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+
+/* A4 견적서 본체 */
+#invoiceDoc {
+  width:680px; margin:0 auto; background:#fff; padding:28px 32px;
+  font-family:'Pretendard',sans-serif; font-size:8pt; color:#222;
+  border:1px solid #ddd; border-radius:4px;
+}
+.inv-title { font-size:28pt; font-weight:800; letter-spacing:2px; color:#222; margin-bottom:18px; }
+.inv-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-bottom:0; border-top:2px solid #333; }
+.inv-meta-row { display:grid; grid-template-columns:80px 1fr; border-bottom:1px solid #ddd; }
+.inv-meta-row.right-block { border-left:1px solid #ddd; }
+.inv-meta-key { padding:5px 8px; font-size:7.5pt; color:#666; background:#f7f7f7; border-right:1px solid #ddd; white-space:nowrap; }
+.inv-meta-val { padding:5px 8px; font-size:7.5pt; }
+.inv-table { width:100%; border-collapse:collapse; margin-top:14px; }
+.inv-table th { background:#c0c0c0; font-size:7.5pt; padding:6px 6px; border:1px solid #aaa; font-weight:700; text-align:center; color:#333; }
+.inv-table td { border:1px solid #ccc; padding:6px 6px; font-size:7.5pt; vertical-align:middle; }
+.inv-table td.td-item { text-align:left; }
+.inv-table td.td-center { text-align:center; }
+.inv-table td.td-right { text-align:right; }
+.inv-table tr.total-row td { background:#f0f0f0; font-weight:700; }
+.inv-table tr.grand-row td { background:#e8e8e8; font-weight:800; font-size:8.5pt; }
+.inv-remarks { margin-top:12px; font-size:7pt; color:#444; line-height:1.7; border-top:1px solid #ccc; padding-top:8px; }
+.inv-footer { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:12px; border-top:1px solid #ccc; padding-top:10px; font-size:7pt; color:#555; }
+.inv-account { font-size:7pt; color:#444; }
+.inv-company { text-align:right; font-weight:700; font-size:8pt; }
+
+@media screen and (max-width:768px) {
+  .inv-wrap { grid-template-columns:1fr !important; }
+  #invoiceDoc { width:100%; padding:16px; font-size:7pt; }
+  .inv-title { font-size:20pt; }
+}
+@media print {
+  body > *:not(#invoiceDoc) { display:none !important; }
+  .inv-wrap, .inv-preview-wrap, section, .wrap, .tabs { display:none !important; }
+  #invoicePrintTarget { display:block !important; position:fixed; top:0; left:0; width:100%; }
+  #invoiceDoc { border:none !important; padding:0 !important; margin:0 !important; width:100% !important; box-shadow:none !important; }
+}
+</style>
+
+<div class="inv-wrap">
+  <!-- 입력 폼 -->
+  <div class="inv-form-card">
+    <h2>견적서 작성</h2>
+
+    <div class="inv-grid-2">
+      <div class="inv-field">
+        <div class="inv-label">BILL TO (고객명/업체명)</div>
+        <input type="text" id="invBillTo" placeholder="예: 홍길동 / ㈜ABC">
+      </div>
+      <div class="inv-field">
+        <div class="inv-label">시공 예정일</div>
+        <input type="text" id="invWorkDate" placeholder="예: 2026.06.15">
+      </div>
+    </div>
+
+    <div class="inv-field">
+      <div class="inv-label">현장 주소</div>
+      <input type="text" id="invSite" placeholder="예: 서울시 강남구 언주로 133길 25">
+    </div>
+
+    <div class="inv-grid-2">
+      <div class="inv-field">
+        <div class="inv-label">담당자 (이름 + 직급)</div>
+        <input type="text" id="invManager" placeholder="예: 최은용 차장">
+      </div>
+      <div class="inv-field">
+        <div class="inv-label">DATE</div>
+        <input type="text" id="invDate" placeholder="예: 2026.05.27">
+      </div>
+    </div>
+
+    <div class="inv-label" style="margin-bottom:8px; font-size:12px; color:#333; font-weight:700;">제품 1</div>
+    <div class="inv-item-box" id="invItem1Box">
+      <div class="inv-field">
+        <div class="inv-label">제품 선택</div>
+        <select id="invProduct1">
+          <option value="">-- 제품 선택 --</option>
+        </select>
+      </div>
+      <div class="inv-grid-2">
+        <div class="inv-field">
+          <div class="inv-label">단위 (UNIT)</div>
+          <select id="invUnit1">
+            <option value="M2">M2 (헤베)</option>
+            <option value="PY">PY (평)</option>
+          </select>
+        </div>
+        <div class="inv-field">
+          <div class="inv-label">면적 입력</div>
+          <input type="number" id="invQty1" placeholder="예: 71.48" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="inv-field">
+        <div class="inv-label">가격 기준</div>
+        <select id="invParty1">
+          <option value="consumer">소비자가</option>
+          <option value="vendor">업체가</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="inv-label" style="margin-bottom:8px; font-size:12px; color:#333; font-weight:700;">제품 2 <span style="font-weight:400; color:#aaa;">(선택)</span></div>
+    <div class="inv-item-box">
+      <div class="inv-field">
+        <div class="inv-label">제품 선택</div>
+        <select id="invProduct2">
+          <option value="">-- 없음 --</option>
+        </select>
+      </div>
+      <div class="inv-grid-2">
+        <div class="inv-field">
+          <div class="inv-label">단위 (UNIT)</div>
+          <select id="invUnit2">
+            <option value="M2">M2 (헤베)</option>
+            <option value="PY">PY (평)</option>
+          </select>
+        </div>
+        <div class="inv-field">
+          <div class="inv-label">면적 입력</div>
+          <input type="number" id="invQty2" placeholder="예: 95.04" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="inv-field">
+        <div class="inv-label">가격 기준</div>
+        <select id="invParty2">
+          <option value="consumer">소비자가</option>
+          <option value="vendor">업체가</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="inv-field">
+      <div class="inv-label">공과잡비 (원, 비워두면 제외)</div>
+      <input type="number" id="invMisc" placeholder="예: 700000" step="1000" min="0">
+    </div>
+
+    <div class="inv-actions">
+      <button type="button" id="invPreviewBtn">미리보기 갱신</button>
+      <button type="button" id="invPrintBtn" class="secondary">🖨 인쇄</button>
+      <button type="button" id="invSaveImgBtn" class="secondary">💾 이미지 저장</button>
+    </div>
+  </div>
+
+  <!-- 미리보기 -->
+  <div class="inv-preview-wrap">
+    <div class="inv-preview-label">
+      <span>견적서 미리보기</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <div id="invoiceDoc">
+        <div class="inv-title">INVOICE</div>
+
+        <div class="inv-meta-grid">
+          <div>
+            <div class="inv-meta-row"><div class="inv-meta-key">BILL TO</div><div class="inv-meta-val" id="pvBillTo">—</div></div>
+            <div class="inv-meta-row"><div class="inv-meta-key">시공 예정일</div><div class="inv-meta-val" id="pvWorkDate">—</div></div>
+            <div class="inv-meta-row"><div class="inv-meta-key">현장</div><div class="inv-meta-val" id="pvSite">—</div></div>
+          </div>
+          <div class="right-block">
+            <div class="inv-meta-row"><div class="inv-meta-key">담당자</div><div class="inv-meta-val" id="pvManager">—</div></div>
+            <div class="inv-meta-row"><div class="inv-meta-key">DATE</div><div class="inv-meta-val" id="pvDate">—</div></div>
+            <div class="inv-meta-row"><div class="inv-meta-key" style="background:transparent;"></div><div class="inv-meta-val"></div></div>
+          </div>
+        </div>
+
+        <table class="inv-table" id="pvTable">
+          <thead>
+            <tr>
+              <th style="width:28%;">ITEM DESCRIPTION</th>
+              <th style="width:20%;">SIZE</th>
+              <th style="width:8%;">UNIT</th>
+              <th style="width:12%;">Q'TY</th>
+              <th style="width:16%;">PRICE</th>
+              <th style="width:16%;">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody id="pvTableBody"></tbody>
+        </table>
+
+        <div class="inv-remarks" id="pvRemarks">
+          단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/M2<br>
+          실측후 물량은 상이할수있음<br>
+          걸레받이 별도<br>
+          시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드 - 친환경 황토풀 사용 기준<br>
+          결제조건 : 계약금 50%, 중도금 30%(시공 일주일전) 잔금 20%(시공직후)<br>
+          원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.
+        </div>
+
+        <div class="inv-footer">
+          <div>
+            <div class="inv-account">ACCOUNT INFO</div>
+            <div class="inv-account">신한은행 140-013-942370 ㈜지복득마루</div>
+            <div style="margin-top:6px; font-size:7pt; color:#555;">
+              CONTACT<br>
+              서울시 강남구 언주로 133길 25 지복득마루<br>
+              T 02 576 7736 &nbsp;&nbsp; E jibokdeukmaru@naver.com &nbsp;&nbsp; www.jibokdeukmaru.com
+            </div>
+          </div>
+          <div class="inv-company">㈜지복득마루</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+</section>
 <div id="toast" class="toast">복사 완료</div>
 <script>
 // products 배열은 PRICE 시트에서 동적으로 로드됩니다.
@@ -1003,6 +1235,7 @@ async function startApp() {
         console.error('데이터 로드 실패:', e.message);
     }
     initApp();
+    fillInvoiceSelects(); // 견적서 제품 셀렉트 초기 세팅
 }
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
@@ -1139,6 +1372,11 @@ function initExcelUpload() {
     const uploadBtn  = document.getElementById('uploadBtn');
     const statusEl   = document.getElementById('uploadStatus');
     if (!fileInput || !uploadBtn || !statusEl) return;
+
+    // 마지막 업로드 시간 복원
+    const lastUpload = localStorage.getItem('baram_last_upload');
+    const lastEl = document.getElementById('lastUploadTime');
+    if (lastEl && lastUpload) lastEl.textContent = `🕐 마지막 업로드: ${lastUpload}`;
 
     let selectedFile = null;
 
@@ -1327,6 +1565,14 @@ function initExcelUpload() {
 
             if (result.status === 'success') {
                 alert('파일이 정상적으로 업로드되었습니다.');
+
+                // 마지막 업로드 시간 저장
+                const now = new Date();
+                const pad = n => String(n).padStart(2, '0');
+                const timeStr = `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+                localStorage.setItem('baram_last_upload', timeStr);
+                const lastEl = document.getElementById('lastUploadTime');
+                if (lastEl) lastEl.textContent = `🕐 마지막 업로드: ${timeStr}`;
                 statusEl.textContent = '✅ 구글시트 반영 완료!';
                 statusEl.style.color = '#00a854';
                 uploadBtn.textContent = '✅ 완료';
@@ -1461,8 +1707,8 @@ function renderStockTable(rows) {
             <td style="text-align:center;">${d.lotInfo}</td>
             <td style="text-align:center;">${d.boxSpec}</td>
             <td style="text-align:center;">${d.curStock}</td>
-            <td style="text-align:center;">${totalBoxDisplay}</td>
-            <td style="text-align:center;">${m2Display}</td>
+            <td class="total-value" style="text-align:center;">${totalBoxDisplay}</td>
+            <td class="total-value" style="text-align:center;">${m2Display}</td>
         `;
 
         // 툴팁 — TOOLTIP 시트 기반
@@ -1498,6 +1744,7 @@ function renderStockTable(rows) {
     });
 }
 
+
 // 재고 탭 클릭 시 데이터 로드 + 시계 + 업로드 초기화
 document.addEventListener('DOMContentLoaded', () => {
     initExcelUpload();
@@ -1507,9 +1754,194 @@ document.addEventListener('DOMContentLoaded', () => {
                 startStockClock();
                 fetchStockData();
             }
+            if (btn.dataset.tab === 'invoiceTab') {
+                initInvoiceTab();
+            }
         });
     });
 });
+
+// ============================================================
+//  견적서 탭
+// ============================================================
+let invoiceInited = false;
+
+function fillInvoiceSelects() {
+    ['invProduct1', 'invProduct2'].forEach((id, idx) => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const prev = sel.value;
+        sel.innerHTML = idx === 0
+            ? '<option value="">-- 제품 선택 --</option>'
+            : '<option value="">-- 없음 --</option>';
+        products.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.code;
+            opt.textContent = `${p.code} (${p.name})`;
+            sel.appendChild(opt);
+        });
+        if (prev) sel.value = prev;
+    });
+}
+
+function initInvoiceTab() {
+    fillInvoiceSelects();
+
+    // 오늘 날짜 자동 세팅 (첫 진입 시)
+    const dateEl = document.getElementById('invDate');
+    if (dateEl && !dateEl.value) {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        dateEl.value = `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
+    }
+
+    if (!invoiceInited) {
+        invoiceInited = true;
+        // 실시간 갱신: 모든 입력 변경 시
+        const ids = ['invBillTo','invWorkDate','invSite','invManager','invDate',
+                     'invProduct1','invUnit1','invQty1','invParty1',
+                     'invProduct2','invUnit2','invQty2','invParty2','invMisc'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', renderInvoice);
+            if (el && (el.tagName === 'SELECT')) el.addEventListener('change', renderInvoice);
+        });
+
+        document.getElementById('invPreviewBtn').addEventListener('click', renderInvoice);
+        document.getElementById('invPrintBtn').addEventListener('click', printInvoice);
+        document.getElementById('invSaveImgBtn').addEventListener('click', saveInvoiceImage);
+    }
+    renderInvoice();
+}
+
+function getInvItem(productId, unitId, qtyId, partyId) {
+    const code = document.getElementById(productId)?.value;
+    const unit = document.getElementById(unitId)?.value || 'M2';
+    const qty  = parseFloat(document.getElementById(qtyId)?.value) || 0;
+    const party = document.getElementById(partyId)?.value || 'consumer';
+    if (!code) return null;
+    const p = products.find(x => x.code === code);
+    if (!p) return null;
+
+    // 단가: 단위에 따라 m² or 평 단가 사용
+    const unitPrice = unit === 'M2'
+        ? getUnitValue(p, party, 'sqm', 'included')
+        : getUnitValue(p, party, 'py', 'included');
+
+    const total = Math.round(qty * unitPrice);
+    return {
+        name: `BARAM\n${p.code}`,
+        size: p.spec,
+        unit,
+        qty,
+        unitPrice,
+        total,
+    };
+}
+
+function fmtNum(n) {
+    return Number.isFinite(n) ? n.toLocaleString('ko-KR') : '-';
+}
+
+function renderInvoice() {
+    // 메타
+    document.getElementById('pvBillTo').textContent  = document.getElementById('invBillTo')?.value  || '—';
+    document.getElementById('pvWorkDate').textContent = document.getElementById('invWorkDate')?.value || '—';
+    document.getElementById('pvSite').textContent     = document.getElementById('invSite')?.value     || '—';
+    document.getElementById('pvManager').textContent  = document.getElementById('invManager')?.value  || '—';
+    document.getElementById('pvDate').textContent     = document.getElementById('invDate')?.value     || '—';
+
+    const item1 = getInvItem('invProduct1','invUnit1','invQty1','invParty1');
+    const item2 = getInvItem('invProduct2','invUnit2','invQty2','invParty2');
+    const miscRaw = parseFloat(document.getElementById('invMisc')?.value) || 0;
+
+    const tbody = document.getElementById('pvTableBody');
+    tbody.innerHTML = '';
+
+    let subTotal = 0;
+
+    function addItemRow(item) {
+        if (!item) return;
+        subTotal += item.total;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="td-item" style="white-space:pre-line;">${item.name}</td>
+            <td class="td-center">${item.size}</td>
+            <td class="td-center">${item.unit}</td>
+            <td class="td-center">${item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2)}</td>
+            <td class="td-right">${fmtNum(item.unitPrice)}</td>
+            <td class="td-right">${fmtNum(item.total)}</td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    addItemRow(item1);
+    addItemRow(item2);
+
+    // 공과잡비
+    if (miscRaw > 0) {
+        subTotal += miscRaw;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="td-item">공과잡비</td>
+            <td></td><td></td><td></td><td></td>
+            <td class="td-right">${fmtNum(miscRaw)}</td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    // SUB TOTAL
+    const vat = Math.round(subTotal * 0.1);
+    const grandRaw = subTotal + vat;
+    const grand = Math.floor(grandRaw / 10000) * 10000; // 단수정리 (만원 단위)
+    const adjust = grand - grandRaw;
+
+    const makeTotal = (label, val, cls='total-row') => {
+        const tr = document.createElement('tr');
+        tr.className = cls;
+        tr.innerHTML = `<td class="td-item" colspan="5">${label}</td><td class="td-right">${fmtNum(val)}</td>`;
+        tbody.appendChild(tr);
+    };
+
+    makeTotal('SUB TOTAL', subTotal);
+    makeTotal('Tax Vat 10%', vat);
+    if (adjust !== 0) makeTotal('단수정리', adjust);
+    makeTotal('GRAND TOTAL', grand, 'grand-row');
+
+    // REMARKS 단위 표시 업데이트
+    const unit1 = document.getElementById('invUnit1')?.value || 'M2';
+    document.getElementById('pvRemarks').innerHTML =
+        `단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/${unit1}<br>
+실측후 물량은 상이할수있음<br>
+걸레받이 별도<br>
+시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드 - 친환경 황토풀 사용 기준<br>
+결제조건 : 계약금 50%, 중도금 30%(시공 일주일전) 잔금 20%(시공직후)<br>
+원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
+}
+
+function printInvoice() {
+    renderInvoice();
+    window.print();
+}
+
+async function saveInvoiceImage() {
+    renderInvoice();
+    const el = document.getElementById('invoiceDoc');
+    if (!el) return;
+    try {
+        const canvas = await html2canvas(el, { backgroundColor:'#ffffff', scale:2, useCORS:true, logging:false });
+        const now = new Date();
+        const pad = n => String(n).padStart(2,'0');
+        const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `견적서_${stamp}.png`;
+        a.click();
+        showToast('이미지 저장 완료');
+    } catch(e) {
+        showToast('저장 실패: ' + e.message);
+    }
+}
 </script>
 </body>
 </html>
