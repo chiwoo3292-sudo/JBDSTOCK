@@ -755,6 +755,7 @@ function unlock() {
 .inv-total-table .grand td { height:31px; font-weight:900; color:#020617; }
 .inv-total-table .grand td { border-top:1px dotted #9a9a9a; }
 .inv-total-table .amount { text-align:right; white-space:nowrap; }
+.inv-total-table .negative-won { white-space:nowrap; letter-spacing:-.5px; }
 .inv-lower { display:grid; grid-template-columns:1fr 235px; gap:34px; margin-top:64px; }
 .inv-remarks { font-size:11px; color:#172033; line-height:1.55; border:0; padding:0; margin:0; }
 .inv-remarks-title, .inv-contact-title, .inv-account-title { font-size:11px; font-weight:900; color:#020617; margin-bottom:5px; }
@@ -1990,7 +1991,7 @@ function renderInvoice() {
         const tr = document.createElement('tr');
         tr.className = cls;
         if (val < 0) {
-            tr.innerHTML = `<td class="total-label">${label}</td><td class="amount" colspan="2">- ₩ ${fmtNum(Math.abs(val))}</td>`;
+            tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won negative-won">-₩</td><td class="amount">${fmtNum(Math.abs(val))}</td>`;
         } else {
             tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won">₩</td><td class="amount">${fmtNum(val)}</td>`;
         }
