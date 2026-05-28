@@ -725,7 +725,7 @@ function unlock() {
 .inv-brand { margin-left:14px; font-family:'Times New Roman',serif; font-size:13px; letter-spacing:10px; color:#111; line-height:1; }
 .inv-title { margin:8px 0 94px 7px; font-family:'Arial Black','Arial',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr 170px; gap:34px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px dotted #9a9a9a; }
-.inv-meta-grid .right-block { align-self:end; justify-self:end; width:120px; }
+.inv-meta-grid .right-block { align-self:end; justify-self:end; width:120px; padding-top:22px; }
 .inv-meta-row { display:grid; grid-template-columns:62px 1fr; min-height:22px; align-items:center; }
 .right-block .inv-meta-row { grid-template-columns:44px 1fr; }
 .inv-meta-key { font-size:11px; font-weight:800; color:#020617; white-space:nowrap; }
@@ -1891,7 +1891,8 @@ function formatInvSize(spec='') {
     return String(spec)
         .split('/')[0]
         .replace(/\s*T.*$/i, '')
-        .replace(/[×x*]/g, ' X ')
+        .replace(/[×x]/g, ' * ')
+        .replace(/\s*\*\s*/g, ' * ')
         .replace(/\s+/g, ' ')
         .trim();
 }
@@ -1988,7 +1989,8 @@ function renderInvoice() {
     const makeTotal = (label, val, cls='normal') => {
         const tr = document.createElement('tr');
         tr.className = cls;
-        tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won">₩</td><td class="amount">${fmtNum(val)}</td>`;
+        const won = val < 0 ? '-₩' : '₩';
+        tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won">${won}</td><td class="amount">${fmtNum(Math.abs(val))}</td>`;
         totalBody?.appendChild(tr);
     };
 
