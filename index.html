@@ -86,24 +86,20 @@
   .calc-notice { font-size:12px; color:#666; line-height:1.6; }
 
 
-.stock-table-wrapper { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #eee; }
+.stock-table-wrapper { overflow-x: auto; margin-top: 10px; border-radius: 12px; border: 1px solid #e0e0e0; }
 #stockTable { width: 100%; border-collapse: collapse; font-size: 14px; }
-#stockTable th { background-color: #f8f9fa; color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; }
-#stockTable td { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: center; }
+#stockTable th { background-color: #f8f9fa; color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center; vertical-align: middle; position: sticky; top: 0; z-index: 10; }
+#stockTable td { padding: 11px 8px; border-bottom: 1px solid #eee; text-align: center; }
 
-/* ==========================================================================
-   제출해주신 스타일 맞춤형 계산기 모바일 반응형 & 재고 타이틀 가운데 정렬
-   ========================================================================== */
+/* 품번 그룹 교차 배경 */
+#stockTable tr.bg-group-gray { background-color: #f7f8fa; }
+#stockTable tr.bg-group-white { background-color: #ffffff; }
 
-/* [수정] 재고현황 표 상단 타이틀 좌측 쏠림 해결 및 스크롤 고정 */
-#stockTable th {
-    text-align: center !important;
-    vertical-align: middle !important;
-    position: sticky !important;    /* 스크롤 내려도 그 자리에 고정 */
-    top: 0 !important;             /* 최상단에 딱 붙도록 설정 */
-    z-index: 10 !important;        /* 스크롤할 때 데이터 글자들이 헤더 위로 침범하지 못하게 방지 */
-    background-color: #f8f9fa !important; /* 고정되었을 때 뒤쪽 데이터가 비쳐 보이지 않도록 배경색 보장 */
-}
+/* 품번 그룹 첫 행 — 위쪽에 굵은 구분선 */
+#stockTable tr.group-first td { border-top: 2px solid #c8cdd6; }
+
+/* 단종 품번 빨간색 */
+#stockTable td.discontinued-code { color: #d63031 !important; font-weight: 700; }
 
   /* [2] 스마트폰/태블릿 모바일 화면(폭 768px 이하) 대응 마법의 구역 */
 @media screen and (max-width: 768px) {
@@ -156,6 +152,22 @@
         height: 64px !important;
         font-size: 24px !important;
     }
+
+    /* 재고현황 모바일 — 품번 구분선 유지 */
+    #stockTable tr.group-first td { border-top: 2px solid #b0b8c8 !important; }
+    #stockTable th, #stockTable td { font-size: 12px !important; padding: 9px 6px !important; }
+}
+
+/* 잠금 오버레이 */
+#authOverlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #f5f5f5; z-index: 99999; display: flex;
+    align-items: center; justify-content: center; padding: 0; margin: 0;
+}
+.auth-card {
+    background: #fff; padding: 32px 24px; border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center;
+    width: 90%; max-width: 340px;
 }
 
 /* 툴팁 */
@@ -259,32 +271,6 @@
 </head>
 <body spellcheck="false">
 
-<style>
-#authOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #f5f5f5;
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0; /* padding 제거 */
-    margin: 0;
-}
-.auth-card {
-    background: #fff;
-    padding: 32px 24px;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    text-align: center;
-    width: 90%; /* 100% 대신 90%로 여백 확보 */
-    max-width: 340px;
-}
-
-</style>
 <div id="authOverlay">
     <div class="auth-card">
         <h2 style="margin: 0 0 10px; font-size: 20px; color: #111; font-weight: 700;">시스템 잠금</h2>
@@ -629,17 +615,6 @@ function unlock() {
         });
 
         // 3. 상단 탭 버튼 클릭하여 메모장 켜질 때 스크롤 초기 세팅
-      // 3. 상단 탭 버튼 클릭하여 메모장 켜질 때 스크롤 초기 세팅
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        setTimeout(() => {
-            if (btn.getAttribute('data-tab') === 'memoTab') {
-                // 강제 스크롤 이동 로직을 제거하여 기존 스크롤 위치 유지
-                // 필요하다면 memoArea.scrollTop = 0; 으로 변경하여 항상 상단에 위치하게 할 수 있습니다.
-            }
-        }, 50);
-    });
-});
 
         // 전체 삭제 기능 연동
         const clearBtn = document.getElementById('clearMemo');
@@ -860,7 +835,6 @@ function renderLeftTable() {
     const tr=document.createElement('tr');
     const isNatural = tooltipMap && tooltipMap[p.code.toUpperCase()]?.natural;
     if (isNatural) tr.style.cssText = 'background:#fffbeb; border-left:3px solid #f59e0b;';
-    const naturalBadge = '';
     tr.innerHTML=`<td>${p.code}</td><td class="name">${p.name}</td><td class="spec-left">${p.spec}</td><td class="price">${fmt(p.consumer.py)}</td><td class="price">${fmt(p.vendor.py)}</td><td class="price">${fmt(p.consumer.material)}</td><td class="price">${fmt(p.vendor.material)}</td>`;
     tr.addEventListener('dblclick',()=>addCode(p.code));
     frag.appendChild(tr);
@@ -1042,7 +1016,7 @@ if (document.readyState === 'loading') {
 // ============================================================
 const SHEET_CONFIG = {
     ID: '1lu3P1g_CTFdofwpWITXQgGKisUoZLPdFD1mxC29wf_k',
-    PRICE:   'PRCIE',
+    PRICE:   'PRICE',
     STOCK:   'STOCK',
     TOOLTIP: 'TOOLTIP'
 };
@@ -1328,30 +1302,13 @@ function initExcelUpload() {
 
             if (matrixData.length <= 1) throw new Error('엑셀에서 읽을 데이터가 없습니다.');
 
-          // 진단용: Apps Script로 보내기 직전 matrixData 확인
-const debugRows = matrixData.filter(row => {
-    const itemCode = String(row[0] || '').trim();
-    return itemCode === 'C#1402' || itemCode === 'C#1403';
-});
-
-const c1402Count = debugRows.filter(row => String(row[0] || '').trim() === 'C#1402').length;
-const c1403Count = debugRows.filter(row => String(row[0] || '').trim() === 'C#1403').length;
-
-
-
-const debugMessage =
-    `업로드 직전 데이터 확인\n\n` +
-    `C#1402 행 개수: ${c1402Count}\n` +
-    `C#1403 행 개수: ${c1403Count}\n\n` +
-    debugRows.map(row => row.join(' | ')).join('\n') +
-    `\n\n이대로 구글시트에 전송할까요?`;
-
-if (!confirm(debugMessage)) {
-    statusEl.textContent = '진단 확인 후 업로드를 취소했습니다.';
-    uploadBtn.textContent = '⬆ 구글시트에 반영';
-    uploadBtn.disabled = false;
-    return;
-}
+            // 업로드 전 확인
+            if (!confirm('파일을 업로드 하시겠습니까?')) {
+                statusEl.textContent = '업로드가 취소되었습니다.';
+                uploadBtn.textContent = '⬆ 구글시트에 반영';
+                uploadBtn.disabled = false;
+                return;
+            }
 
             statusEl.textContent = '구글시트에 전송 중...';
 
@@ -1368,19 +1325,8 @@ if (!confirm(debugMessage)) {
 
             const result = await res.json();
 
-          console.log('[Apps Script 응답]', result);
-
-alert(
-    `Apps Script 응답 확인\n\n` +
-    `status: ${result.status}\n` +
-    `rows: ${result.rows || '(없음)'}\n` +
-    `cols: ${result.cols || '(없음)'}\n` +
-    `c1402Count: ${result.c1402Count || '(없음)'}\n` +
-    `c1403Count: ${result.c1403Count || '(없음)'}\n` +
-    `message: ${result.message || '(없음)'}`
-);
-
             if (result.status === 'success') {
+                alert('파일이 정상적으로 업로드되었습니다.');
                 statusEl.textContent = '✅ 구글시트 반영 완료!';
                 statusEl.style.color = '#00a854';
                 uploadBtn.textContent = '✅ 완료';
@@ -1480,15 +1426,26 @@ function renderStockTable(rows) {
     let isGrayGroup = false;
 
     processedRows.forEach(d => {
+        const isNewGroup = d.itemCode !== lastSeenItemCode;
         let displayItemCode = '';
-        if (d.itemCode !== lastSeenItemCode) {
+        if (isNewGroup) {
             isGrayGroup = !isGrayGroup;
             lastSeenItemCode = d.itemCode;
-            displayItemCode = `<strong>${d.itemCode}</strong>`;
+
+            // 단종 여부 확인
+            const key = d.itemCode.trim().toUpperCase();
+            const info = tooltipMap && tooltipMap[key];
+            const isDiscontinued = info && info.spec === '단종';
+
+            if (isDiscontinued) {
+                displayItemCode = `<strong style="color:#d63031;">${d.itemCode}</strong>`;
+            } else {
+                displayItemCode = `<strong>${d.itemCode}</strong>`;
+            }
         }
 
         const tr = document.createElement('tr');
-        tr.className = isGrayGroup ? 'bg-group-gray' : 'bg-group-white';
+        tr.className = (isGrayGroup ? 'bg-group-gray' : 'bg-group-white') + (isNewGroup ? ' group-first' : '');
 
         const m2Raw = String(d.totalM2);
         const m2Display = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
