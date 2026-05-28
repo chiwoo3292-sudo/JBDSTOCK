@@ -724,11 +724,12 @@ function unlock() {
 }
 .inv-brand { margin-left:14px; font-family:'Times New Roman',serif; font-size:13px; letter-spacing:10px; color:#111; line-height:1; }
 .inv-title { margin:8px 0 94px 7px; font-family:'Arial Black','Arial',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
-.inv-meta-grid { display:grid; grid-template-columns:1fr 164px; gap:34px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px dotted #9a9a9a; }
-.inv-meta-grid .right-block { align-self:end; }
-.inv-meta-row { display:grid; grid-template-columns:60px 1fr; min-height:22px; align-items:center; }
-.right-block .inv-meta-row { grid-template-columns:48px 1fr; }
+.inv-meta-grid { display:grid; grid-template-columns:1fr 170px; gap:34px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px dotted #9a9a9a; }
+.inv-meta-grid .right-block { align-self:end; justify-self:end; width:120px; }
+.inv-meta-row { display:grid; grid-template-columns:62px 1fr; min-height:22px; align-items:center; }
+.right-block .inv-meta-row { grid-template-columns:44px 1fr; }
 .inv-meta-key { font-size:11px; font-weight:800; color:#020617; white-space:nowrap; }
+.inv-meta-grid > div:first-child .inv-meta-key { width:62px; }
 .inv-meta-val { font-size:11px; color:#172033; line-height:1.35; }
 .inv-table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:0; color:#172033; }
 .inv-table thead th { height:38px; padding:0 8px; background:#efefef; border:0; font-size:11px; font-weight:800; color:#020617; vertical-align:middle; }
@@ -736,11 +737,23 @@ function unlock() {
 .inv-table td.td-item { text-align:left; padding-left:2px; }
 .inv-table td.td-center { text-align:center; }
 .inv-table td.td-right { text-align:right; }
+.inv-table th:nth-child(1), .inv-table td:nth-child(1) { width:28% !important; }
+.inv-table th:nth-child(2), .inv-table td:nth-child(2) { width:19% !important; }
+.inv-table th:nth-child(2) { text-align:center; padding-left:8px; }
+.inv-table td:nth-child(2) { text-align:left; padding-left:22px; }
+.inv-table th:nth-child(3), .inv-table td:nth-child(3) { width:9% !important; text-align:center; }
+.inv-table th:nth-child(4), .inv-table td:nth-child(4) { width:12% !important; text-align:center; }
+.inv-table th:nth-child(5), .inv-table td:nth-child(5) { width:4% !important; }
+.inv-table th:nth-child(6), .inv-table td:nth-child(6) { width:13% !important; }
+.inv-table th:nth-child(7), .inv-table td:nth-child(7) { width:4% !important; }
+.inv-table th:nth-child(8), .inv-table td:nth-child(8) { width:11% !important; }
 .td-won { width:18px; text-align:center !important; color:#020617; }
-.inv-total-table { width:100%; table-layout:fixed; border-collapse:collapse; margin-top:54px; padding-top:0; border-top:1px dotted #9a9a9a; border-bottom:1px dotted #9a9a9a; }
+.inv-total-table { width:100%; table-layout:fixed; border-collapse:collapse; margin-top:54px; padding-top:0; border-top:1px dotted #9a9a9a; border-bottom:0; }
 .inv-total-table td { height:24px; padding:3px 8px; font-size:12px; border:0; color:#172033; }
 .inv-total-table .total-label { font-weight:800; color:#020617; padding-left:2px; }
+.inv-total-table .normal .total-label { font-weight:400; color:#172033; }
 .inv-total-table .grand td { height:31px; font-weight:900; color:#020617; }
+.inv-total-table .grand td { border-top:1px dotted #9a9a9a; }
 .inv-total-table .amount { text-align:right; }
 .inv-lower { display:grid; grid-template-columns:1fr 235px; gap:34px; margin-top:64px; }
 .inv-remarks { font-size:11px; color:#172033; line-height:1.55; border:0; padding:0; margin:0; }
@@ -760,12 +773,10 @@ function unlock() {
 }
 @media print {
   @page { size:A4 portrait; margin:0; }
-  body { background:#fff !important; }
-  body > *:not(.wrap) { display:none !important; }
-  .tabs, .inv-form-card, .inv-preview-label { display:none !important; }
-  .wrap, .tab-panel, .inv-wrap, .inv-preview-wrap { display:block !important; margin:0 !important; padding:0 !important; border:0 !important; background:#fff !important; }
-  .inv-preview-wrap > div { overflow:visible !important; }
-  #invoiceDoc { width:210mm !important; min-height:297mm !important; border:0 !important; box-shadow:none !important; margin:0 !important; padding:19mm 18mm 18mm !important; }
+  html, body { width:210mm !important; height:297mm !important; margin:0 !important; background:#fff !important; overflow:hidden !important; }
+  body.print-invoice * { visibility:hidden !important; }
+  body.print-invoice #invoiceDoc, body.print-invoice #invoiceDoc * { visibility:visible !important; }
+  body.print-invoice #invoiceDoc { position:absolute !important; left:0 !important; top:0 !important; width:210mm !important; min-height:297mm !important; border:0 !important; box-shadow:none !important; margin:0 !important; padding:19mm 18mm 18mm !important; transform:none !important; }
 }
 </style>
 
@@ -860,7 +871,7 @@ function unlock() {
           <div>
             <div class="inv-meta-row"><div class="inv-meta-key">BILL TO</div><div class="inv-meta-val" id="pvBillTo">—</div></div>
             <div class="inv-meta-row"><div class="inv-meta-key">시공 예정일</div><div class="inv-meta-val" id="pvWorkDate">—</div></div>
-            <div class="inv-meta-row"><div class="inv-meta-key">현장</div><div class="inv-meta-val" id="pvSite">—</div></div>
+            <div class="inv-meta-row"><div class="inv-meta-key">현&nbsp;&nbsp;&nbsp;&nbsp;장</div><div class="inv-meta-val" id="pvSite">—</div></div>
           </div>
           <div class="right-block">
             <div class="inv-meta-row"><div class="inv-meta-key">담당자</div><div class="inv-meta-val" id="pvManager">—</div></div>
@@ -1877,7 +1888,12 @@ function initInvoiceTab() {
 }
 
 function formatInvSize(spec='') {
-    return String(spec).replace(/\s*T.*$/i, '').trim();
+    return String(spec)
+        .split('/')[0]
+        .replace(/\s*T.*$/i, '')
+        .replace(/[×x*]/g, ' X ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function getInvItemFromBox(box) {
@@ -1969,15 +1985,14 @@ function renderInvoice() {
     const grand = Math.floor(grandRaw / 10000) * 10000; // 단수정리 (만원 단위)
     const adjust = grand - grandRaw;
 
-    const makeTotal = (label, val, cls='total-row') => {
+    const makeTotal = (label, val, cls='normal') => {
         const tr = document.createElement('tr');
         tr.className = cls;
-        tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won">₩</td><td class="amount">${fmtNum(Math.abs(val))}</td>`;
-        if (val < 0) tr.querySelector('.td-won').textContent = '-₩';
+        tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won">₩</td><td class="amount">${fmtNum(val)}</td>`;
         totalBody?.appendChild(tr);
     };
 
-    makeTotal('SUB TOTAL', subTotal);
+    makeTotal('SUB TOTAL', subTotal, 'subtotal');
     makeTotal('Tax Vat 10%', vat);
     if (adjust !== 0) makeTotal('단수정리', adjust);
     makeTotal('GRAND TOTAL', grand, 'grand');
@@ -1997,8 +2012,14 @@ function renderInvoice() {
 
 function printInvoice() {
     renderInvoice();
+    document.body.classList.add('print-invoice');
     window.print();
+    setTimeout(() => document.body.classList.remove('print-invoice'), 500);
 }
+
+window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-invoice');
+});
 
 async function saveInvoiceImage() {
     renderInvoice();
