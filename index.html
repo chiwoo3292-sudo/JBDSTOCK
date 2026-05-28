@@ -269,6 +269,12 @@
         font-size: 13px !important;
     }
 }
+/* 견적서 폰트 수정 */
+.inv-title { font-family: 'Gmarket Sans', 'Pretendard', sans-serif; font-size: 31.5px; font-weight: 700; }
+.inv-meta-key, .inv-meta-val { font-family: 'KoPubWorld돋움체', 'Pretendard', sans-serif; font-size: 7px; font-weight: 700; }
+.inv-table th, .inv-table td, .inv-total-table td { font-family: 'Century Gothic', 'Pretendard', sans-serif; font-size: 8px; font-weight: 700; }
+.inv-remarks, .inv-contact, .inv-account-wrap, .inv-company { font-family: 'KoPubWorld돋움체', 'Pretendard', sans-serif; font-size: 7px; font-weight: 300; }
+.inv-remarks-title, .inv-contact-title, .inv-account-title { font-family: 'Century Gothic', 'Pretendard', sans-serif; font-size: 8px; font-weight: 700; }
 
 </style>
 </head>
@@ -752,7 +758,7 @@ function unlock() {
 .inv-total-table td { height:24px; padding:3px 8px; font-size:12px; border:0; color:#172033; }
 .inv-total-table .total-label { font-weight:800; color:#020617; padding-left:2px; }
 .inv-total-table .normal .total-label { font-weight:400; color:#172033; }
-.inv-total-table .grand td { height:31px; font-weight:900; color:#020617; }
+.inv-total-table .grand td { height:31px; font-weight:normal; color:#020617; }
 .inv-total-table .grand td { border-top:1px dotted #9a9a9a; }
 .inv-total-table .amount { text-align:right; white-space:nowrap; }
 .inv-total-table .negative-won { white-space:nowrap; letter-spacing:-.5px; text-align:right; }
@@ -814,36 +820,52 @@ function unlock() {
     </div>
 
     <div class="inv-label" style="margin-bottom:8px; font-size:12px; color:#333; font-weight:700;">제품 1</div>
-    <div class="inv-item-box" id="invItem1Box" data-inv-item="1">
-      <div class="inv-field">
-        <div class="inv-label">제품 선택</div>
-        <select id="invProduct1" class="inv-product-select">
-          <option value="">-- 제품 선택 --</option>
-        </select>
-      </div>
-      <div class="inv-grid-2">
-        <div class="inv-field">
-          <div class="inv-label">단위</div>
-          <select id="invUnit1" class="inv-unit-select">
-            <option value="M2">M2</option>
-            <option value="PY">PY</option>
-          </select>
-        </div>
-        <div class="inv-field">
-          <div class="inv-label">면적 입력</div>
-          <input type="number" id="invQty1" class="inv-qty-input" step="0.01" min="0">
-        </div>
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">가격 기준</div>
-        <select id="invParty1" class="inv-party-select">
-          <option value="consumer">소비자가</option>
-          <option value="vendor">업체가</option>
-        </select>
+
+<div class="inv-item-box" data-inv-item="1">
+  <div class="inv-field">
+    <div class="inv-label">제품 선택</div>
+    <select id="invProduct1" class="inv-product-select">
+      <option value="">-- 제품 선택 --</option>
+    </select>
+  </div>
+
+  <div class="inv-grid-2">
+    <div class="inv-field">
+      <div class="inv-label">단위</div>
+      <select id="invUnit1" class="inv-unit-select">
+        <option value="M2">M2</option>
+        <option value="PY">PY</option>
+        <option value="BOX">BOX</option>
+      </select>
+    </div>
+    <div class="inv-field">
+      <div class="inv-label">면적 입력</div>
+      <input type="number" id="invQty1" class="inv-qty-input" step="0.01" min="0">
+    </div>
+  </div>
+
+  <div class="inv-grid-2">
+    <div class="inv-field">
+      <div class="inv-label">가격 기준</div>
+      <select id="invParty1" class="inv-party-select">
+        <option value="consumer">소비자가</option>
+        <option value="vendor">업체가</option>
+      </select>
+    </div>
+    <div class="inv-field">
+      <div class="inv-label">로스율</div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <input type="number" id="invLoss1" class="inv-loss-input" min="0" max="50" step="1" value="10" style="width:64px; height:38px;">
+        <span>%</span>
+        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+          <input type="checkbox" id="invLossChk1" class="inv-loss-chk" style="width:16px; height:16px; margin:0; cursor:pointer;"> 적용
+        </label>
       </div>
     </div>
+  </div>
+</div>
 
-    <div id="invExtraItems"></div>
+<div id="invExtraItems"></div>
     <button type="button" id="invAddItemBtn" class="secondary inv-add-item">+ 제품 추가</button>
 
     <div class="inv-field">
@@ -869,7 +891,7 @@ function unlock() {
     </div>
     <div style="overflow-x:auto;">
       <div id="invoiceDoc">
-        <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAbAnsDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AIyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//9k=" alt="JIBOKDEUKMARU" style="height:13px; margin-left:14px; display:block; margin-bottom:0;">
+        <img src="data:image/png;base64,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" alt="JIBOKDEUKMARU" style="height:13px; margin-left:14px; display:block; margin-bottom:0;">
         <div class="inv-title">INVOICE</div>
 
         <div class="inv-meta-grid">
@@ -1960,6 +1982,12 @@ function fmtNum(n) {
 }
 
 function renderInvoice() {
+    // 1번: BOX일 때 INVOICE(자재만) 표시
+    const firstUnit = document.getElementById('invUnit1')?.value;
+    const titleEl = document.getElementById('invTitleText');
+    if (titleEl) {
+        titleEl.textContent = firstUnit === 'BOX' ? 'INVOICE (자재만)' : 'INVOICE';
+    }
     // 메타
     document.getElementById('pvBillTo').textContent   = document.getElementById('invBillTo')?.value   || '—';
     document.getElementById('pvWorkDate').textContent  = document.getElementById('invWorkDate')?.value  || '—';
@@ -2024,7 +2052,7 @@ function renderInvoice() {
         tr.className = cls;
         if (val < 0) {
             // -₩ 를 같은 td-won 열에 우측 정렬 → ₩ 와 끝선 일치
-            tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won" style="text-align:right; padding-right:0;">-₩</td><td class="amount">${fmtNum(Math.abs(val))}</td>`;
+             tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won" style="text-align:right;">-₩</td><td class="amount">${fmtNum(Math.abs(val))}</td>`;
         } else {
             tr.innerHTML = `<td class="total-label">${label}</td><td class="td-won">₩</td><td class="amount">${fmtNum(val)}</td>`;
         }
@@ -2036,27 +2064,60 @@ function renderInvoice() {
     if (adjust !== 0) makeTotal('단수정리', adjust);
     makeTotal('GRAND TOTAL', grand, 'grand');
 
-    // ── REMARKS 단위 (제품1 기준)
-    const unit1 = document.getElementById('invUnit1')?.value || 'M2';
-    const unitLabel = unit1 === 'BOX' ? 'BOX' : unit1;
-    document.getElementById('pvRemarks').innerHTML =
-        `<div class="inv-remarks-title">REMARKS</div>` +
-        `단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/${unitLabel}<br>` +
-        `<span class="inv-red">실측후 물량은 상이할수있음</span><br>` +
-        `<span class="inv-red">걸레받이 별도</span><br>` +
-        `시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드 - 친환경 황토풀 사용 기준<br>` +
-        `결제조건 : 계약금 50%, 중도금 30%(시공 일주일전) 잔금 20%(시공직후)<br>` +
-        `원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>` +
-        `이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
-}
+       // 8번: REMARKS 동적 변경
+    const unit = document.getElementById('invUnit1')?.value;
+    let remarksHtml = '';
+    if (unit === 'M2') {
+        remarksHtml = `<div class="inv-remarks-title">REMARKS</div>
+        단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/M2<br>
+        <span class="inv-red">실측 후 물량은 상이할 수 있음</span><br>
+        <span class="inv-red">걸레받이 별도</span><br>
+        시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드- 친환경 황토풀 사용 기준<br>
+        결제조건 : 계약금 50%, 중도금 30%(시공 일주일전) 잔금 20%(시공직후)<br>
+        원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연 질감이 그대로 표현되므로, 시공 시<br>
+        이색 현상이나 옹이 여부 등은 하자 사항이 아님을 알려드립니다.`;
+    } else if (unit === 'PY') {
+        remarksHtml = `<div class="inv-remarks-title">REMARKS</div>
+        단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/PY<br>
+        <span class="inv-red">실측 후 물량은 상이할 수 있음</span><br>
+        <span class="inv-red">걸레받이 별도</span><br>
+        시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드- 친환경 황토풀 사용 기준<br>
+        결제조건 : 계약금 50%, 중도금 30%(시공 일주일전) 잔금 20%(시공직후)<br>
+        원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연 질감이 그대로 표현되므로, 시공 시<br>
+        이색 현상이나 옹이 여부 등은 하자 사항이 아님을 알려드립니다.`;
+    } else {
+        remarksHtml = `<div class="inv-remarks-title">REMARKS</div>
+        단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/BOX<br>
+        결제조건 : 완납 후,출고<br>
+        운임비 착불<br>
+        원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연 질감이 그대로 표현되므로, 시공 시<br>
+        이색 현상이나 옹이 여부 등은 하자 사항이 아님을 알려드립니다.`;
+    }
+    document.getElementById('pvRemarks').innerHTML = remarksHtml;
 
 function printInvoice() {
     renderInvoice();
-    document.body.classList.add('print-invoice');
-    window.print();
-    setTimeout(() => document.body.classList.remove('print-invoice'), 500);
+    const printContents = document.getElementById('invoiceDoc').cloneNode(true);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html><head><title>견적서</title>
+        <style>
+            body { margin:0; padding:20px; }
+            .inv-title { font-family: 'Gmarket Sans', sans-serif; font-size: 31.5px; font-weight: 700; }
+            .inv-meta-key, .inv-meta-val { font-family: 'KoPubWorld돋움체', sans-serif; font-size: 7px; font-weight: 700; }
+            .inv-table th, .inv-table td { font-family: 'Century Gothic', sans-serif; font-size: 8px; border:0; padding:4px; }
+            .inv-total-table td { font-family: 'Century Gothic', sans-serif; font-size: 8px; border:0; padding:2px; }
+            .td-won { text-align:center; }
+            .td-right { text-align:right; }
+            .amount { text-align:right; }
+            .total-label { text-align:left; }
+            .inv-red { color:#ff0000; }
+        </style>
+        </head><body>${printContents.outerHTML}</body></html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
 }
-
 window.addEventListener('afterprint', () => {
     document.body.classList.remove('print-invoice');
 });
