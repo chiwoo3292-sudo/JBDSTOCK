@@ -843,8 +843,14 @@ function unlock() {
   .inv-field input, .inv-field select { height:40px !important; font-size:14px !important; }
 
   /* 하단 버튼 3개 — 한 줄 균등 배치 */
-  .inv-actions { display:grid !important; grid-template-columns:1fr 1fr 1fr !important; gap:6px !important; flex-wrap:unset !important; }
-  .inv-actions button { flex:unset !important; font-size:11px !important; padding:0 4px !important; white-space:nowrap !important; min-width:0 !important; min-height:40px !important; }
+  .inv-actions { display:grid !important; grid-template-columns:1fr 1fr 1fr !important; gap:4px !important; flex-wrap:unset !important; }
+  .inv-actions button { flex:unset !important; font-size:10px !important; padding:0 2px !important; white-space:nowrap !important; min-width:0 !important; min-height:40px !important; overflow:hidden !important; }
+  /* 이모지 제거 후 텍스트만 표시 — 모바일 버튼 내부 이모지 숨김 */
+  #invPrintBtn, #invSaveImgBtn { font-size:10px !important; letter-spacing:-0.3px !important; }
+  /* 모바일: 이모지 숨기고 텍스트만 */
+  .btn-icon { display:none !important; }
+  .btn-text { display:inline !important; font-size:10px !important; }
+  #invPreviewBtn { font-size:10px !important; }
 
   /* 가격기준/로스율/로스적용 → 2열 배치 */
   .inv-loss-row { grid-template-columns:1fr 1fr !important; }
@@ -1000,8 +1006,8 @@ function unlock() {
 
     <div class="inv-actions">
       <button type="button" id="invPreviewBtn">미리보기 갱신</button>
-      <button type="button" id="invPrintBtn" class="secondary">🖨 인쇄</button>
-      <button type="button" id="invSaveImgBtn" class="secondary">💾 이미지 저장</button>
+      <button type="button" id="invPrintBtn" class="secondary"><span class="btn-icon">🖨</span><span class="btn-text"> 인쇄</span></button>
+      <button type="button" id="invSaveImgBtn" class="secondary"><span class="btn-icon">💾</span><span class="btn-text"> 이미지저장</span></button>
     </div>
   </div>
 
@@ -1740,58 +1746,44 @@ function initExcelUpload() {
                 fillMergedItemCodes(ws, rows, cm.itemCol);
 
                 let currentItemCode = '';
-                const rsc = cm.reserveStartCol; // 예약 시작 열 인덱스
+                const rsc = cm.reserveStartCol; // 예약 시작 열 인덱스 (A#18=4, C#14/A#14=5, D#E#=6)
 
                 for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
-                    const boxVal = getCell(row, cm.boxCol);
 
-                    // 품번 셀 갱신
+                    // ── 품번 갱신 ──
                     const rawItem = String(getCell(row, cm.itemCol) || '').replace(/\n|\r/g,' ').trim();
                     const codeMatch = rawItem.match(/[A-Z]#\s*\d+\w*/);
-                    if (codeMatch) {
-                        currentItemCode = codeMatch[0].replace(/\s+/g,'');
-                    } else if (rawItem && rawItem !== 'NEW' && rawItem !== '수종' &&
-                               !rawItem.includes('재고사항') && !rawItem.includes('재고사황') &&
-                               !rawItem.includes('재고상황') && rawItem.length > 1 && !hasValue(boxVal)) {
-                        // 품번 아닌 경우 패스
-                    }
-
-                    if (!hasValue(boxVal)) continue; // 데이터 없는 행 스킵
+                    if (codeMatch) currentItemCode = codeMatch[0].replace(/\s+/g,'');
                     if (!currentItemCode) continue;
 
-                    // 예약 데이터 추출: rsc부터 2열 간격으로 (업체명, 평수, 날짜)
-                    // 실제 패턴: [rsc]=업체명, [rsc+1]=평수, [rsc+2]=날짜, [rsc+2]=업체명2, ...
-                    // 아래 행에도 예약 연속 가능 → 현재 행과 바로 다음 행 모두 확인
-                    const checkRows = [row];
-                    // 다음 행이 BOX값 없으면(보조행이면) 함께 체크
-                    if (i + 1 < rows.length && !hasValue(getCell(rows[i+1], cm.boxCol))) {
-                        checkRows.push(rows[i+1]);
+                    // ── 업체명 행 감지 ──
+                    // 조건: rsc 이후 홀수열(rsc+1, rsc+3, rsc+5...) 중 문자열 값이 있는 행
+                    // A#18 기준: col5,7,9,11... 에 업체명, BOX값(col3)은 숫자이거나 0
+                    const companiesInRow = [];
+                    for (let ci = rsc + 1; ci < 35; ci += 2) {
+                        const v = getCell(row, ci);
+                        if (v !== null && v !== undefined && typeof v === 'string' && v.trim() !== '') {
+                            companiesInRow.push({ company: v.replace(/\n|\r/g,' ').trim(), colIdx: ci });
+                        }
                     }
 
-                    checkRows.forEach(r => {
-                        // rsc 열부터 끝까지 2열 간격으로 [업체명, 평수, 날짜] 읽기
-                        for (let ci = rsc; ci < (r.length || 35); ci += 2) {
-                            const company = r[ci];
-                            if (!company || typeof company !== 'string' || company.trim() === '') continue;
-                            const companyStr = company.replace(/\n|\r/g,' ').trim();
-                            if (!companyStr) continue;
+                    if (companiesInRow.length === 0) continue; // 업체명 없는 행 스킵
 
-                            // 평수: ci+1
-                            const areaRaw = r[ci + 1];
-                            const area = (areaRaw !== null && areaRaw !== undefined)
-                                ? String(areaRaw).replace(/[^0-9.]/g, '') : '';
-
-                            // 날짜: ci+2
-                            const dateRaw = r[ci + 2];
-                            let dateStr = '';
-                            if (dateRaw !== null && dateRaw !== undefined) {
-                                dateStr = excelDateToStr(dateRaw);
-                            }
-
-                            if (companyStr && (area || dateStr)) {
-                                reserveData.push([currentItemCode, companyStr, area, dateStr]);
-                            }
+                    // ── 다음 행에서 평수/날짜 읽기 ──
+                    // 평수: 업체명과 같은 열(colIdx), 날짜: colIdx+1
+                    const nextRow = rows[i + 1] || [];
+                    companiesInRow.forEach(({ company, colIdx }) => {
+                        const areaRaw = getCell(nextRow, colIdx);
+                        const dateRaw = getCell(nextRow, colIdx + 1);
+                        const area = (areaRaw !== null && areaRaw !== undefined)
+                            ? String(areaRaw).replace(/[^0-9.]/g, '') : '';
+                        let dateStr = '';
+                        if (dateRaw !== null && dateRaw !== undefined && dateRaw !== '') {
+                            dateStr = excelDateToStr(dateRaw);
+                        }
+                        if (company && (area || dateStr)) {
+                            reserveData.push([currentItemCode, company, area, dateStr]);
                         }
                     });
                 }
@@ -1966,17 +1958,16 @@ async function openItemDetail(itemCode) {
 function parseReserveFromSheet(rows, targetCode) {
     if (!rows) return [];
     const results = [];
+    const target = (targetCode || '').trim().toUpperCase();
     rows.forEach(row => {
         if (!row || !row.c) return;
-        const code    = getCellVal(row.c[0]).trim().toUpperCase();
-        if (code !== targetCode && code !== '품번') {
-            // 헤더 행 스킵
-            if (code === '품번') return;
-        }
-        if (code !== targetCode) return;
-        const company = getCellVal(row.c[1]).trim();
-        const area    = getCellVal(row.c[2]).trim().replace(/[^0-9.]/g, '');
-        const date    = getCellVal(row.c[3]).trim();
+        const c0 = row.c[0];
+        const code = c0 ? String(c0.v !== undefined ? c0.v : (c0 || '')).trim().toUpperCase() : '';
+        if (!code || code === '품번') return; // 헤더 스킵
+        if (code !== target) return;
+        const company = row.c[1] ? String(row.c[1].v !== undefined ? row.c[1].v : '').trim() : '';
+        const area    = row.c[2] ? String(row.c[2].v !== undefined ? row.c[2].v : '').trim().replace(/[^0-9.]/g, '') : '';
+        const date    = row.c[3] ? String(row.c[3].v !== undefined ? row.c[3].v : '').trim() : '';
         if (company) results.push({ company, area, date });
     });
 
@@ -2366,19 +2357,33 @@ function fmtNum(n) {
 }
 
 function renderInvoice() {
-    // JIBOKDEUKMARU 너비를 INVOICE 제목과 맞추기
+    // JIBOKDEUKMARU 너비를 INVOICE 텍스트와 정확히 맞추기
     requestAnimationFrame(() => {
         const titleEl = document.querySelector('.inv-title');
         const brandEl = document.querySelector('.inv-brand');
         if (titleEl && brandEl) {
-            const titleW = titleEl.offsetWidth;
-            if (titleW > 0) {
-                const text = 'JIBOKDEUKMARU';
-                const targetW = titleW;
-                const baseW = brandEl.scrollWidth - (parseFloat(getComputedStyle(brandEl).letterSpacing) || 0) * text.length;
-                // letter-spacing = (목표너비 - 글자폭) / 글자수
-                const newSpacing = Math.max(0, (targetW - baseW) / text.length);
-                brandEl.style.letterSpacing = newSpacing.toFixed(2) + 'px';
+            // INVOICE 텍스트만의 너비 측정 (subtitle span 제외)
+            const subtitleSpan = titleEl.querySelector('span');
+            const subtitleText = subtitleSpan ? subtitleSpan.textContent : '';
+            if (subtitleSpan) subtitleSpan.textContent = '';
+            const invoiceW = titleEl.offsetWidth;
+            if (subtitleSpan) subtitleSpan.textContent = subtitleText;
+
+            if (invoiceW > 0) {
+                // 브랜드 자연 너비 측정 (현재 letter-spacing 리셋 후)
+                brandEl.style.letterSpacing = '0px';
+                brandEl.style.transform = 'none';
+                const naturalW = brandEl.scrollWidth;
+                if (naturalW > 0 && invoiceW > naturalW) {
+                    // letter-spacing으로 늘리기: 각 글자 사이에 균등 배분
+                    const chars = 'JIBOKDEUKMARU'.length;
+                    const spacing = (invoiceW - naturalW) / chars;
+                    brandEl.style.letterSpacing = spacing.toFixed(2) + 'px';
+                } else if (naturalW > invoiceW) {
+                    // 너무 크면 scaleX로 축소
+                    brandEl.style.transform = 'scaleX(' + (invoiceW / naturalW).toFixed(4) + ')';
+                    brandEl.style.transformOrigin = 'left center';
+                }
             }
         }
     });
@@ -2522,48 +2527,53 @@ async function saveInvoiceImage() {
     const OUTPUT_SCALE = isMobile ? 2 : 3;
 
     try {
-        // 1. 현재 스타일 완전 백업
-        const origTransform        = el.style.transform;
-        const origTransformOrigin  = el.style.transformOrigin;
-        const origMarginBottom     = el.style.marginBottom;
-        const origPosition         = el.style.position;
-        const origLeft             = el.style.left;
-        const origTop              = el.style.top;
-        const origWidth            = el.style.width;
+        // 1. invoiceDoc를 완전히 클론해서 숨겨진 컨테이너에 넣고 캡처
+        //    원본은 건드리지 않아 검정 줄/레이아웃 깨짐 없음
+        const clone = el.cloneNode(true);
+        const container = document.createElement('div');
+        container.style.cssText = [
+            'position:fixed',
+            'left:-99999px',
+            'top:0',
+            'width:930px',
+            'background:#fff',
+            'pointer-events:none',
+            'z-index:-1',
+        ].join(';');
+        // 클론: border/shadow 제거 (검정 줄 원인 제거)
+        clone.style.cssText = [
+            'width:930px',
+            'min-height:1312px',
+            'background:#fff',
+            'border:none',
+            'box-shadow:none',
+            'transform:none',
+            'position:static',
+            'margin:0',
+            'padding:84px 82px 82px',
+            'font-family:KoPubWorldDotum,맑은 고딕,Malgun Gothic,Pretendard,Arial,sans-serif',
+            'font-size:11px',
+            'color:#0f172a',
+        ].join(';');
+        container.appendChild(clone);
+        document.body.appendChild(container);
 
-        // 2. A4 원본 크기(930px)로 완전히 리셋 — transform 제거, 뷰포트 밖에 배치
-        el.style.transform        = 'none';
-        el.style.transformOrigin  = 'top left';
-        el.style.marginBottom     = '0';
-        el.style.position         = 'fixed';
-        el.style.left             = '-9999px';
-        el.style.top              = '0';
-        el.style.width            = '930px';
-
-        // 3. 렌더링 대기
+        // 2. 렌더링 대기
         await new Promise(r => setTimeout(r, isMobile ? 300 : 80));
 
-        // 4. 캡처 — 930px 원본 크기 기준, OUTPUT_SCALE로 고해상도 출력
-        const canvas = await html2canvas(el, {
+        // 3. 캡처
+        const canvas = await html2canvas(clone, {
             backgroundColor: '#ffffff',
             scale: OUTPUT_SCALE,
             useCORS: true,
             logging: false,
             width:  930,
-            height: el.scrollHeight,
+            height: clone.scrollHeight,
             windowWidth: 930,
         });
 
-        // 5. 원복
-        el.style.transform        = origTransform;
-        el.style.transformOrigin  = origTransformOrigin;
-        el.style.marginBottom     = origMarginBottom;
-        el.style.position         = origPosition;
-        el.style.left             = origLeft;
-        el.style.top              = origTop;
-        el.style.width            = origWidth;
-        // 모바일 scale 재적용
-        setTimeout(updateInvoiceScale, 50);
+        // 4. 컨테이너 제거
+        document.body.removeChild(container);
 
         // 6. 파일명
         const rawDate    = (document.getElementById('invDate')?.value || '').trim();
