@@ -765,7 +765,7 @@ function unlock() {
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand { margin-left:14px; font-family:'Times New Roman',serif; font-size:13px; letter-spacing:10px; color:#111; line-height:1; }
+.inv-brand { margin-left:14px; font-family:'Times New Roman',serif; font-size:13px; letter-spacing:6.5px; color:#111; line-height:1; display:block; width:fit-content; }
 /* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
 .inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
@@ -859,22 +859,20 @@ function unlock() {
   }
   .inv-preview-label { margin-bottom:8px !important; font-size:12px !important; color:#888 !important; }
 
-  /* A4 문서: 너비 고정 → 컨테이너 비율(A4=210:297)로 자동 스케일 */
-  /* 화면 너비 기준으로 scale 계산: (화면-40px) / 930px */
-  .inv-preview-wrap > div[style*="overflow-x"] {
+  /* A4 문서: JS로 scale/height 동적 계산 */
+  .inv-preview-wrap > div[style] {
     overflow: hidden !important;
     padding: 0 !important;
-    /* A4 세로 비율 박스: 너비 100%, 높이=너비*1.414 */
     width: 100% !important;
-    aspect-ratio: 210 / 297 !important;
     position: relative !important;
+    /* height는 updateInvoiceScale() JS에서 직접 세팅 */
   }
   #invoiceDoc {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     width: 930px !important;
-    /* scale: (컨테이너 너비 ÷ 930) — CSS calc로 근사 */
+    min-height: 0 !important;
     transform: scale(var(--inv-scale, 0.36)) !important;
     transform-origin: top left !important;
     margin: 0 !important;
@@ -971,7 +969,7 @@ function unlock() {
           <input type="number" id="invQty1" class="inv-qty-input" step="0.01" min="0">
         </div>
       </div>
-      <div class="inv-loss-row" style="display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; margin-bottom:12px;">
+      <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr auto; gap:8px; align-items:end; margin-bottom:12px;">
         <div class="inv-field" style="margin-bottom:0;">
           <div class="inv-label">가격 기준</div>
           <select id="invParty1" class="inv-party-select">
@@ -2212,7 +2210,7 @@ function createInvoiceItem(index) {
             <input type="number" id="invQty${index}" class="inv-qty-input" step="0.01" min="0">
           </div>
         </div>
-        <div class="inv-loss-row" style="display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; margin-bottom:12px;">
+        <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr auto; gap:8px; align-items:end; margin-bottom:12px;">
           <div class="inv-field" style="margin-bottom:0;">
             <div class="inv-label">가격 기준</div>
             <select id="invParty${index}" class="inv-party-select">
@@ -2249,14 +2247,20 @@ function addInvoiceItem() {
 function updateInvoiceScale() {
     const isMob = window.innerWidth <= 768;
     if (!isMob) return;
-    const wrap = document.querySelector('.inv-preview-wrap > div');
+    // overflow-x:auto 인 div를 정확히 targeting
+    const wrap = document.querySelector('#invoiceTab .inv-preview-wrap > div[style]');
     if (!wrap) return;
-    const containerW = wrap.offsetWidth || (window.innerWidth - 40);
-    const scale = Math.max(0.2, containerW / 930);
+    // 패딩 제외한 실제 너비
+    const containerW = wrap.clientWidth || (window.innerWidth - 44);
+    const scale = Math.max(0.15, Math.min(1, containerW / 930));
     document.documentElement.style.setProperty('--inv-scale', scale.toFixed(4));
-    // 구형 기기 대비 height 직접 지정
-    const previewH = Math.round(containerW * 297 / 210);
-    wrap.style.height = previewH + 'px';
+    // invoiceDoc 실제 원본 높이(scale 전) 기준으로 컨테이너 높이 세팅
+    const doc = document.getElementById('invoiceDoc');
+    const rawH = doc ? doc.scrollHeight : 1312;
+    const scaledH = Math.round(rawH * scale);
+    wrap.style.height = scaledH + 'px';
+    wrap.style.overflow = 'hidden';
+    wrap.style.position = 'relative';
 }
 
 function initInvoiceTab() {
@@ -2362,6 +2366,22 @@ function fmtNum(n) {
 }
 
 function renderInvoice() {
+    // JIBOKDEUKMARU 너비를 INVOICE 제목과 맞추기
+    requestAnimationFrame(() => {
+        const titleEl = document.querySelector('.inv-title');
+        const brandEl = document.querySelector('.inv-brand');
+        if (titleEl && brandEl) {
+            const titleW = titleEl.offsetWidth;
+            if (titleW > 0) {
+                const text = 'JIBOKDEUKMARU';
+                const targetW = titleW;
+                const baseW = brandEl.scrollWidth - (parseFloat(getComputedStyle(brandEl).letterSpacing) || 0) * text.length;
+                // letter-spacing = (목표너비 - 글자폭) / 글자수
+                const newSpacing = Math.max(0, (targetW - baseW) / text.length);
+                brandEl.style.letterSpacing = newSpacing.toFixed(2) + 'px';
+            }
+        }
+    });
     // 메타
     document.getElementById('pvBillTo').textContent  = document.getElementById('invBillTo')?.value  || '—';
     document.getElementById('pvWorkDate').textContent = document.getElementById('invWorkDate')?.value || '—';
@@ -2477,6 +2497,8 @@ function renderInvoice() {
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
     }
+    // 모바일: 내용 변경 후 높이 재계산
+    if (window.innerWidth <= 768) setTimeout(updateInvoiceScale, 30);
 }
 
 function printInvoice() {
