@@ -843,6 +843,9 @@ function unlock() {
   .inv-preview-wrap { padding:8px 0 8px 0 !important; border-radius:0 !important; border-left:0 !important; border-right:0 !important; }
   .inv-preview-wrap > div[style*="overflow-x"] { padding:0 !important; }
   #invoiceDoc { width:930px; transform:scale(.38); transform-origin:top left; margin-bottom:-812px; margin-right:0 !important; }
+  /* 가격기준/로스율/로스적용 → 모바일에서 2줄 배치 */
+  .inv-loss-row { grid-template-columns:1fr 1fr !important; }
+  .inv-loss-row .inv-loss-chk-wrap { grid-column: 2; grid-row: 1; align-self:end; }
 }
 @media print {
   @page {
@@ -935,7 +938,7 @@ function unlock() {
           <input type="number" id="invQty1" class="inv-qty-input" step="0.01" min="0">
         </div>
       </div>
-      <div style="display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; margin-bottom:12px;">
+      <div class="inv-loss-row" style="display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; margin-bottom:12px;">
         <div class="inv-field" style="margin-bottom:0;">
           <div class="inv-label">가격 기준</div>
           <select id="invParty1" class="inv-party-select">
@@ -947,7 +950,7 @@ function unlock() {
           <div class="inv-label">로스율(%)</div>
           <input type="number" id="invLoss1" class="inv-loss-input" step="0.1" min="0" placeholder="0">
         </div>
-        <div class="inv-field" style="margin-bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+        <div class="inv-field inv-loss-chk-wrap" style="margin-bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
           <div class="inv-label" style="text-align:center;">로스 적용</div>
           <div style="height:38px; display:flex; align-items:center;">
             <input type="checkbox" id="invLossOn1" class="inv-loss-chk" style="width:18px; height:18px; cursor:pointer; border-radius:4px;">
@@ -2135,7 +2138,7 @@ function createInvoiceItem(index) {
             <input type="number" id="invQty${index}" class="inv-qty-input" step="0.01" min="0">
           </div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; margin-bottom:12px;">
+        <div class="inv-loss-row" style="display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; margin-bottom:12px;">
           <div class="inv-field" style="margin-bottom:0;">
             <div class="inv-label">가격 기준</div>
             <select id="invParty${index}" class="inv-party-select">
@@ -2147,7 +2150,7 @@ function createInvoiceItem(index) {
             <div class="inv-label">로스율(%)</div>
             <input type="number" id="invLoss${index}" class="inv-loss-input" step="0.1" min="0" placeholder="0">
           </div>
-          <div class="inv-field" style="margin-bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+          <div class="inv-field inv-loss-chk-wrap" style="margin-bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
             <div class="inv-label" style="text-align:center;">로스 적용</div>
             <div style="height:38px; display:flex; align-items:center;">
               <input type="checkbox" id="invLossOn${index}" class="inv-loss-chk" style="width:18px; height:18px; cursor:pointer; border-radius:4px;">
