@@ -1475,10 +1475,29 @@ function initExcelUpload() {
     const statusEl   = document.getElementById('uploadStatus');
     if (!fileInput || !uploadBtn || !statusEl) return;
 
-    // 마지막 업로드 시간 복원
-    const lastUpload = localStorage.getItem('baram_last_upload');
+    // 마지막 업로드 시간 복원 — GAS에서 공유 시간 가져오기
     const lastEl = document.getElementById('lastUploadTime');
-    if (lastEl && lastUpload) lastEl.textContent = `🕐 마지막 업로드: ${lastUpload}`;
+    if (lastEl) {
+        lastEl.textContent = '🕐 업로드 시간 확인 중...';
+        fetch(`${GAS_URL}?spreadsheetId=${SHEET_CONFIG.ID}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.uploadTime) {
+                    const d = new Date(data.uploadTime);
+                    const pad = n => String(n).padStart(2, '0');
+                    const str = `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                    lastEl.textContent = `🕐 마지막 업로드: ${str}`;
+                } else {
+                    lastEl.textContent = '';
+                }
+            })
+            .catch(() => {
+                // GAS 실패 시 localStorage 폴백
+                const local = localStorage.getItem('baram_last_upload');
+                if (local) lastEl.textContent = `🕐 마지막 업로드: ${local}`;
+                else lastEl.textContent = '';
+            });
+    }
 
     let selectedFile = null;
 
@@ -1668,11 +1687,11 @@ function initExcelUpload() {
             if (result.status === 'success') {
                 alert('파일이 정상적으로 업로드되었습니다.');
 
-                // 마지막 업로드 시간 저장
+                // 마지막 업로드 시간 — GAS에 기록 (모든 기기 공유)
                 const now = new Date();
                 const pad = n => String(n).padStart(2, '0');
                 const timeStr = `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-                localStorage.setItem('baram_last_upload', timeStr);
+                localStorage.setItem('baram_last_upload', timeStr); // 폴백용
                 const lastEl = document.getElementById('lastUploadTime');
                 if (lastEl) lastEl.textContent = `🕐 마지막 업로드: ${timeStr}`;
                 statusEl.textContent = '✅ 구글시트 반영 완료!';
