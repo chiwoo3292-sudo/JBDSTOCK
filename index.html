@@ -766,19 +766,24 @@ function unlock() {
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
 .inv-brand {
-    display: block;             /* inline-block 대신 block 사용 (자동 줄바꿈) */
-    width: 245px;               /* INVOICE 가로 길이와 일치 */
-    text-align: justify;        
-    text-align-last: justify;   
-    
-    margin-left: 7px;           /* INVOICE와 동일한 왼쪽 정렬 */
-    margin-bottom: 0;           /* 바로 아래 INVOICE와의 간격 조절 */
+    /* 1. width를 직접 입력하지 말고, 타이틀과 너비를 맞추는 방식으로 변경 */
+    display: block;
+    margin-left: 7px; /* inv-title의 왼쪽 여백과 동일하게 */
     
     font-family: 'Times New Roman', serif;
     font-size: 13px;
     color: #111;
     line-height: 1;
-    letter-spacing: normal;     /* justify 작동을 위해 필수 */
+    letter-spacing: normal;
+    
+    /* 2. 가장 중요한 부분: 부모 요소의 너비를 그대로 따르거나 
+          INVOICE 글자폭에 맞춰 강제 늘리기 */
+    text-align: justify;
+    text-align-last: justify;
+    
+    /* 3. 삐져나가는 현상 방지 */
+    white-space: nowrap; /* 줄바꿈 방지 */
+    overflow: hidden;    /* 삐져나가는 내용 숨기기 */
 }
 
 /* 2. INVOICE 타이틀 설정 */
