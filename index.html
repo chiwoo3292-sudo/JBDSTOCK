@@ -765,38 +765,9 @@ function unlock() {
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand {
-    /* 1. width를 직접 입력하지 말고, 타이틀과 너비를 맞추는 방식으로 변경 */
-    display: block;
-    margin-left: 7px; /* inv-title의 왼쪽 여백과 동일하게 */
-    
-    font-family: 'Times New Roman', serif;
-    font-size: 13px;
-    color: #111;
-    line-height: 1;
-    letter-spacing:8px;
-    
-    /* 2. 가장 중요한 부분: 부모 요소의 너비를 그대로 따르거나 
-          INVOICE 글자폭에 맞춰 강제 늘리기 */
-    text-align: justify;
-    text-align-last: justify;
-    
-    /* 3. 삐져나가는 현상 방지 */
-    white-space: nowrap; /* 줄바꿈 방지 */
-    overflow: hidden;    /* 삐져나가는 내용 숨기기 */
-}
-
-/* 2. INVOICE 타이틀 설정 */
-.inv-title { 
-    display: block;             /* 확실한 줄바꿈 보장 */
-    margin: 0 0 94px 7px;       /* 위쪽 margin을 0으로 설정하여 위 텍스트와 밀착 */
-    font-family: 'GmarketSans', sans-serif; 
-    font-size: 56px; 
-    font-weight: 900; 
-    letter-spacing: -1px; 
-    line-height: .86; 
-    color: #242424; 
-}
+.inv-brand { display:block; margin-left:7px; font-family:'Times New Roman',serif; font-size:13px; color:#111; line-height:1; letter-spacing:8px; white-space:nowrap; }
+/* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
+.inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
 .inv-meta-grid .right-block { align-self:end; justify-self:end; width:auto; min-width:0; }
 .inv-meta-row { display:grid; grid-template-columns:62px 1fr; min-height:22px; align-items:center; }
@@ -2351,30 +2322,7 @@ function fmtNum(n) {
 }
 
 function renderInvoice() {
-    // JIBOKDEUKMARU 너비를 INVOICE 텍스트와 정확히 맞추기 (scaleX 전용)
-    requestAnimationFrame(() => {
-        const titleEl = document.querySelector('.inv-title');
-        const brandEl = document.querySelector('.inv-brand');
-        if (titleEl && brandEl) {
-            // INVOICE 텍스트 너비 측정 (subtitle span 제외)
-            const subtitleSpan = titleEl.querySelector('span');
-            const subtitleText = subtitleSpan ? subtitleSpan.textContent : '';
-            if (subtitleSpan) subtitleSpan.textContent = '';
-            const invoiceW = titleEl.offsetWidth;
-            if (subtitleSpan) subtitleSpan.textContent = subtitleText;
 
-            if (invoiceW > 0) {
-                // 자연 너비 측정 (transform 리셋 후)
-                brandEl.style.transform = 'none';
-                brandEl.style.letterSpacing = '0px';
-                const naturalW = brandEl.scrollWidth;
-                if (naturalW > 0) {
-                    // 항상 scaleX로 맞추기 (늘리거나 줄이거나)
-                    brandEl.style.transform = 'scaleX(' + (invoiceW / naturalW).toFixed(4) + ')';
-                }
-            }
-        }
-    });
     // 메타
     document.getElementById('pvBillTo').textContent  = document.getElementById('invBillTo')?.value  || '—';
     document.getElementById('pvWorkDate').textContent = document.getElementById('invWorkDate')?.value || '—';
