@@ -2287,7 +2287,7 @@ function getInvItemFromBox(box) {
     const p = products.find(x => x.code === code);
     if (!p) return null;
 
-    const PY_FACTOR = 3.305785; // 1평 = 3.305785㎡
+    const PY_FACTOR = 3.24; // 1평 = 3.24㎡ (계산기 탭과 동일)
     const lossMultiplier = lossRate > 0 ? (1 + lossRate / 100) : 1;
 
     let displayQty, unitPrice, total;
