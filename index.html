@@ -1615,6 +1615,72 @@ function initExcelUpload() {
                 'D#,E#,선일,성원특': { itemCol:0, lotCol:1, boxCol:4, m2Col:5, totalBoxCol:16, totalM2Col:17, reserveStartCol:6 },
                 '바람1':           { itemCol:1, lotCol:2, boxCol:4, m2Col:5, totalBoxCol:13, totalM2Col:14, reserveStartCol:6 },
             };
+            // ========== 예약 데이터 추출 ==========
+            const reserveDataFromHtml = [];
+            reserveDataFromHtml.push(['품번', '업체명', '평형', '일정']);
+
+            workbook.SheetNames.forEach(sheetName => {
+                const ws = workbook.Sheets[sheetName];
+                if (!ws) return;
+                
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+                if (!rows || rows.length < 6) return;
+                
+                let reserveStartCol = -1;
+                for (let r = 0; r <= 3 && r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row) continue;
+                    for (let c = 0; c < row.length; c++) {
+                        const cellVal = String(row[c] || '').replace(/\s/g, '');
+                        if (cellVal.includes('시공일자') || cellVal.includes('예약사항')) {
+                            reserveStartCol = c;
+                            break;
+                        }
+                    }
+                    if (reserveStartCol >= 0) break;
+                }
+                if (reserveStartCol < 0) return;
+                
+                let currentItemCode = '';
+                for (let i = 4; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length === 0) continue;
+                    
+                    const itemRaw = String(row[0] || '').trim();
+                    const codeMatch = itemRaw.match(/[A-Z]#\s*\d+[A-Z0-9]*/i);
+                    if (codeMatch) {
+                        currentItemCode = codeMatch[0].replace(/\s+/g, '');
+                    }
+                    if (!currentItemCode) continue;
+                    
+                    for (let c = reserveStartCol; c < row.length - 2; c++) {
+                        const companyRaw = String(row[c] || '').trim();
+                        if (!companyRaw || companyRaw === '' || companyRaw === '-') continue;
+                        if (!isNaN(parseFloat(companyRaw))) continue;
+                        
+                        const areaRaw = row[c + 1];
+                        const dateRaw = row[c + 2];
+                        
+                        let area = '';
+                        let date = '';
+                        
+                        if (areaRaw && !isNaN(parseFloat(String(areaRaw).replace(/[^0-9.]/g, '')))) {
+                            area = String(areaRaw).replace(/[^0-9.]/g, '');
+                        }
+                        if (dateRaw && String(dateRaw).trim() !== '') {
+                            date = String(dateRaw).trim();
+                        }
+                        
+                        if (companyRaw && (area || date)) {
+                            reserveDataFromHtml.push([currentItemCode, companyRaw, area, date]);
+                        }
+                    }
+                }
+            });
+          
+                      // 예약 데이터 저장용 배열
+            const reserveDataFromHtml = [];
+            reserveDataFromHtml.push(['품번', '업체명', '평형', '일정']);
 
             function excelDateToStr(val) {
                 if (val === null || val === undefined) return '';
