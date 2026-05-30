@@ -765,7 +765,20 @@ function unlock() {
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand { margin-left:14px; font-family:'Times New Roman',serif; font-size:11px; color:#111; line-height:1; display:inline-block; letter-spacing:3px; }
+.inv-brand {
+    margin-left: 7px;           /* .inv-title의 margin-left와 맞춤 */
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;            /* INVOICE와의 균형을 위해 살짝 키움 (선택사항) */
+    color: #111;
+    line-height: 1;
+    
+    /* 핵심 설정 */
+    display: inline-block;
+    width: 200px;               /* INVOICE 단어의 실제 픽셀 너비를 여기에 입력하세요 */
+    text-align: justify;        /* 글자를 양쪽 끝으로 벌림 */
+    text-align-last: justify;   /* 마지막 줄까지 양쪽 끝으로 강제 정렬 */
+    letter-spacing: normal;     /* 간격 자동 계산 */
+}
 /* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
 .inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
