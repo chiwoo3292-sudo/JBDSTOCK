@@ -1597,7 +1597,7 @@ function initExcelUpload() {
 
             // 2. 모든 시트를 STOCK 형식으로 정제해서 합치기
             const matrixData = [];
-            matrixData.push(['품번', 'LOT 및 입고일', 'BOX', '현재고(㎡)', '총 BOX', '총 재고(㎡)']);
+            matrixData.push(['시트명', '품번', 'LOT 및 입고일', 'BOX', '현재고(㎡)', '총 BOX', '총 재고(㎡)']);
 
             const COL_MAP = {
                 'C#14':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:15, totalM2Col:16, reserveStartCol:5 },
@@ -1725,69 +1725,14 @@ function initExcelUpload() {
                     const totBox = typeof totalBox === 'number' ? roundNum(totalBox) : (hasValue(totalBox) ? totalBox : '-');
                     const totM2  = typeof totalM2  === 'number' ? roundNum(totalM2)  : (hasValue(totalM2)  ? totalM2  : '-');
 
-                    matrixData.push([currentItemCode, lotStr, box, curM2, totBox, totM2]);
+                    matrixData.push([sheetName, currentItemCode, lotStr, box, curM2, totBox, totM2]);
                     i++;
                 }
             });
 
             if (matrixData.length <= 1) throw new Error('엑셀에서 읽을 데이터가 없습니다.');
 
-            // ── 예약 데이터 추출 ──────────────────────────────────────
-            // RESERVE 시트: [품번, 업체명, 평형, 일정]
-            const reserveData = [];
-            reserveData.push(['품번', '업체명', '평형', '일정']);
-
-            workbook.SheetNames.forEach(sheetName => {
-                const ws = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(ws, { header:1, raw:true });
-                if (!rows || rows.length < 5) return;
-                const cm = COL_MAP[sheetName];
-                if (!cm || cm.reserveStartCol === undefined) return;
-                fillMergedItemCodes(ws, rows, cm.itemCol);
-
-                let currentItemCode = '';
-                const rsc = cm.reserveStartCol; // 예약 시작 열 인덱스 (A#18=4, C#14/A#14=5, D#E#=6)
-
-                for (let i = 0; i < rows.length; i++) {
-                    const row = rows[i];
-
-                    // ── 품번 갱신 ──
-                    const rawItem = String(getCell(row, cm.itemCol) || '').replace(/\n|\r/g,' ').trim();
-                    const codeMatch = rawItem.match(/[A-Z]#\s*\d+\w*/);
-                    if (codeMatch) currentItemCode = codeMatch[0].replace(/\s+/g,'');
-                    if (!currentItemCode) continue;
-
-                    // ── 업체명 행 감지 ──
-                    // 조건: rsc 이후 홀수열(rsc+1, rsc+3, rsc+5...) 중 문자열 값이 있는 행
-                    // A#18 기준: col5,7,9,11... 에 업체명, BOX값(col3)은 숫자이거나 0
-                    const companiesInRow = [];
-                    for (let ci = rsc + 1; ci < 35; ci += 2) {
-                        const v = getCell(row, ci);
-                        if (v !== null && v !== undefined && typeof v === 'string' && v.trim() !== '') {
-                            companiesInRow.push({ company: v.replace(/\n|\r/g,' ').trim(), colIdx: ci });
-                        }
-                    }
-
-                    if (companiesInRow.length === 0) continue; // 업체명 없는 행 스킵
-
-                    // ── 다음 행에서 평수/날짜 읽기 ──
-                    // 평수: 업체명과 같은 열(colIdx), 날짜: colIdx+1
-                    const nextRow = rows[i + 1] || [];
-                    companiesInRow.forEach(({ company, colIdx }) => {
-                        const areaRaw = getCell(nextRow, colIdx);
-                        const dateRaw = getCell(nextRow, colIdx + 1);
-                        const area = (areaRaw !== null && areaRaw !== undefined)
-                            ? String(areaRaw).replace(/[^0-9.]/g, '') : '';
-                        let dateStr = '';
-                        if (dateRaw !== null && dateRaw !== undefined && dateRaw !== '') {
-                            dateStr = excelDateToStr(dateRaw);
-                        }
-                        if (company && (area || dateStr)) {
-                            reserveData.push([currentItemCode, company, area, dateStr]);
-                        }
-                    });
-                }
-            });
+            // ── 예약 데이터는 GAS에서 구글시트 직접 파싱으로 처리 ──
 
             // 업로드 전 확인
             if (!confirm('파일을 업로드 하시겠습니까?')) {
@@ -1806,9 +1751,7 @@ function initExcelUpload() {
                 body: JSON.stringify({
                     spreadsheetId: SHEET_CONFIG.ID,
                     sheetName: SHEET_CONFIG.STOCK,
-                    matrixData: matrixData,
-                    reserveSheetName: 'RESERVE',
-                    reserveData: reserveData
+                    matrixData: matrixData
                 })
             });
 
