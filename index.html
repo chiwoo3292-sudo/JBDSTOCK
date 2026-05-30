@@ -765,7 +765,7 @@ function unlock() {
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand { margin-left:14px; font-family:'Times New Roman',serif; font-size:13px; letter-spacing:6.5px; color:#111; line-height:1; display:block; width:fit-content; }
+.inv-brand { margin-left:14px; font-family:'Times New Roman',serif; font-size:13px; color:#111; line-height:1; display:block; width:fit-content; transform-origin:left center; letter-spacing:0px; }
 /* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
 .inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
@@ -2322,12 +2322,12 @@ function fmtNum(n) {
 }
 
 function renderInvoice() {
-    // JIBOKDEUKMARU 너비를 INVOICE 텍스트와 정확히 맞추기
+    // JIBOKDEUKMARU 너비를 INVOICE 텍스트와 정확히 맞추기 (scaleX 전용)
     requestAnimationFrame(() => {
         const titleEl = document.querySelector('.inv-title');
         const brandEl = document.querySelector('.inv-brand');
         if (titleEl && brandEl) {
-            // INVOICE 텍스트만의 너비 측정 (subtitle span 제외)
+            // INVOICE 텍스트 너비 측정 (subtitle span 제외)
             const subtitleSpan = titleEl.querySelector('span');
             const subtitleText = subtitleSpan ? subtitleSpan.textContent : '';
             if (subtitleSpan) subtitleSpan.textContent = '';
@@ -2335,19 +2335,13 @@ function renderInvoice() {
             if (subtitleSpan) subtitleSpan.textContent = subtitleText;
 
             if (invoiceW > 0) {
-                // 브랜드 자연 너비 측정 (현재 letter-spacing 리셋 후)
-                brandEl.style.letterSpacing = '0px';
+                // 자연 너비 측정 (transform 리셋 후)
                 brandEl.style.transform = 'none';
+                brandEl.style.letterSpacing = '0px';
                 const naturalW = brandEl.scrollWidth;
-                if (naturalW > 0 && invoiceW > naturalW) {
-                    // letter-spacing으로 늘리기: 각 글자 사이에 균등 배분
-                    const chars = 'JIBOKDEUKMARU'.length;
-                    const spacing = (invoiceW - naturalW) / chars;
-                    brandEl.style.letterSpacing = spacing.toFixed(2) + 'px';
-                } else if (naturalW > invoiceW) {
-                    // 너무 크면 scaleX로 축소
+                if (naturalW > 0) {
+                    // 항상 scaleX로 맞추기 (늘리거나 줄이거나)
                     brandEl.style.transform = 'scaleX(' + (invoiceW / naturalW).toFixed(4) + ')';
-                    brandEl.style.transformOrigin = 'left center';
                 }
             }
         }
