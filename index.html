@@ -713,6 +713,12 @@ function unlock() {
     <button id="itemDetailClose" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
     <h2 id="itemDetailTitle" style="margin:0 0 20px; font-size:18px; font-weight:800; color:#1a1a2e;"></h2>
 
+    <!-- 잔여 총재고 -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid #eee;">📊 잔여 총재고</div>
+      <div id="itemDetailStock" style="font-size:15px; font-weight:800; color:#e84393;"></div>
+    </div>
+
     <!-- 발주현황 -->
     <div style="margin-bottom:20px;">
       <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid #eee;">📦 발주현황</div>
@@ -852,9 +858,8 @@ function unlock() {
   .btn-text { display:inline !important; font-size:10px !important; }
   #invPreviewBtn { font-size:10px !important; }
 
-  /* 가격기준/로스율/로스적용 → 2열 배치 */
-  .inv-loss-row { grid-template-columns:1fr 1fr !important; }
-  .inv-loss-row .inv-loss-chk-wrap { grid-column: 2; grid-row: 1; align-self:end; }
+  /* 가격기준/로스율 → 2열 배치 */
+  .inv-loss-row { grid-template-columns:1.8fr 1fr !important; }
 
   /* ── 미리보기 영역 ── */
   .inv-preview-wrap {
@@ -975,7 +980,7 @@ function unlock() {
           <input type="number" id="invQty1" class="inv-qty-input" step="0.01" min="0">
         </div>
       </div>
-      <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr auto; gap:8px; align-items:end; margin-bottom:12px;">
+      <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr; gap:8px; align-items:end; margin-bottom:12px;">
         <div class="inv-field" style="margin-bottom:0;">
           <div class="inv-label">가격 기준</div>
           <select id="invParty1" class="inv-party-select">
@@ -983,15 +988,9 @@ function unlock() {
             <option value="vendor">업체가</option>
           </select>
         </div>
-        <div class="inv-field" style="margin-bottom:0; min-width:72px;">
+        <div class="inv-field" style="margin-bottom:0;">
           <div class="inv-label">로스율(%)</div>
           <input type="number" id="invLoss1" class="inv-loss-input" step="0.1" min="0" placeholder="0">
-        </div>
-        <div class="inv-field inv-loss-chk-wrap" style="margin-bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-          <div class="inv-label" style="text-align:center;">로스 적용</div>
-          <div style="height:38px; display:flex; align-items:center;">
-            <input type="checkbox" id="invLossOn1" class="inv-loss-chk" style="width:18px; height:18px; cursor:pointer; border-radius:4px;">
-          </div>
         </div>
       </div>
     </div>
@@ -1848,25 +1847,44 @@ async function fetchStockData() {
 async function openItemDetail(itemCode) {
     const modal  = document.getElementById('itemDetailModal');
     const title  = document.getElementById('itemDetailTitle');
+    const stockEl   = document.getElementById('itemDetailStock');
     const orderEl   = document.getElementById('itemDetailOrder');
     const arrivalEl = document.getElementById('itemDetailArrival');
     const reserveEl = document.getElementById('itemDetailReserve');
 
     title.textContent = itemCode;
-    orderEl.innerHTML = arrivalEl.innerHTML = reserveEl.innerHTML =
+    stockEl.innerHTML = orderEl.innerHTML = arrivalEl.innerHTML = reserveEl.innerHTML =
         '<span style="color:#aaa;">불러오는 중...</span>';
     modal.style.display = 'flex';
 
     const noData = '<span style="color:#aaa;">정보 없음</span>';
     const code = itemCode.trim().toUpperCase();
 
-    // 발주현황, 입고예정일, 예약일정(RESERVE 시트) 병렬 fetch
+    // 발주현황, 입고예정일, 예약일정, STOCK 병렬 fetch
     try {
-        const [orderRows, arrivalRows, reserveRows] = await Promise.all([
+        const [orderRows, arrivalRows, reserveRows, stockRows] = await Promise.all([
             fetchSheetJson(SHEET_CONFIG.ORDER).catch(() => null),
             fetchSheetJson(SHEET_CONFIG.ARRIVAL).catch(() => null),
             fetchSheetJson(SHEET_CONFIG.RESERVE).catch(() => null),
+            fetchSheetJson(SHEET_CONFIG.STOCK).catch(() => null),
         ]);
+
+        // ── 잔여 총재고 합산 — STOCK 시트에서 해당 품번 총재고(㎡) 합산 ──
+        // STOCK 헤더: [품번(0), LOT(1), BOX(2), 현재고(3), 총BOX(4), 총재고(5)]
+        const stockFiltered = (stockRows || []).filter(r => {
+            const c = r?.c?.[0];
+            const v = c ? String(c.v !== undefined ? c.v : '').trim().toUpperCase() : '';
+            return v === code;
+        });
+        if (stockFiltered.length) {
+            let totalM2 = 0;
+            stockFiltered.forEach(r => {
+                const c5 = r.c[5]; // 총재고(㎡) 컬럼
+                const v = c5 ? parseFloat(c5.v !== undefined ? c5.v : 0) : 0;
+                if (!isNaN(v)) totalM2 += v;
+            });
+            stockEl.innerHTML = `<span style="font-size:22px;">${totalM2.toFixed(2)} ㎡</span>`;
+        } else { stockEl.innerHTML = noData; }
 
         // ── 발주현황 ──
         const orders = (orderRows || []).filter(r => {
@@ -1913,7 +1931,7 @@ async function openItemDetail(itemCode) {
         } else { reserveEl.innerHTML = noData; }
 
     } catch (e) {
-        orderEl.innerHTML = arrivalEl.innerHTML = reserveEl.innerHTML =
+        stockEl.innerHTML = orderEl.innerHTML = arrivalEl.innerHTML = reserveEl.innerHTML =
             `<span style="color:#d63031;">오류: ${e.message}</span>`;
     }
 }
@@ -2166,7 +2184,7 @@ function createInvoiceItem(index) {
             <input type="number" id="invQty${index}" class="inv-qty-input" step="0.01" min="0">
           </div>
         </div>
-        <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr auto; gap:8px; align-items:end; margin-bottom:12px;">
+        <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr; gap:8px; align-items:end; margin-bottom:12px;">
           <div class="inv-field" style="margin-bottom:0;">
             <div class="inv-label">가격 기준</div>
             <select id="invParty${index}" class="inv-party-select">
@@ -2174,15 +2192,9 @@ function createInvoiceItem(index) {
               <option value="vendor">업체가</option>
             </select>
           </div>
-          <div class="inv-field" style="margin-bottom:0; min-width:72px;">
+          <div class="inv-field" style="margin-bottom:0;">
             <div class="inv-label">로스율(%)</div>
             <input type="number" id="invLoss${index}" class="inv-loss-input" step="0.1" min="0" placeholder="0">
-          </div>
-          <div class="inv-field inv-loss-chk-wrap" style="margin-bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
-            <div class="inv-label" style="text-align:center;">로스 적용</div>
-            <div style="height:38px; display:flex; align-items:center;">
-              <input type="checkbox" id="invLossOn${index}" class="inv-loss-chk" style="width:18px; height:18px; cursor:pointer; border-radius:4px;">
-            </div>
           </div>
         </div>
       </div>
@@ -2271,13 +2283,12 @@ function getInvItemFromBox(box) {
     const qty   = parseFloat(box.querySelector('.inv-qty-input')?.value) || 0;
     const party = box.querySelector('.inv-party-select')?.value || 'consumer';
     const lossRate = parseFloat(box.querySelector('.inv-loss-input')?.value) || 0;
-    const lossOn   = box.querySelector('.inv-loss-chk')?.checked || false;
     if (!code) return null;
     const p = products.find(x => x.code === code);
     if (!p) return null;
 
     const PY_FACTOR = 3.305785; // 1평 = 3.305785㎡
-    const lossMultiplier = (lossOn && lossRate > 0) ? (1 + lossRate / 100) : 1;
+    const lossMultiplier = lossRate > 0 ? (1 + lossRate / 100) : 1;
 
     let displayQty, unitPrice, total;
 
