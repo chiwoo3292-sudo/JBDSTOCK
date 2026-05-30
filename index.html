@@ -1,4 +1,4 @@
-				<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
@@ -1596,8 +1596,8 @@ function initExcelUpload() {
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
             // 2. 모든 시트를 STOCK 형식으로 정제해서 합치기
-            const reserveDataFromHtml = [];
-reserveDataFromHtml.push(['품번', '업체명', '평형', '일정']);
+            const matrixData = [];
+            matrixData.push(['시트명', '품번', 'LOT 및 입고일', 'BOX', '현재고(㎡)', '총 BOX', '총 재고(㎡)']);
 
             const COL_MAP = {
                 'C#14':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:15, totalM2Col:16, reserveStartCol:5 },
@@ -1615,55 +1615,7 @@ reserveDataFromHtml.push(['품번', '업체명', '평형', '일정']);
                 'D#,E#,선일,성원특': { itemCol:0, lotCol:1, boxCol:4, m2Col:5, totalBoxCol:16, totalM2Col:17, reserveStartCol:6 },
                 '바람1':           { itemCol:1, lotCol:2, boxCol:4, m2Col:5, totalBoxCol:13, totalM2Col:14, reserveStartCol:6 },
             };
-workbook.SheetNames.forEach(sheetName => {
-    const ws = workbook.Sheets[sheetName];
-    if (!ws) return;
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
-    if (!rows || rows.length < 6) return;
-    let reserveStartCol = -1;
-    for (let r = 0; r <= 3 && r < rows.length; r++) {
-        const row = rows[r];
-        if (!row) continue;
-        for (let c = 0; c < row.length; c++) {
-            const cellVal = String(row[c] || '').replace(/\s/g, '');
-            if (cellVal.includes('시공일자') || cellVal.includes('예약사항')) {
-                reserveStartCol = c;
-                break;
-            }
-        }
-        if (reserveStartCol >= 0) break;
-    }
-    if (reserveStartCol < 0) return;
-    let currentItemCode = '';
-    for (let i = 4; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length === 0) continue;
-        const itemRaw = String(row[0] || '').trim();
-        const codeMatch = itemRaw.match(/[A-Z]#\s*\d+[A-Z0-9]*/i);
-        if (codeMatch) {
-            currentItemCode = codeMatch[0].replace(/\s+/g, '');
-        }
-        if (!currentItemCode) continue;
-        for (let c = reserveStartCol; c < row.length - 2; c++) {
-            const companyRaw = String(row[c] || '').trim();
-            if (!companyRaw || companyRaw === '' || companyRaw === '-') continue;
-            if (!isNaN(parseFloat(companyRaw))) continue;
-            const areaRaw = row[c + 1];
-            const dateRaw = row[c + 2];
-            let area = '';
-            let date = '';
-            if (areaRaw && !isNaN(parseFloat(String(areaRaw).replace(/[^0-9.]/g, '')))) {
-                area = String(areaRaw).replace(/[^0-9.]/g, '');
-            }
-            if (dateRaw && String(dateRaw).trim() !== '') {
-                date = String(dateRaw).trim();
-            }
-            if (companyRaw && (area || date)) {
-                reserveDataFromHtml.push([currentItemCode, companyRaw, area, date]);
-            }
-        }
-    }
-});
+
             function excelDateToStr(val) {
                 if (val === null || val === undefined) return '';
                 if (typeof val === 'number' && val > 40000) {
@@ -1792,19 +1744,40 @@ workbook.SheetNames.forEach(sheetName => {
 
             statusEl.textContent = '구글시트에 전송 중...';
 
-            // 3. Apps Script로 POST 전송
-            const res = await fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' }, // CORS 우회
-                body: JSON.stringify({
-                    spreadsheetId: SHEET_CONFIG.ID,
-                    sheetName: SHEET_CONFIG.STOCK,
-                    matrixData: matrixData,
-                    reserveData: reserveDataFromHtml
-                })
-            });
+            // 3. 시트별로 나눠서 순차 전송 (페이로드 초과 방지)
+            // matrixData를 시트명 기준으로 분리
+            const header = matrixData[0]; // 헤더행
+            const bySheet = {};
+            for (let i = 1; i < matrixData.length; i++) {
+                const sn = matrixData[i][0]; // 0번 컬럼 = 시트명
+                if (!bySheet[sn]) bySheet[sn] = [header];
+                bySheet[sn].push(matrixData[i]);
+            }
 
-            const result = await res.json();
+            const sheetNames = Object.keys(bySheet);
+            let lastResult = null;
+
+            for (let si = 0; si < sheetNames.length; si++) {
+                const sn = sheetNames[si];
+                statusEl.textContent = `전송 중... (${si + 1}/${sheetNames.length}) ${sn}`;
+                const chunk = bySheet[sn];
+
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        spreadsheetId: SHEET_CONFIG.ID,
+                        sheetName: SHEET_CONFIG.STOCK,
+                        matrixData: chunk,
+                        isFirst: si === 0,                        // 첫 전송: STOCK 클리어 후 헤더+데이터
+                        isLast:  si === sheetNames.length - 1     // 마지막 전송: RESERVE 파싱 실행
+                    })
+                });
+                lastResult = await res.json();
+                if (lastResult.status !== 'success') throw new Error(lastResult.message || '서버 오류');
+            }
+
+            const result = lastResult;
 
             if (result.status === 'success') {
                 alert('파일이 정상적으로 업로드되었습니다.');
