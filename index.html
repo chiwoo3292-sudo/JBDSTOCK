@@ -4,6 +4,24 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
 <title>바람 단가 안내 시스템</title>
+
+<!-- ── PWA 설정 ── -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111111">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- iOS PWA 설정 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="바람ERP">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
+<link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128.png">
+
+<!-- 스플래시 스크린 (iOS) -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- ── /PWA 설정 ── -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" />
 <!-- KoPubWorld 돋움체 & Century Gothic 대체 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2564,6 +2582,40 @@ async function saveInvoiceImage() {
         if (el2) { el2.style.transform = ''; el2.style.marginBottom = ''; }
         showToast('저장 실패: ' + e.message);
     }
+}
+</script>
+<!-- ── PWA Service Worker 등록 ── -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => {
+        console.log('[PWA] Service Worker 등록 완료:', reg.scope);
+
+        // 새 버전 감지 → 업데이트 알림
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // 업데이트 토스트 표시
+              const toast = document.createElement('div');
+              toast.style.cssText = [
+                'position:fixed', 'bottom:80px', 'left:50%',
+                'transform:translateX(-50%)',
+                'background:#111', 'color:#fff',
+                'padding:12px 20px', 'border-radius:24px',
+                'font-size:13px', 'z-index:9999',
+                'display:flex', 'gap:12px', 'align-items:center',
+                'box-shadow:0 4px 20px rgba(0,0,0,0.3)'
+              ].join(';');
+              toast.innerHTML = `새 버전이 있어요! <button onclick="location.reload()" style="background:#fff;color:#111;border:none;border-radius:12px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;">새로고침</button>`;
+              document.body.appendChild(toast);
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[PWA] Service Worker 등록 실패:', err));
+  });
 }
 </script>
 </body>
