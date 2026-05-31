@@ -2317,13 +2317,11 @@ function getInvItemFromBox(box) {
         displayQty    = boxes;
         total         = Math.round(boxes * unitPrice);
     } else if (unit === 'M2') {
-        // M2 입력 → 계산기처럼 박스 올림 후 실제 커버 ㎡ 출력
-        const sqmWithLoss     = qty * lossMultiplier;
-        const boxes           = Math.ceil(sqmWithLoss / p.box_m2);
-        const coverageSqm     = boxes * p.box_m2;          // 박스 올림 후 실제 커버 면적
-        unitPrice             = getUnitValue(p, party, 'sqm', 'included');
-        displayQty            = Math.round(coverageSqm * 100) / 100; // 소수점 2자리
-        total                 = Math.round(coverageSqm * unitPrice);
+        // M2 입력: 입력값 그대로 (박스 환산 없음)
+        const sqmWithLoss = qty * lossMultiplier;
+        unitPrice         = getUnitValue(p, party, 'sqm', 'included');
+        displayQty        = Math.round(sqmWithLoss * 100) / 100;
+        total             = Math.round(sqmWithLoss * unitPrice);
     } else {
         // PY 입력 → 박스 올림 후 실제 커버 평수 출력
         const sqmInput        = qty * PY_FACTOR;
