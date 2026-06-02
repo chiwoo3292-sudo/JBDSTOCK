@@ -731,9 +731,9 @@ function unlock() {
     <button id="itemDetailClose" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
     <h2 id="itemDetailTitle" style="margin:0 0 20px; font-size:18px; font-weight:800; color:#1a1a2e;"></h2>
 
-    <!-- 잔여 총재고 -->
+    <!-- 잔여 BOX -->
     <div style="margin-bottom:20px;">
-      <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid #eee;">📊 잔여 총재고</div>
+      <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid #eee;">📊 잔여 BOX</div>
       <div id="itemDetailStock" style="font-size:15px; font-weight:800; color:#e84393;"></div>
     </div>
 
@@ -1761,38 +1761,20 @@ function initExcelUpload() {
 
             statusEl.textContent = '구글시트에 전송 중...';
 
-            // 3. 시트별로 나눠서 순차 전송 (페이로드 초과 방지)
-            // matrixData를 시트명 기준으로 분리
-            const header = matrixData[0]; // 헤더행
-            const bySheet = {};
-            for (let i = 1; i < matrixData.length; i++) {
-                const sn = matrixData[i][0]; // 0번 컬럼 = 시트명
-                if (!bySheet[sn]) bySheet[sn] = [header];
-                bySheet[sn].push(matrixData[i]);
-            }
+            // 3. 전체 데이터를 한 번에 전송 (데이터 크기 작으므로 분할 불필요)
+            statusEl.textContent = '구글시트에 전송 중...';
 
-            const sheetNames = Object.keys(bySheet);
-            let lastResult = null;
-
-            for (let si = 0; si < sheetNames.length; si++) {
-                const sn = sheetNames[si];
-                statusEl.textContent = `전송 중... (${si + 1}/${sheetNames.length}) ${sn}`;
-                const chunk = bySheet[sn];
-
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        spreadsheetId: SHEET_CONFIG.ID,
-                        sheetName: SHEET_CONFIG.STOCK,
-                        matrixData: chunk,
-                        isFirst: si === 0,                        // 첫 전송: STOCK 클리어 후 헤더+데이터
-                        isLast:  si === sheetNames.length - 1     // 마지막 전송: RESERVE 파싱 실행
-                    })
-                });
-                lastResult = await res.json();
-                if (lastResult.status !== 'success') throw new Error(lastResult.message || '서버 오류');
-            }
+            const res = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    spreadsheetId: SHEET_CONFIG.ID,
+                    sheetName: SHEET_CONFIG.STOCK,
+                    matrixData: matrixData
+                })
+            });
+            const lastResult = await res.json();
+            if (lastResult.status !== 'success') throw new Error(lastResult.message || '서버 오류');
 
             const result = lastResult;
 
@@ -1887,7 +1869,7 @@ async function openItemDetail(itemCode) {
             fetchSheetJson(SHEET_CONFIG.STOCK).catch(() => null),
         ]);
 
-        // ── 잔여 총재고 합산 — STOCK 시트에서 해당 품번 총재고(PY) 합산 ──
+        // ── 잔여 BOX 합산 — STOCK 시트에서 해당 품번 총BOX(c[4]) 합산 ──
         // STOCK 헤더: [품번(0), LOT(1), BOX(2), 현재고(3), 총BOX(4), 총재고(5)]
         const stockFiltered = (stockRows || []).filter(r => {
             const c = r?.c?.[0];
@@ -1895,13 +1877,13 @@ async function openItemDetail(itemCode) {
             return v === code;
         });
         if (stockFiltered.length) {
-            let totalM2 = 0;
+            let totalBox = 0;
             stockFiltered.forEach(r => {
-                const c5 = r.c[5]; // 총재고(PY) 컬럼
-                const v = c5 ? parseFloat(c5.v !== undefined ? c5.v : 0) : 0;
-                if (!isNaN(v)) totalM2 += v;
+                const c4 = r.c[4]; // 총BOX 컬럼
+                const v = c4 ? parseFloat(c4.v !== undefined ? c4.v : 0) : 0;
+                if (!isNaN(v)) totalBox += v;
             });
-            stockEl.innerHTML = `<span style="font-size:22px;">${totalM2.toFixed(2)} PY</span>`;
+            stockEl.innerHTML = `<span style="font-size:22px;">${totalBox % 1 === 0 ? totalBox : totalBox.toFixed(2)} BOX</span>`;
         } else { stockEl.innerHTML = noData; }
 
         // ── 발주현황 ──
@@ -2059,7 +2041,7 @@ function renderStockTable(rows) {
         const m2Raw = String(d.totalM2);
         const m2Display = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
             ? `<span style="color:#d63031;font-weight:bold;">-</span>`
-            : (m2Raw.includes('PY') ? m2Raw : `${m2Raw} PY`);
+            : m2Raw;
 
         const totalBoxDisplay = (!d.totalBox || d.totalBox === '-' || d.totalBox === '0')
             ? `<span style="color:#d63031;font-weight:bold;">-</span>`
