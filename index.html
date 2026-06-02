@@ -2057,9 +2057,10 @@ function renderStockTable(rows) {
         tr.className = (isGrayGroup ? 'bg-group-gray' : 'bg-group-white') + (isNewGroup ? ' group-first' : '');
 
         const totalRaw = String(d.totalM2);
+      
 const totalDisplay = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
     ? `<span style="color:#d63031;font-weight:bold;">-</span>`
-    : (totalRaw.includes('PY') ? totalRaw : `${totalRaw} PY`);
+    : (totalRaw.includes('PY') ? totalRaw.replace(' PY', '') : `${totalRaw}`);
 
 const totalBoxDisplay = (!d.totalBox || d.totalBox === '-' || d.totalBox === '0')
     ? `<span style="color:#d63031;font-weight:bold;">-</span>`
