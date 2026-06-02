@@ -1942,7 +1942,7 @@ if (stockFiltered.length) {
             reserveEl.innerHTML = reserveItems.map(item =>
                 `<div style="display:grid; grid-template-columns:1fr 60px 100px; gap:8px; padding:7px 4px; border-bottom:1px solid #f0f0f0; align-items:center;">
                     <span style="font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.company}</span>
-                    <span style="color:#555; text-align:center; font-size:13px;">${item.area ? item.area + '평' : '—'}</span>
+                    <span style="color:#555; text-align:center; font-size:13px;">${item.area ? item.area + 'BOX' : '—'}</span>
                     <span style="color:#888; font-size:12px; text-align:right; white-space:nowrap;">${item.date || '—'}</span>
                 </div>`
             ).join('');
