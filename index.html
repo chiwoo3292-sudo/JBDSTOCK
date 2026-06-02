@@ -1761,20 +1761,37 @@ function initExcelUpload() {
 
             statusEl.textContent = '구글시트에 전송 중...';
 
-            // 3. 전체 데이터를 한 번에 전송
-            statusEl.textContent = '구글시트에 전송 중...';
+            // 3. 시트별로 나눠서 순차 전송
+            const header = matrixData[0];
+            const bySheet = {};
+            for (let i = 1; i < matrixData.length; i++) {
+                const sn = matrixData[i][0];
+                if (!bySheet[sn]) bySheet[sn] = [header];
+                bySheet[sn].push(matrixData[i]);
+            }
 
-            const res = await fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({
-                    spreadsheetId: SHEET_CONFIG.ID,
-                    sheetName: SHEET_CONFIG.STOCK,
-                    matrixData: matrixData
-                })
-            });
-            const lastResult = await res.json();
-            if (lastResult.status !== 'success') throw new Error(lastResult.message || '서버 오류');
+            const sheetNames = Object.keys(bySheet);
+            let lastResult = null;
+
+            for (let si = 0; si < sheetNames.length; si++) {
+                const sn = sheetNames[si];
+                statusEl.textContent = `전송 중... (${si + 1}/${sheetNames.length}) ${sn}`;
+                const chunk = bySheet[sn];
+
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        spreadsheetId: SHEET_CONFIG.ID,
+                        sheetName: SHEET_CONFIG.STOCK,
+                        matrixData: chunk,
+                        isFirst: si === 0,
+                        isLast:  si === sheetNames.length - 1
+                    })
+                });
+                lastResult = await res.json();
+                if (lastResult.status !== 'success') throw new Error(lastResult.message || '서버 오류');
+            }
 
             const result = lastResult;
 
