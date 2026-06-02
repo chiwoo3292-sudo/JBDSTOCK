@@ -705,9 +705,9 @@ function unlock() {
                         <th>품번</th>
                         <th>LOT 및 입고일</th>
                         <th>BOX</th>
-                        <th>현재고(㎡)</th>
+                        <th>현재고(PY)</th>
                         <th>총 BOX</th>
-                        <th>총 재고(㎡)</th>
+                        <th>총 재고(PY)</th>
                     </tr>
                 </thead>
                 <tbody id="stockTableBody">
@@ -1614,7 +1614,7 @@ function initExcelUpload() {
 
             // 2. 모든 시트를 STOCK 형식으로 정제해서 합치기
             const matrixData = [];
-            matrixData.push(['시트명', '품번', 'LOT 및 입고일', 'BOX', '현재고(㎡)', '총 BOX', '총 재고(㎡)']);
+            matrixData.push(['시트명', '품번', 'LOT 및 입고일', 'BOX', '현재고(PY)', '총 BOX', '총 재고(PY)']);
 
             const COL_MAP = {
                 'C#14':           { itemCol:0, lotCol:1, boxCol:3, m2Col:4,  totalBoxCol:15, totalM2Col:16, reserveStartCol:5 },
@@ -1887,7 +1887,7 @@ async function openItemDetail(itemCode) {
             fetchSheetJson(SHEET_CONFIG.STOCK).catch(() => null),
         ]);
 
-        // ── 잔여 총재고 합산 — STOCK 시트에서 해당 품번 총재고(㎡) 합산 ──
+        // ── 잔여 총재고 합산 — STOCK 시트에서 해당 품번 총재고(PY) 합산 ──
         // STOCK 헤더: [품번(0), LOT(1), BOX(2), 현재고(3), 총BOX(4), 총재고(5)]
         const stockFiltered = (stockRows || []).filter(r => {
             const c = r?.c?.[0];
@@ -1897,11 +1897,11 @@ async function openItemDetail(itemCode) {
         if (stockFiltered.length) {
             let totalM2 = 0;
             stockFiltered.forEach(r => {
-                const c5 = r.c[5]; // 총재고(㎡) 컬럼
+                const c5 = r.c[5]; // 총재고(PY) 컬럼
                 const v = c5 ? parseFloat(c5.v !== undefined ? c5.v : 0) : 0;
                 if (!isNaN(v)) totalM2 += v;
             });
-            stockEl.innerHTML = `<span style="font-size:22px;">${totalM2.toFixed(2)} ㎡</span>`;
+            stockEl.innerHTML = `<span style="font-size:22px;">${totalM2.toFixed(2)} PY</span>`;
         } else { stockEl.innerHTML = noData; }
 
         // ── 발주현황 ──
@@ -2059,7 +2059,7 @@ function renderStockTable(rows) {
         const m2Raw = String(d.totalM2);
         const m2Display = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
             ? `<span style="color:#d63031;font-weight:bold;">-</span>`
-            : (m2Raw.includes('㎡') ? m2Raw : `${m2Raw} ㎡`);
+            : (m2Raw.includes('PY') ? m2Raw : `${m2Raw} PY`);
 
         const totalBoxDisplay = (!d.totalBox || d.totalBox === '-' || d.totalBox === '0')
             ? `<span style="color:#d63031;font-weight:bold;">-</span>`
