@@ -705,9 +705,9 @@ function unlock() {
                         <th>품번</th>
                         <th>LOT 및 입고일</th>
                         <th>BOX</th>
-                        <th>현재고(PY)</th>
+                        <th>현재고(㎡)</th>
                         <th>총 BOX</th>
-                        <th>총 재고(PY)</th>
+                        <th>총 재고(㎡)</th>
                     </tr>
                 </thead>
                 <tbody id="stockTableBody">
@@ -1887,22 +1887,22 @@ async function openItemDetail(itemCode) {
             fetchSheetJson(SHEET_CONFIG.STOCK).catch(() => null),
         ]);
 
-        // ── 잔여 총재고 합산 — STOCK 시트에서 해당 품번 총 BOX 합산 ──
+        // ── 잔여 총재고 합산 — STOCK 시트에서 해당 품번 총재고(㎡) 합산 ──
         // STOCK 헤더: [품번(0), LOT(1), BOX(2), 현재고(3), 총BOX(4), 총재고(5)]
         const stockFiltered = (stockRows || []).filter(r => {
-    const c = r?.c?.[0];
-    const v = c ? String(c.v !== undefined ? c.v : '').trim().toUpperCase() : '';
-    return v === code;
-});
-if (stockFiltered.length) {
-    let totalBox = 0;
-    stockFiltered.forEach(r => {
-        const c4 = r.c[4]; // 총BOX 컬럼 (index 4)
-        const v = c4 ? parseFloat(c4.v !== undefined ? c4.v : 0) : 0;
-        if (!isNaN(v)) totalBox += v;
-    });
-    stockEl.innerHTML = `<span style="font-size:22px;">${totalBox} BOX</span>`;
-} else { stockEl.innerHTML = noData; }
+            const c = r?.c?.[0];
+            const v = c ? String(c.v !== undefined ? c.v : '').trim().toUpperCase() : '';
+            return v === code;
+        });
+        if (stockFiltered.length) {
+            let totalM2 = 0;
+            stockFiltered.forEach(r => {
+                const c5 = r.c[5]; // 총재고(㎡) 컬럼
+                const v = c5 ? parseFloat(c5.v !== undefined ? c5.v : 0) : 0;
+                if (!isNaN(v)) totalM2 += v;
+            });
+            stockEl.innerHTML = `<span style="font-size:22px;">${totalM2.toFixed(2)} ㎡</span>`;
+        } else { stockEl.innerHTML = noData; }
 
         // ── 발주현황 ──
         const orders = (orderRows || []).filter(r => {
@@ -2056,27 +2056,27 @@ function renderStockTable(rows) {
         const tr = document.createElement('tr');
         tr.className = (isGrayGroup ? 'bg-group-gray' : 'bg-group-white') + (isNewGroup ? ' group-first' : '');
 
-        const totalRaw = String(d.totalM2);
-const totalDisplay = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
-    ? `<span style="color:#d63031;font-weight:bold;">-</span>`
-    : (totalRaw.includes('PY') ? totalRaw : `${totalRaw} PY`);
+        const m2Raw = String(d.totalM2);
+        const m2Display = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
+            ? `<span style="color:#d63031;font-weight:bold;">-</span>`
+            : (m2Raw.includes('㎡') ? m2Raw : `${m2Raw} ㎡`);
 
-const totalBoxDisplay = (!d.totalBox || d.totalBox === '-' || d.totalBox === '0')
-    ? `<span style="color:#d63031;font-weight:bold;">-</span>`
-    : d.totalBox;
+        const totalBoxDisplay = (!d.totalBox || d.totalBox === '-' || d.totalBox === '0')
+            ? `<span style="color:#d63031;font-weight:bold;">-</span>`
+            : d.totalBox;
 
-tr.innerHTML = `
-    <td style="text-align:center; cursor:pointer;">${
-        displayItemCode
-            ? `<span class="item-code-link" data-code="${d.itemCode}" style="text-decoration:underline; text-underline-offset:3px;">${displayItemCode}</span>`
-            : ''
-    }</td>
-    <td style="text-align:center;">${d.lotInfo}</td>
-    <td style="text-align:center;">${d.boxSpec}</td>
-    <td style="text-align:center;">${d.curStock}</td>
-    <td class="total-value" style="text-align:center;">${totalBoxDisplay}</td>
-    <td class="total-value" style="text-align:center;">${totalDisplay}</td>
-`;
+        tr.innerHTML = `
+            <td style="text-align:center; cursor:pointer;">${
+                displayItemCode
+                    ? `<span class="item-code-link" data-code="${d.itemCode}" style="text-decoration:underline; text-underline-offset:3px;">${displayItemCode}</span>`
+                    : ''
+            }</td>
+            <td style="text-align:center;">${d.lotInfo}</td>
+            <td style="text-align:center;">${d.boxSpec}</td>
+            <td style="text-align:center;">${d.curStock}</td>
+            <td class="total-value" style="text-align:center;">${totalBoxDisplay}</td>
+            <td class="total-value" style="text-align:center;">${m2Display}</td>
+        `;
 
         // 품번 클릭 → 상세 모달
         if (isNewGroup) {
