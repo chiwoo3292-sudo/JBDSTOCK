@@ -1974,17 +1974,22 @@ function parseReserveFromSheet(rows, targetCode) {
 
     // 날짜 오름차순 정렬 (26.6.10 형태 → 비교 가능하게 정규화)
     function parseDateScore(d) {
-        if (!d) return 99999999;
-        // "26.7월", "26.6초", "26.6~7월" 같은 텍스트 날짜 처리
-        const m = d.match(/(\d{2})\.(\d{1,2})[.월]?(\d{0,2})/);
-        if (m) {
-            const yy = parseInt(m[1]) || 99;
-            const mm = parseInt(m[2]) || 99;
-            const dd = parseInt(m[3]) || 0;
-            return yy * 10000 + mm * 100 + dd;
-        }
-        return 99999999;
+    if (!d) return 99999999;
+    
+    // 1. 먼저 오타 보정: 연속된 점(..)을 하나(.)로 변환
+    let cleaned = String(d).replace(/\.{2,}/g, '.');  // .. → .
+    cleaned = cleaned.replace(/\.{2,}/g, '.');        // 혹시 3개 이상도 처리
+    
+    // 2. 정규식으로 파싱
+    const m = cleaned.match(/(\d{2})\.(\d{1,2})[.월]?(\d{0,2})/);
+    if (m) {
+        const yy = parseInt(m[1]) || 99;
+        const mm = parseInt(m[2]) || 99;
+        const dd = parseInt(m[3]) || 0;
+        return yy * 10000 + mm * 100 + dd;
     }
+    return 99999999;
+}
     results.sort((a, b) => parseDateScore(a.date) - parseDateScore(b.date));
     return results;
 }
