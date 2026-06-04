@@ -1222,10 +1222,25 @@ function roundTo(value, base) { return Math.round(value / base) * base; }
 function ceilTo(value, base) { return Math.ceil(value / base) * base; }
 function formatQuoteDate(dateObj = new Date()) { const y = dateObj.getFullYear(); const m = String(dateObj.getMonth() + 1).padStart(2,'0'); const d = String(dateObj.getDate()).padStart(2,'0'); return `견적일 : ${y}-${m}-${d}`; }
 function updateQuoteDate(dateObj = new Date()) { const el = $('quoteDate'); if(el) el.textContent = formatQuoteDate(dateObj); }
+function getBoxDiscount(code) {
+  // # 없는 품번은 null 반환 (기존값 그대로)
+  if (!code || !code.includes('#')) return null;
+  const after = code.split('#').pop();
+  const num = parseInt(after, 10);
+  if (!Number.isFinite(num)) return null;
+  if (num <= 15) return 35000;
+  if (num <= 18) return 45000;
+  return 50000; // 19 이상
+}
 function getUnitValue(product, party, unit, priceMode=state.priceMode) {
   if (unit === 'py') return priceMode === 'material' ? product[party].material : product[party].py;
   if (unit === 'sqm') return priceMode === 'material' ? ceilTo(product[party].material / 3.24, 100) : product[party].sqm;
-  if (unit === 'box') return product[party].box;
+  if (unit === 'box') {
+    const discount = getBoxDiscount(product.code);
+    if (discount === null) return product[party].box; // # 없는 품번: 기존값
+    const pyPrice = priceMode === 'material' ? product[party].material : product[party].py;
+    return Math.round((pyPrice - discount) / 3.24 * product.box_m2);
+  }
   return product[party][unit];
 }
 function modeText() { return state.priceMode === 'material' ? '자재 금액 (VAT 별도)' : '시공비 포함 (VAT 별도)'; }
