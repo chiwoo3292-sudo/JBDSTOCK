@@ -789,7 +789,7 @@ function unlock() {
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand { display:block; margin-left:7px; font-family:'Times New Roman',serif; font-size:13px; color:#111; line-height:1; letter-spacing:13.2px; white-space:nowrap; }
+.inv-brand { display:block; margin-left:7px; font-family:'Times New Roman',serif; font-size:13px; color:#111; line-height:1; letter-spacing:10.5px; white-space:nowrap; }
 /* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
 .inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
@@ -976,44 +976,7 @@ function unlock() {
       </div>
     </div>
 
-    <div class="inv-label" style="margin-bottom:8px; font-size:12px; color:#333; font-weight:700;">제품 1</div>
-    <div class="inv-item-box" id="invItem1Box" data-inv-item="1">
-      <div class="inv-field">
-        <div class="inv-label">제품 선택</div>
-        <select id="invProduct1" class="inv-product-select">
-          <option value="">-- 제품 선택 --</option>
-        </select>
-      </div>
-      <div class="inv-grid-2">
-        <div class="inv-field">
-          <div class="inv-label">단위</div>
-          <select id="invUnit1" class="inv-unit-select">
-            <option value="M2">M2</option>
-            <option value="PY">PY</option>
-            <option value="BOX">BOX</option>
-          </select>
-        </div>
-        <div class="inv-field">
-          <div class="inv-label">수량 입력</div>
-          <input type="number" id="invQty1" class="inv-qty-input" step="0.01" min="0">
-        </div>
-      </div>
-      <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr; gap:8px; align-items:end; margin-bottom:12px;">
-        <div class="inv-field" style="margin-bottom:0;">
-          <div class="inv-label">가격 기준</div>
-          <select id="invParty1" class="inv-party-select">
-            <option value="consumer">소비자가</option>
-            <option value="vendor">업체가</option>
-          </select>
-        </div>
-        <div class="inv-field" style="margin-bottom:0;">
-          <div class="inv-label">로스율(%)</div>
-          <input type="number" id="invLoss1" class="inv-loss-input" step="0.1" min="0" placeholder="0">
-        </div>
-      </div>
-    </div>
-
-    <div id="invExtraItems"></div>
+    <div id="invAllItems"></div>
     <button type="button" id="invAddItemBtn" class="secondary inv-add-item">+ 제품 추가</button>
 
     <div class="inv-field">
@@ -1460,7 +1423,8 @@ async function startApp() {
         console.error('데이터 로드 실패:', e.message);
     }
     initApp();
-    fillInvoiceSelects(); // 견적서 제품 셀렉트 초기 세팅
+    // 견적서 제품 1 자동 생성
+    addInvoiceItem();
 }
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
@@ -2194,9 +2158,7 @@ let invoiceInited = false;
 function fillInvoiceSelects() {
     document.querySelectorAll('.inv-product-select').forEach((sel, idx) => {
         const prev = sel.value;
-        sel.innerHTML = idx === 0
-            ? '<option value="">-- 제품 선택 --</option>'
-            : '<option value="">-- 없음 --</option>';
+        sel.innerHTML = '<option value="">-- 제품 선택 --</option>';
         products.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.code;
@@ -2218,7 +2180,17 @@ function bindInvoiceFieldEvents(root=document) {
 }
 
 function nextInvoiceItemIndex() {
-    return document.querySelectorAll('[data-inv-item]').length + 1;
+    return document.querySelectorAll('#invAllItems [data-inv-item]').length + 1;
+}
+
+function renumberInvoiceItems() {
+    document.querySelectorAll('#invAllItems .inv-extra-item-wrap').forEach((wrap, i) => {
+        const num = i + 1;
+        const label = wrap.querySelector('.inv-item-num-label');
+        if (label) label.textContent = '제품 ' + num;
+        const box = wrap.querySelector('[data-inv-item]');
+        if (box) box.dataset.invItem = num;
+    });
 }
 
 function createInvoiceItem(index) {
@@ -2268,6 +2240,7 @@ function createInvoiceItem(index) {
     // 삭제 버튼 이벤트
     wrap.querySelector('.inv-remove-item').addEventListener('click', () => {
         wrap.remove();
+        renumberInvoiceItems();
         renderInvoice();
     });
     return wrap;
@@ -2276,7 +2249,7 @@ function createInvoiceItem(index) {
 function addInvoiceItem() {
     const index = nextInvoiceItemIndex();
     const item = createInvoiceItem(index);
-    document.getElementById('invExtraItems')?.appendChild(item);
+    document.getElementById('invAllItems')?.appendChild(item);
     fillInvoiceSelects();
     bindInvoiceFieldEvents(item);
     renderInvoice();
