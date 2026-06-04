@@ -2223,8 +2223,12 @@ function nextInvoiceItemIndex() {
 
 function createInvoiceItem(index) {
     const wrap = document.createElement('div');
+    wrap.className = 'inv-extra-item-wrap';
     wrap.innerHTML = `
-      <div class="inv-label" style="margin-bottom:8px; font-size:12px; color:#333; font-weight:700;">제품 ${index}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div class="inv-label" style="font-size:12px; color:#333; font-weight:700; margin-bottom:0;">제품 ${index}</div>
+        <button type="button" class="inv-remove-item secondary" style="min-height:28px; padding:0 10px; font-size:11px; border-radius:8px;">✕ 삭제</button>
+      </div>
       <div class="inv-item-box" data-inv-item="${index}">
         <div class="inv-field">
           <div class="inv-label">제품 선택</div>
@@ -2261,6 +2265,11 @@ function createInvoiceItem(index) {
         </div>
       </div>
     `.trim();
+    // 삭제 버튼 이벤트
+    wrap.querySelector('.inv-remove-item').addEventListener('click', () => {
+        wrap.remove();
+        renderInvoice();
+    });
     return wrap;
 }
 
@@ -2426,7 +2435,7 @@ function renderInvoice() {
             <td class="td-item" style="white-space:pre-line;">${item.name}</td>
             <td class="td-center">${item.size}</td>
             <td class="td-center">${item.unit}</td>
-            <td class="td-center">${item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2)}</td>
+            <td class="td-center">${item.qty % 1 === 0 ? item.qty : parseFloat(item.qty.toFixed(3))}</td>
             <td class="td-won">₩</td>
             <td class="td-right">${fmtNum(item.unitPrice)}</td>
             <td class="td-won">₩</td>
