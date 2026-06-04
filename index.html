@@ -1238,7 +1238,8 @@ function getUnitValue(product, party, unit, priceMode=state.priceMode) {
   if (unit === 'box') {
     const discount = getBoxDiscount(product.code);
     if (discount === null) return product[party].box; // # 없는 품번: 기존값
-    const pyPrice = priceMode === 'material' ? product[party].material : product[party].py;
+    // BOX 단가는 항상 시공비포함 평단가(py) 기준으로 차감 후 계산
+    const pyPrice = product[party].py;
     return Math.round((pyPrice - discount) / 3.24 * product.box_m2);
   }
   return product[party][unit];
