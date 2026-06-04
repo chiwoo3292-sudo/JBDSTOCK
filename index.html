@@ -676,8 +676,8 @@ function unlock() {
         <div style="text-align:center; margin-bottom:16px;">
             <h2 style="margin:0 0 5px; font-size:20px; font-weight:800;">실시간 자재 재고 현황</h2>
             <div style="font-size:11px; color:#d63031; font-weight:600; margin-top:2px;">* 단종 제품의 경우 품번 적색 표기</div>
-            <div style="font-size:11px; color:#d63031; font-weight:600; margin-top:2px;">* 단종 제품의 경우 품번 적색 표기</div>
-            <div style="font-size:11px; color:#d63031; font-weight:600; margin-top:2px;">* 단종 제품의 경우 품번 적색 표기</div>
+            
+            
             <div id="stockClock" style="font-size:13px; color:#888; font-weight:500;"></div>
         </div>
 
@@ -1372,9 +1372,18 @@ function runCalculator() {
   const sqmPrice = getUnitValue(p, party, 'sqm', priceMode);
   const boxPrice = getUnitValue(p, party, 'box', priceMode);
 
-  // 4. 금액 계산: 모든 입력모드에서 calcBoxes * boxPrice 로 통일
-  //    → 평/m²/BOX 어떤 기준으로 입력해도 동일한 금액 보장
-  const total = calcBoxes * boxPrice;
+  // 4. 금액 계산: 입력 모드별로 해당 단가 기준으로 계산
+  let total;
+  if (inputMode === 'box') {
+    // BOX 모드: 박스 단가 기준
+    total = calcBoxes * boxPrice;
+  } else if (inputMode === 'sqm') {
+    // m² 모드: m² 단가 기준
+    total = Math.round(finalCoverageSqm * sqmPrice);
+  } else {
+    // 평 모드: 평 단가 기준
+    total = Math.round(finalCoveragePy * pyPrice);
+  }
 
   const totalVat = calcVatIncluded(total);
   const priceLabel = `${party === 'consumer' ? '소비자가' : '업체가'} / ${priceMode === 'material' ? '자재 별도' : '시공비 포함'}`;
