@@ -2220,7 +2220,7 @@ function getInvItemFromBox(box) {
     let displayQty, unitPrice, total;
 
     const boxPrice = getUnitValue(p, party, 'box', 'material');
-    const sqmPrice = getUnitValue(p, party, 'sqm', 'material');
+    const sqmPrice = getUnitValue(p, party, 'sqm', 'included');
     const pyPrice  = getUnitValue(p, party, 'py',  'included');
 
     if (unit === 'BOX') {
