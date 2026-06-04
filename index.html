@@ -92,13 +92,13 @@
   .calc-form { display:grid; gap:14px; }
   .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .calc-field-label { margin-bottom:8px; color:#666; font-size:12px; }
-  .calc-form select { height:46px; font-size:14px; }
-  .calc-area-input { height:72px !important; padding:0 18px !important; font-size:28px !important; font-weight:700; border-radius:16px !important; }
-  .calc-hint { margin-top:8px; font-size:12px; color:#888; }
+  .calc-form select { height:42px; font-size:14px; }
+  .calc-area-input { height:52px !important; padding:0 14px !important; font-size:20px !important; font-weight:700; border-radius:12px !important; }
+  .calc-hint { margin-top:6px; font-size:12px; color:#888; line-height:1.5; }
   .calc-result-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
   .result-card { border:1px solid #ececec; border-radius:16px; padding:16px; background:#fff; }
   .result-card h3 { margin:0 0 8px; font-size:12px; color:#666; font-weight:600; }
-  .result-value { font-size:28px; font-weight:800; line-height:1.2; }
+  .result-value { font-size:24px; font-weight:800; line-height:1.2; }
   .result-sub { margin-top:6px; font-size:13px; color:#666; line-height:1.4; }
   .calc-summary { display:grid; gap:12px; }
   .summary-list { border:1px solid #eee; border-radius:16px; overflow:hidden; }
@@ -675,6 +675,9 @@ function unlock() {
         <!-- 타이틀 + 시계 -->
         <div style="text-align:center; margin-bottom:16px;">
             <h2 style="margin:0 0 5px; font-size:20px; font-weight:800;">실시간 자재 재고 현황</h2>
+            <div style="font-size:11px; color:#d63031; font-weight:600; margin-top:2px;">* 단종 제품의 경우 품번 적색 표기</div>
+            <div style="font-size:11px; color:#d63031; font-weight:600; margin-top:2px;">* 단종 제품의 경우 품번 적색 표기</div>
+            <div style="font-size:11px; color:#d63031; font-weight:600; margin-top:2px;">* 단종 제품의 경우 품번 적색 표기</div>
             <div id="stockClock" style="font-size:13px; color:#888; font-weight:500;"></div>
         </div>
 
