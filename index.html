@@ -2219,33 +2219,28 @@ function getInvItemFromBox(box) {
 
     let displayQty, unitPrice, total;
 
-    // 공통: 항상 박스 수 기준으로 계산 (계산기 탭과 동일한 공식)
     const boxPrice = getUnitValue(p, party, 'box', 'material');
+    const sqmPrice = getUnitValue(p, party, 'sqm', 'material');
+    const pyPrice  = getUnitValue(p, party, 'py',  'included');
 
     if (unit === 'BOX') {
-        // BOX 입력: 박스수 그대로
+        // BOX 입력: 박스 단가 × 박스수
         const boxes = Math.ceil(qty);
         unitPrice   = boxPrice;
         displayQty  = boxes;
         total       = boxes * unitPrice;
     } else if (unit === 'M2') {
-        // M2 입력 → 박스 올림 → calcBoxes * boxPrice
+        // M2 입력: m² 단가 × 입력 m² (로스율 적용)
         const sqmWithLoss = qty * lossMultiplier;
-        const boxes       = Math.ceil(sqmWithLoss / p.box_m2);
-        const coverageSqm = boxes * p.box_m2;
-        unitPrice         = boxPrice;
-        displayQty        = Math.round(coverageSqm * 1000) / 1000; // 소수점 3자리
-        total             = boxes * unitPrice;
+        unitPrice         = sqmPrice;
+        displayQty        = Math.round(sqmWithLoss * 1000) / 1000;
+        total             = Math.round(sqmWithLoss * unitPrice);
     } else {
-        // PY 입력 → 박스 올림 → calcBoxes * boxPrice
-        const sqmInput    = qty * PY_FACTOR;
-        const sqmWithLoss = sqmInput * lossMultiplier;
-        const boxes       = Math.ceil(sqmWithLoss / p.box_m2);
-        const coverageSqm = boxes * p.box_m2;
-        const coveragePy  = coverageSqm / PY_FACTOR;
-        unitPrice         = boxPrice;
-        displayQty        = Math.round(coveragePy * 1000) / 1000; // 소수점 3자리
-        total             = boxes * unitPrice;
+        // PY 입력: 평 단가 × 입력 평 (로스율 적용)
+        const pyWithLoss = qty * lossMultiplier;
+        unitPrice        = pyPrice;
+        displayQty       = Math.round(pyWithLoss * 1000) / 1000;
+        total            = Math.round(pyWithLoss * unitPrice);
     }
 
     return {
