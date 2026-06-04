@@ -1226,7 +1226,8 @@ function getBoxDiscount(code) {
   // # 없는 품번은 null 반환 (기존값 그대로)
   if (!code || !code.includes('#')) return null;
   const after = code.split('#').pop();
-  const num = parseInt(after, 10);
+  // 앞 두 자리만 읽음 (예: '1801' → '18', '1501' → '15')
+  const num = parseInt(after.slice(0, 2), 10);
   if (!Number.isFinite(num)) return null;
   if (num <= 15) return 35000;
   if (num <= 18) return 45000;
