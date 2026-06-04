@@ -1406,17 +1406,9 @@ function runCalculator() {
   const sqmPrice = getUnitValue(p, party, 'sqm', priceMode);
   const boxPrice = getUnitValue(p, party, 'box', priceMode);
 
-  // 4. 금액 계산: 박스로 환산된 면적(finalCoverageSqm)에 헤베 단가를 곱함
-  let total;
-  if (inputMode === 'py') {
-    // 평수 입력 시에도 최종 박스 면적 기준 평당가 적용
-    total = Math.round((Math.round(finalCoveragePy * 100) * pyPrice) / 100);
-  } else if (inputMode === 'sqm') {
-    // ㎡ 입력 시 최종 박스 면적 기준 헤베 단가 적용
-  total = Math.round((Math.round(finalCoverageSqm * 100) * sqmPrice) / 100);
-  } else {
-    total = calcBoxes * boxPrice;
-  }
+  // 4. 금액 계산: 모든 입력모드에서 calcBoxes * boxPrice 로 통일
+  //    → 평/m²/BOX 어떤 기준으로 입력해도 동일한 금액 보장
+  const total = calcBoxes * boxPrice;
 
   const totalVat = calcVatIncluded(total);
   const priceLabel = `${party === 'consumer' ? '소비자가' : '업체가'} / ${priceMode === 'material' ? '자재 별도' : '시공비 포함'}`;
