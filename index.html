@@ -1372,17 +1372,17 @@ function runCalculator() {
   const sqmPrice = getUnitValue(p, party, 'sqm', priceMode);
   const boxPrice = getUnitValue(p, party, 'box', priceMode);
 
-  // 4. 금액 계산: 입력 모드별로 해당 단가 기준으로 계산
+  // 4. 금액 계산: 입력 모드별로 입력값 기준 계산
   let total;
   if (inputMode === 'box') {
-    // BOX 모드: 박스 단가 기준
+    // BOX 모드: 박스 단가 × 박스수
     total = calcBoxes * boxPrice;
   } else if (inputMode === 'sqm') {
-    // m² 모드: m² 단가 기준
-    total = Math.round(finalCoverageSqm * sqmPrice);
+    // m² 모드: m² 단가 × 입력 m² (입력값 그대로)
+    total = Math.round(inputSqm * sqmPrice);
   } else {
-    // 평 모드: 평 단가 기준
-    total = Math.round(finalCoveragePy * pyPrice);
+    // 평 모드: 평 단가 × 입력 평 (입력값 그대로)
+    total = Math.round(inputPy * pyPrice);
   }
 
   const totalVat = calcVatIncluded(total);
