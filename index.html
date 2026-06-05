@@ -986,6 +986,10 @@ function unlock() {
       <input type="checkbox" id="invSplitCostCheck" />
       재료비 / 인건비+부자재비 분리
     </label>
+    <label class="check-chip" style="margin:0 0 14px; display:inline-flex;">
+      <input type="checkbox" id="invMergeLaborCheck" />
+      인건비+부자재비 합산 표시
+    </label>
 
     <div class="inv-field">
       <div class="inv-label">공과잡비</div>
@@ -2270,6 +2274,7 @@ function getInvItemFromBox(box, splitCosts=false) {
                 },
                 {
                     name: '인건비, 부자재비',
+                    isLaborCost: true,
                     size: '',
                     unit,
                     qty: splitQty,
@@ -2304,12 +2309,33 @@ function renderInvoice() {
     document.getElementById('pvDate').textContent     = document.getElementById('invDate')?.value     || '—';
 
     const splitCosts = !!document.getElementById('invSplitCostCheck')?.checked;
-    const invoiceItems = [...document.querySelectorAll('[data-inv-item]')]
+    const mergeLaborCosts = splitCosts && !!document.getElementById('invMergeLaborCheck')?.checked;
+    let invoiceItems = [...document.querySelectorAll('[data-inv-item]')]
         .flatMap(box => {
             const item = getInvItemFromBox(box, splitCosts);
             return Array.isArray(item) ? item : [item];
         })
         .filter(Boolean);
+    if (mergeLaborCosts) {
+        let laborTotal = 0;
+        invoiceItems = invoiceItems.filter(item => {
+            if (item.isLaborCost) {
+                laborTotal += item.total;
+                return false;
+            }
+            return true;
+        });
+        if (laborTotal > 0) {
+            invoiceItems.push({
+                name: '인건비, 부자재비',
+                size: '',
+                unit: '',
+                qty: '',
+                unitPrice: null,
+                total: laborTotal,
+            });
+        }
+    }
     const miscRaw = parseFloat(document.getElementById('invMisc')?.value) || 0;
 
     const tbody = document.getElementById('pvTableBody');
@@ -2322,14 +2348,20 @@ function renderInvoice() {
     function addItemRow(item) {
         if (!item) return;
         subTotal += item.total;
+        const qtyDisplay = item.qty === '' || item.qty === null || item.qty === undefined
+            ? ''
+            : (item.qty % 1 === 0 ? item.qty : parseFloat(item.qty.toFixed(3)));
+        const unitPriceDisplay = item.unitPrice === '' || item.unitPrice === null || item.unitPrice === undefined
+            ? ''
+            : fmtNum(item.unitPrice);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="td-item" style="white-space:pre-line;">${item.name}</td>
             <td class="td-center">${item.size}</td>
             <td class="td-center">${item.unit}</td>
-            <td class="td-center">${item.qty % 1 === 0 ? item.qty : parseFloat(item.qty.toFixed(3))}</td>
+            <td class="td-center">${qtyDisplay}</td>
             <td class="td-won">₩</td>
-            <td class="td-right">${fmtNum(item.unitPrice)}</td>
+            <td class="td-right">${unitPriceDisplay}</td>
             <td class="td-won">₩</td>
             <td class="td-right">${fmtNum(item.total)}</td>
         `;
