@@ -709,6 +709,14 @@ function unlock() {
             </div>
         </div>
 
+        <!-- 재고부족 경고 배너 -->
+        <div id="stockAlertBanner" style="display:none; background:#fff3cd; border:1.5px solid #ffc107; border-radius:12px; padding:0 16px; margin-bottom:14px; overflow:hidden; height:44px; align-items:center; gap:10px;">
+            <span style="font-size:18px; flex-shrink:0;">⚠️</span>
+            <div style="flex:1; overflow:hidden; position:relative; height:44px;">
+                <div id="stockAlertMarquee" style="position:absolute; white-space:nowrap; top:50%; transform:translateY(-50%); font-size:13px; font-weight:700; color:#856404; cursor:pointer;"></div>
+            </div>
+        </div>
+
         <!-- 재고 테이블 -->
         <div class="stock-table-wrapper">
             <table id="stockTable">
@@ -1752,11 +1760,14 @@ async function fetchStockData() {
     tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:#888;">데이터를 불러오는 중...</td></tr>`;
 
     try {
-        // 재고 + 툴팁 병렬 로드
-        await Promise.all([
-            fetchSheetJson(SHEET_CONFIG.STOCK).then(rows => renderStockTable(rows)),
+        // 재고 + 발주 + 입고 + 툴팁 병렬 로드
+        const [stockRows, orderRows, arrivalRows] = await Promise.all([
+            fetchSheetJson(SHEET_CONFIG.STOCK),
+            fetchSheetJson(SHEET_CONFIG.ORDER).catch(() => []),
+            fetchSheetJson(SHEET_CONFIG.ARRIVAL).catch(() => []),
             loadTooltipMap()
         ]);
+        renderStockTable(stockRows, orderRows, arrivalRows);
     } catch (error) {
         console.error('재고 로드 실패:', error);
         tbody.innerHTML = `<tr><td colspan="6" style="padding:25px;color:#d63031;font-weight:bold;text-align:center;">
@@ -1899,7 +1910,7 @@ function parseReserveFromSheet(rows, targetCode) {
     return results;
 }
 
-function renderStockTable(rows) {
+function renderStockTable(rows, orderRows, arrivalRows) {
     const tbody = document.getElementById('stockTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -1930,15 +1941,41 @@ function renderStockTable(rows) {
         // 보조행 스킵 (엑셀 업로드 시 이미 차수+날짜 합쳐서 올라오므로 불필요)
         if (!itemCode && !boxSpec && !curStock && !totalBox && !totalM2) return;
 
+        // LOT에 Date toString 형태 들어오면 YY/M/D 로 변환
+        function formatLotDate(val) {
+            if (!val || val === '-') return val;
+            // "Fri Jul 14 2023 00:00:00 GMT+0900" 형태 감지
+            const d = new Date(val);
+            if (!isNaN(d.getTime()) && String(val).length > 10) {
+                const yy = String(d.getFullYear()).slice(2);
+                return yy + '/' + (d.getMonth()+1) + '/' + d.getDate();
+            }
+            return val;
+        }
+        // 차수 안에 날짜 부분도 변환 (예: "51차(Fri Jul ...)" )
+        function formatLotStr(str) {
+            if (!str) return '-';
+            return str.replace(/\(([^)]+)\)/, function(m, inner) {
+                const d = new Date(inner);
+                if (!isNaN(d.getTime()) && inner.length > 10) {
+                    const yy = String(d.getFullYear()).slice(2);
+                    return '(' + yy + '/' + (d.getMonth()+1) + '/' + d.getDate() + ')';
+                }
+                return m;
+            });
+        }
         processedRows.push({
             itemCode: itemCode || currentItemCode,
-            lotInfo:  lotInfo  || '-',
+            lotInfo:  formatLotStr(lotInfo || '-'),
             boxSpec:  boxSpec  || '-',
             curStock: curStock || 0,
             totalBox: totalBox || '-',
             totalM2:  totalM2  || '-'
         });
     });
+
+    // 재고부족 배너 업데이트
+    updateStockAlertBanner(processedRows, orderRows, arrivalRows);
 
     // 2단계: 화면 렌더링
     let lastSeenItemCode = '';
@@ -1968,13 +2005,23 @@ function renderStockTable(rows) {
 
         const totalRaw = String(d.totalM2);
       
+const totalM2Num = parseFloat(String(d.totalM2).replace(/[^0-9.\-]/g, ''));
 const totalDisplay = (!d.totalM2 || d.totalM2 === '-' || d.totalM2 === '0')
     ? `<span style="color:#d63031;font-weight:bold;">-</span>`
-    : (totalRaw.includes('PY') ? totalRaw.replace(' PY', '') : `${totalRaw}`);
+    : isNaN(totalM2Num)
+        ? String(d.totalM2)
+        : totalM2Num < 0
+            ? `<span style="color:#d63031;font-weight:700;">${totalRaw.includes('PY') ? totalRaw.replace(' PY','') : totalRaw}</span>`
+            : `<span style="color:#27ae60;font-weight:700;">${totalRaw.includes('PY') ? totalRaw.replace(' PY','') : totalRaw}</span>`;
 
+const totalBoxNum = parseFloat(String(d.totalBox).replace(/[^0-9.\-]/g, ''));
 const totalBoxDisplay = (!d.totalBox || d.totalBox === '-' || d.totalBox === '0')
     ? `<span style="color:#d63031;font-weight:bold;">-</span>`
-    : d.totalBox;
+    : isNaN(totalBoxNum)
+        ? String(d.totalBox)
+        : totalBoxNum < 0
+            ? `<span style="color:#d63031;font-weight:700;">${d.totalBox}</span>`
+            : `<span style="color:#27ae60;font-weight:700;">${d.totalBox}</span>`;
 
 tr.innerHTML = `
     <td style="text-align:center; cursor:pointer;">${
@@ -2028,6 +2075,66 @@ tr.innerHTML = `
     });
 }
 
+
+// ── 재고부족 배너 업데이트 ──
+function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
+    const banner   = document.getElementById('stockAlertBanner');
+    const marquee  = document.getElementById('stockAlertMarquee');
+    if (!banner || !marquee) return;
+
+    // 총BOX 음수 품번 수집
+    const seen = new Set();
+    const alertCodes = [];
+    processedRows.forEach(d => {
+        if (seen.has(d.itemCode)) return;
+        const num = parseFloat(String(d.totalBox).replace(/[^0-9.\-]/g, ''));
+        if (!isNaN(num) && num < 0) {
+            // 발주현황, 입고예정일 둘 다 없는지 확인
+            const hasOrder   = (orderRows   || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === d.itemCode.trim().toUpperCase());
+            const hasArrival = (arrivalRows || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === d.itemCode.trim().toUpperCase());
+            if (!hasOrder && !hasArrival) {
+                alertCodes.push(d.itemCode);
+                seen.add(d.itemCode);
+            }
+        }
+    });
+
+    if (alertCodes.length === 0) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    banner.style.display = 'flex';
+
+    // 전광판 텍스트
+    const text = alertCodes.map(c => `【 ${c} 】`).join('　　');
+    marquee.textContent = text + '　　　　' + text; // 루프용 중복
+
+    // 클릭 시 해당 품번 상세 모달
+    marquee.onclick = null;
+    if (alertCodes.length === 1) {
+        marquee.style.cursor = 'pointer';
+        marquee.onclick = () => openItemDetail(alertCodes[0]);
+    } else {
+        marquee.style.cursor = 'default';
+    }
+
+    // 애니메이션: marquee 너비 계산 후 CSS animation 적용
+    requestAnimationFrame(() => {
+        const w = marquee.scrollWidth / 2;
+        const duration = Math.max(8, alertCodes.length * 4);
+        marquee.style.animation = 'none';
+        marquee.style.left = '100%';
+        // keyframes 동적 생성
+        const styleId = 'marquee-style';
+        let styleEl = document.getElementById(styleId);
+        if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = styleId; document.head.appendChild(styleEl); }
+        styleEl.textContent = `@keyframes marqueeScroll { 0% { left: 100%; } 100% { left: -${w}px; } }`;
+        requestAnimationFrame(() => {
+            marquee.style.animation = `marqueeScroll ${duration}s linear infinite`;
+        });
+    });
+}
 
 // 재고 탭 클릭 시 데이터 로드 + 시계 + 업로드 초기화
 document.addEventListener('DOMContentLoaded', () => {
