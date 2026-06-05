@@ -712,11 +712,9 @@ function unlock() {
         </div>
 
         <!-- 재고부족 경고 배너 -->
-        <div id="stockAlertBanner" style="display:none; background:#fff3cd; border:1.5px solid #ffc107; border-radius:12px; padding:0 16px; margin-bottom:14px; overflow:hidden; height:44px; align-items:center; gap:10px;">
-            <span style="font-size:18px; flex-shrink:0;">⚠️</span>
-            <div style="flex:1; overflow:hidden; position:relative; height:44px;">
-                <div style="flex-shrink:0; font-size:12px; font-weight:800; color:#856404; white-space:nowrap; padding-right:10px; border-right:2px solid #ffc107; margin-right:10px;">재고확인요망</div>
-            <div id="stockAlertMarquee" style="position:absolute; white-space:nowrap; top:50%; transform:translateY(-50%); font-size:13px; font-weight:700; color:#856404; cursor:pointer;"></div>
+        <div id="stockAlertBanner" style="display:none; background:linear-gradient(90deg,#fff1f0,#fff8e1); border:2px solid #ff4d4d; border-radius:12px; padding:0 16px; margin-bottom:14px; overflow:hidden; height:48px; align-items:center; gap:0; box-shadow:0 2px 8px rgba(255,77,77,0.15);">
+            <div style="flex:1; overflow:hidden; position:relative; height:48px;">
+                <div id="stockAlertMarquee" style="position:absolute; white-space:nowrap; top:50%; transform:translateY(-50%); font-size:14px; font-weight:900; color:#d63031; letter-spacing:0.5px;"></div>
             </div>
         </div>
 
@@ -1859,8 +1857,18 @@ if (stockFiltered.length) {
                 const qty  = getCellVal(r.c[1]);
                 const unit = getCellVal(r.c[2]);
                 const note = getCellVal(r.c[3]);
+                // PY단위면 박스 환산 표시 (1PY=3.24㎡, box_m2는 products에서 조회)
+                let boxHint = '';
+                if (unit && unit.toString().toUpperCase().includes('PY')) {
+                    const pyNum = parseFloat(String(qty).replace(/[^0-9.]/g, ''));
+                    const prod = (typeof products !== 'undefined' ? products : []).find(p => p.code.toUpperCase() === code.toUpperCase());
+                    if (prod && prod.box_m2 && !isNaN(pyNum)) {
+                        const boxes = Math.ceil(pyNum * 3.24 / prod.box_m2);
+                        boxHint = ` <span style="color:#2d7ef7;font-size:12px;">(≈${boxes}BOX)</span>`;
+                    }
+                }
                 return `<div style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
-                    입고물량 <strong>${qty} ${unit}</strong>${note ? ` · ${note}` : ''}
+                    입고물량 <strong>${qty} ${unit}</strong>${boxHint}${note ? ` · ${note}` : ''}
                 </div>`;
             }).join('');
         } else { arrivalEl.innerHTML = noData; }
@@ -1990,14 +1998,18 @@ function renderStockTable(rows, orderRows, arrivalRows) {
     // 재고부족 배너 업데이트
     updateStockAlertBanner(processedRows, orderRows, arrivalRows);
 
-    // 재고부족 품번 Set (품번 셀 배너용)
-    const alertItemCodes = new Set();
+    // 재고부족 품번 Set (품번 셀 배너용) — 품번별 합산 기준
+    const sumMap = {};
     processedRows.forEach(d => {
         const num = parseFloat(String(d.totalBox).replace(/[^0-9.\-]/g, ''));
-        if (!isNaN(num) && num < 0) {
-            const hasOrder   = (orderRows   || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === d.itemCode.trim().toUpperCase());
-            const hasArrival = (arrivalRows || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === d.itemCode.trim().toUpperCase());
-            if (!hasOrder && !hasArrival) alertItemCodes.add(d.itemCode);
+        if (!isNaN(num)) sumMap[d.itemCode] = (sumMap[d.itemCode] || 0) + num;
+    });
+    const alertItemCodes = new Set();
+    Object.keys(sumMap).forEach(code => {
+        if (sumMap[code] < 0) {
+            const hasOrder   = (orderRows   || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === code.trim().toUpperCase());
+            const hasArrival = (arrivalRows || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === code.trim().toUpperCase());
+            if (!hasOrder && !hasArrival) alertItemCodes.add(code);
         }
     });
 
@@ -2107,20 +2119,21 @@ function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
     const marquee  = document.getElementById('stockAlertMarquee');
     if (!banner || !marquee) return;
 
-    // 총BOX 음수 품번 수집
-    const seen = new Set();
-    const alertCodes = [];
+    // 품번별 총BOX 합산 후 음수 품번만 수집 (2번: 합산 기준)
+    const sumByCode = {};
     processedRows.forEach(d => {
-        if (seen.has(d.itemCode)) return;
         const num = parseFloat(String(d.totalBox).replace(/[^0-9.\-]/g, ''));
-        if (!isNaN(num) && num < 0) {
-            // 발주현황, 입고예정일 둘 다 없는지 확인
-            const hasOrder   = (orderRows   || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === d.itemCode.trim().toUpperCase());
-            const hasArrival = (arrivalRows || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === d.itemCode.trim().toUpperCase());
-            if (!hasOrder && !hasArrival) {
-                alertCodes.push(d.itemCode);
-                seen.add(d.itemCode);
-            }
+        if (!isNaN(num)) {
+            sumByCode[d.itemCode] = (sumByCode[d.itemCode] || 0) + num;
+        }
+    });
+
+    const alertCodes = [];
+    Object.keys(sumByCode).forEach(code => {
+        if (sumByCode[code] < 0) {
+            const hasOrder   = (orderRows   || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === code.trim().toUpperCase());
+            const hasArrival = (arrivalRows || []).some(r => r?.c && getCellVal(r.c[0]).trim().toUpperCase() === code.trim().toUpperCase());
+            if (!hasOrder && !hasArrival) alertCodes.push(code);
         }
     });
 
@@ -2131,30 +2144,28 @@ function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
 
     banner.style.display = 'flex';
 
-    // 전광판 텍스트
-    const text = alertCodes.map(c => `【 ${c} 】`).join('　　');
-    marquee.textContent = text + '　　　　' + text; // 루프용 중복
+    // 전광판 텍스트: "재고확인요망" + 품번들 한 세트로 구성 (중복 없이 한 번만)
+    const segment = '⚠ 재고확인요망 ▶ ' + alertCodes.map(c => `【 ${c} 】`).join('  ') + '          ';
+    // 루프용: 세그먼트 2개 붙여서 끊김 없이 순환
+    marquee.innerHTML = segment + segment;
 
-    // 클릭 시 해당 품번 상세 모달
-    marquee.onclick = null;
-    if (alertCodes.length === 1) {
-        marquee.style.cursor = 'pointer';
-        marquee.onclick = () => openItemDetail(alertCodes[0]);
-    } else {
-        marquee.style.cursor = 'default';
-    }
+    // 품번별 클릭 이벤트 (span으로 감싸기)
+    marquee.innerHTML = (segment + segment).replace(/【 ([^】]+) 】/g, (m, code) => {
+        return `<span style="cursor:pointer;text-decoration:underline;text-underline-offset:2px;" onclick="openItemDetail('${code.trim()}')">${m}</span>`;
+    });
 
-    // 애니메이션: marquee 너비 계산 후 CSS animation 적용
+    // 애니메이션
     requestAnimationFrame(() => {
         const w = marquee.scrollWidth / 2;
-        const duration = Math.max(8, alertCodes.length * 4);
-        marquee.style.animation = 'none';
-        marquee.style.left = '100%';
-        // keyframes 동적 생성
+        const speed = 80; // px/s
+        const duration = Math.round(w / speed);
         const styleId = 'marquee-style';
         let styleEl = document.getElementById(styleId);
         if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = styleId; document.head.appendChild(styleEl); }
-        styleEl.textContent = `@keyframes marqueeScroll { 0% { left: 100%; } 100% { left: -${w}px; } }`;
+        styleEl.textContent = `@keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-${w}px); } }`;
+        marquee.style.animation = 'none';
+        marquee.style.left = '0';
+        marquee.style.transform = 'translateY(-50%)';
         requestAnimationFrame(() => {
             marquee.style.animation = `marqueeScroll ${duration}s linear infinite`;
         });
