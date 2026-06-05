@@ -982,6 +982,11 @@ function unlock() {
     <div id="invAllItems"></div>
     <button type="button" id="invAddItemBtn" class="secondary inv-add-item">+ 제품 추가</button>
 
+    <label class="check-chip" style="margin:10px 0 14px; display:inline-flex;">
+      <input type="checkbox" id="invSplitCostCheck" />
+      재료비 / 인건비+부자재비 분리
+    </label>
+
     <div class="inv-field">
       <div class="inv-label">공과잡비</div>
       <input type="number" id="invMisc" step="1000" min="0">
@@ -2204,7 +2209,7 @@ function formatInvSize(spec='') {
         .trim();
 }
 
-function getInvItemFromBox(box) {
+function getInvItemFromBox(box, splitCosts=false) {
     const code  = box.querySelector('.inv-product-select')?.value;
     const unit  = box.querySelector('.inv-unit-select')?.value || 'M2';
     const qty   = parseFloat(box.querySelector('.inv-qty-input')?.value) || 0;
@@ -2243,6 +2248,38 @@ function getInvItemFromBox(box) {
         total            = Math.round(pyWithLoss * unitPrice);
     }
 
+    if (splitCosts && unit !== 'BOX') {
+        const discount = getBoxDiscount(p.code);
+        if (discount !== null) {
+            const splitQty = displayQty;
+            const materialPrice = unit === 'M2'
+                ? ceilTo((pyPrice - discount) / PY_FACTOR, 100)
+                : pyPrice - discount;
+            const laborPrice = unit === 'M2'
+                ? ceilTo(discount / PY_FACTOR, 100)
+                : discount;
+
+            return [
+                {
+                    name: `BARAM\n${p.code}`,
+                    size: formatInvSize(p.spec),
+                    unit,
+                    qty: splitQty,
+                    unitPrice: materialPrice,
+                    total: Math.round(splitQty * materialPrice),
+                },
+                {
+                    name: '인건비, 부자재비',
+                    size: '',
+                    unit,
+                    qty: splitQty,
+                    unitPrice: laborPrice,
+                    total: Math.round(splitQty * laborPrice),
+                }
+            ];
+        }
+    }
+
     return {
         name: `BARAM\n${p.code}`,
         size: formatInvSize(p.spec),
@@ -2266,8 +2303,12 @@ function renderInvoice() {
     document.getElementById('pvManager').textContent  = document.getElementById('invManager')?.value  || '—';
     document.getElementById('pvDate').textContent     = document.getElementById('invDate')?.value     || '—';
 
+    const splitCosts = !!document.getElementById('invSplitCostCheck')?.checked;
     const invoiceItems = [...document.querySelectorAll('[data-inv-item]')]
-        .map(getInvItemFromBox)
+        .flatMap(box => {
+            const item = getInvItemFromBox(box, splitCosts);
+            return Array.isArray(item) ? item : [item];
+        })
         .filter(Boolean);
     const miscRaw = parseFloat(document.getElementById('invMisc')?.value) || 0;
 
