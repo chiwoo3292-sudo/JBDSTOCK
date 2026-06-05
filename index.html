@@ -133,6 +133,12 @@
 }
 #stockTable tr.bg-group-gray td:first-child { background-color: #f7f8fa; }
 #stockTable tr.bg-group-white td:first-child { background-color: #ffffff; }
+#stockTable td:first-child * {
+  position: static !important;
+  left: auto !important;
+  transform: none !important;
+}
+
 /* 품번 그룹 교차 배경 */
 #stockTable tr.bg-group-gray { background-color: #f7f8fa; }
 #stockTable tr.bg-group-white { background-color: #ffffff; }
