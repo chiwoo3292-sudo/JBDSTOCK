@@ -121,10 +121,15 @@
 #stockTable td:first-child {
   position: sticky;
   left: 0;
-  z-index: 5;
   background-color: #f8f9fa;
   border-right: 2px solid #ccc;
   min-width: 70px;
+}
+#stockTable th:first-child {
+  z-index: 15;
+}
+#stockTable td:first-child {
+  z-index: 5;
 }
 #stockTable thead th:first-child { z-index: 15; }
 #stockTable tr.bg-group-gray td:first-child { background-color: #f7f8fa; }
