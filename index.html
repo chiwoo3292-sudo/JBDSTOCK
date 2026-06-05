@@ -116,7 +116,7 @@
 #stockTable th { background-color: #f8f9fa; color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center; vertical-align: middle; position: sticky; top: 0; z-index: 10; }
 #stockTable td { padding: 11px 8px; border-bottom: 1px solid #eee; text-align: center; }
 
-/* 품번 열 좌측 고정 (모바일 가로스크롤 시 품번 고정) */
+/* 품번 열 좌측 고정 */
 #stockTable th:first-child,
 #stockTable td:first-child {
   position: sticky;
@@ -127,10 +127,16 @@
   min-width: 70px;
   max-width: 120px;
   width: 110px;
+  will-change: transform;
 }
 #stockTable thead th:first-child { z-index: 15; }
 #stockTable tr.bg-group-gray td:first-child { background-color: #f7f8fa; }
 #stockTable tr.bg-group-white td:first-child { background-color: #ffffff; }
+
+/* stock-table-wrapper: overflow-x auto + relative로 sticky 컨텍스트 보정 */
+.stock-table-wrapper {
+  -webkit-overflow-scrolling: touch;
+}
 
 /* 품번 그룹 교차 배경 */
 #stockTable tr.bg-group-gray { background-color: #f7f8fa; }
@@ -2172,9 +2178,35 @@ function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
     });
 }
 
+// ── 품번 열 고정 (overflow 컨테이너 내 sticky 보정) ──
+function initStickyFirstCol() {
+    const wrapper = document.querySelector('.stock-table-wrapper');
+    if (!wrapper) return;
+
+    function fixCols() {
+        const scrollLeft = wrapper.scrollLeft;
+        // sticky가 깨지는 경우 JS로 보정
+        const cells = wrapper.querySelectorAll('#stockTable th:first-child, #stockTable td:first-child');
+        cells.forEach(cell => {
+            // sticky 지원 여부 체크 — 실제 위치가 scrollLeft 따라가면 깨진 것
+            const rect = cell.getBoundingClientRect();
+            const wrapRect = wrapper.getBoundingClientRect();
+            // 보정: cell이 wrapper 왼쪽 밖으로 나가려 하면 translateX로 당겨옴
+            if (scrollLeft > 0) {
+                cell.style.transform = `translateX(${scrollLeft}px)`;
+            } else {
+                cell.style.transform = '';
+            }
+        });
+    }
+
+    wrapper.addEventListener('scroll', fixCols, { passive: true });
+}
+
 // 재고 탭 클릭 시 데이터 로드 + 시계 + 업로드 초기화
 document.addEventListener('DOMContentLoaded', () => {
     initExcelUpload();
+    initStickyFirstCol();
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (btn.dataset.tab === 'stockTab') {
