@@ -2212,7 +2212,7 @@ let invoiceInited = false;
 function fillInvoiceSelects() {
     document.querySelectorAll('.inv-product-select').forEach((sel, idx) => {
         const prev = sel.value;
-        sel.innerHTML = '<option value="">-- 제품 선택 --</option>';
+        sel.innerHTML = '<option value="">-- 없음 (직접입력) --</option>';
         products.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.code;
@@ -2224,8 +2224,10 @@ function fillInvoiceSelects() {
 }
 
 function bindInvoiceFieldEvents(root=document) {
-    root.querySelectorAll('input, select').forEach(el => {
+    root.querySelectorAll('input, select, textarea').forEach(el => {
         if (el.dataset.invoiceBound === '1') return;
+        // 단가 직접입력은 createInvoiceItem에서 별도 처리
+        if (el.classList.contains('inv-unitprice-input')) return;
         el.dataset.invoiceBound = '1';
         el.addEventListener('input', renderInvoice);
         if (el.tagName === 'SELECT') el.addEventListener('change', renderInvoice);
@@ -2252,51 +2254,119 @@ function createInvoiceItem(index) {
     wrap.className = 'inv-extra-item-wrap';
     wrap.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div class="inv-label" style="font-size:12px; color:#333; font-weight:700; margin-bottom:0;">제품 ${index}</div>
+        <div class="inv-label inv-item-num-label" style="font-size:12px; color:#333; font-weight:700; margin-bottom:0;">제품 ${index}</div>
         <button type="button" class="inv-remove-item secondary" style="min-height:28px; padding:0 10px; font-size:11px; border-radius:8px;">✕ 삭제</button>
       </div>
       <div class="inv-item-box" data-inv-item="${index}">
+
+        <!-- 제품 선택 드롭다운 -->
         <div class="inv-field">
-          <div class="inv-label">제품 선택</div>
+          <div class="inv-label">제품 선택 <span style="color:#aaa; font-weight:400;">(선택하면 아래 필드 자동입력)</span></div>
           <select id="invProduct${index}" class="inv-product-select">
-            <option value="">-- 없음 --</option>
+            <option value="">-- 없음 (직접입력) --</option>
           </select>
         </div>
+
+        <!-- ITEM 명 직접입력 -->
+        <div class="inv-field">
+          <div class="inv-label">ITEM 명 <span style="color:#aaa; font-weight:400;">(견적서에 표시)</span></div>
+          <input type="text" id="invItemName${index}" class="inv-itemname-input" placeholder="예: BARAM&#10;W-1801" style="height:auto; min-height:38px; padding:8px 12px; line-height:1.4; resize:none; width:100%;">
+        </div>
+
+        <!-- SIZE 직접입력 -->
+        <div class="inv-field">
+          <div class="inv-label">SIZE <span style="color:#aaa; font-weight:400;">(스펙)</span></div>
+          <input type="text" id="invSize${index}" class="inv-size-input" placeholder="예: 90 * 900 또는 직접입력">
+        </div>
+
+        <!-- 단위 + 수량 -->
         <div class="inv-grid-2">
           <div class="inv-field">
-            <div class="inv-label">단위</div>
-            <select id="invUnit${index}" class="inv-unit-select">
-              <option value="M2">M2</option>
-              <option value="PY">PY</option>
-              <option value="BOX">BOX</option>
-            </select>
+            <div class="inv-label">단위 <span style="color:#aaa; font-weight:400;">(직접입력 가능)</span></div>
+            <input type="text" id="invUnit${index}" class="inv-unit-input" placeholder="M2 / PY / BOX / 식 등" list="invUnitList${index}">
+            <datalist id="invUnitList${index}">
+              <option value="M2">
+              <option value="PY">
+              <option value="BOX">
+              <option value="식">
+              <option value="EA">
+              <option value="SET">
+            </datalist>
           </div>
           <div class="inv-field">
-            <div class="inv-label">수량 입력</div>
-            <input type="number" id="invQty${index}" class="inv-qty-input" step="0.01" min="0">
+            <div class="inv-label">수량</div>
+            <input type="text" id="invQty${index}" class="inv-qty-input" placeholder="예: 25" inputmode="decimal">
           </div>
         </div>
-        <div class="inv-loss-row" style="display:grid; grid-template-columns:1.8fr 1fr; gap:8px; align-items:end; margin-bottom:12px;">
-          <div class="inv-field" style="margin-bottom:0;">
-            <div class="inv-label">가격 기준</div>
+
+        <!-- 단가 직접입력 + 가격기준 -->
+        <div class="inv-grid-2">
+          <div class="inv-field">
+            <div class="inv-label">가격 기준 <span style="color:#aaa; font-weight:400;">(자동계산용)</span></div>
             <select id="invParty${index}" class="inv-party-select">
               <option value="consumer">소비자가</option>
               <option value="vendor">업체가</option>
             </select>
           </div>
-          <div class="inv-field" style="margin-bottom:0;">
+          <div class="inv-field">
             <div class="inv-label">로스율(%)</div>
             <input type="number" id="invLoss${index}" class="inv-loss-input" step="0.1" min="0" placeholder="0">
           </div>
         </div>
+
+        <!-- 단가 직접입력 (오버라이드) -->
+        <div class="inv-field">
+          <div class="inv-label">단가 직접입력 <span style="color:#aaa; font-weight:400;">(입력 시 자동계산 무시)</span></div>
+          <input type="text" id="invUnitPrice${index}" class="inv-unitprice-input" placeholder="비워두면 자동계산" inputmode="numeric">
+        </div>
+
       </div>
     `.trim();
-    // 삭제 버튼 이벤트
+
+    // 삭제 버튼
     wrap.querySelector('.inv-remove-item').addEventListener('click', () => {
         wrap.remove();
         renumberInvoiceItems();
         renderInvoice();
     });
+
+    // 제품 드롭다운 선택 시 → 아래 필드 자동채움
+    const productSel = wrap.querySelector('.inv-product-select');
+    productSel.addEventListener('change', () => {
+        const code = productSel.value;
+        const p = products.find(x => x.code === code);
+        const itemNameEl   = wrap.querySelector('.inv-itemname-input');
+        const sizeEl       = wrap.querySelector('.inv-size-input');
+        const unitEl       = wrap.querySelector('.inv-unit-input');
+        const unitPriceEl  = wrap.querySelector('.inv-unitprice-input');
+
+        if (p) {
+            // 자동채움 (기존값 덮어쓰기)
+            itemNameEl.value  = `BARAM\n${p.code}`;
+            sizeEl.value      = formatInvSize(p.spec);
+            if (!unitEl.value) unitEl.value = 'M2';
+            // 단가 오버라이드 필드는 비워서 자동계산 유지
+            unitPriceEl.value = '';
+        }
+        renderInvoice();
+    });
+
+    // 단가 입력 시 콤마 포맷
+    const unitPriceEl = wrap.querySelector('.inv-unitprice-input');
+    unitPriceEl.addEventListener('input', function() {
+        const raw = this.value.replace(/[^0-9]/g, '');
+        if (raw === '') { this.value = ''; }
+        else {
+            const pos = this.selectionStart;
+            const prevLen = this.value.length;
+            this.value = parseInt(raw, 10).toLocaleString('ko-KR');
+            // 커서 위치 보정
+            const diff = this.value.length - prevLen;
+            this.setSelectionRange(pos + diff, pos + diff);
+        }
+        renderInvoice();
+    });
+
     return wrap;
 }
 
@@ -2408,85 +2478,91 @@ function formatInvSize(spec='') {
 }
 
 function getInvItemFromBox(box, splitCosts=false) {
-    const code  = box.querySelector('.inv-product-select')?.value;
-    const unit  = box.querySelector('.inv-unit-select')?.value || 'M2';
-    const qty   = parseFloat(box.querySelector('.inv-qty-input')?.value) || 0;
-    const party = box.querySelector('.inv-party-select')?.value || 'consumer';
+    const code     = box.querySelector('.inv-product-select')?.value;
+    const party    = box.querySelector('.inv-party-select')?.value || 'consumer';
     const lossRate = parseFloat(box.querySelector('.inv-loss-input')?.value) || 0;
-    if (!code) return null;
-    const p = products.find(x => x.code === code);
-    if (!p) return null;
 
-    const PY_FACTOR = 3.24; // 1평 = 3.24㎡ (계산기 탭과 동일)
+    // ── 직접입력 필드 읽기 ──
+    const itemNameRaw  = box.querySelector('.inv-itemname-input')?.value.trim() || '';
+    const sizeRaw      = box.querySelector('.inv-size-input')?.value.trim()     || '';
+    const unitRaw      = (box.querySelector('.inv-unit-input')?.value || 'M2').trim().toUpperCase();
+    const qtyRaw       = parseFloat((box.querySelector('.inv-qty-input')?.value || '').replace(/[^0-9.]/g, '')) || 0;
+    const unitPriceOverride = parseInt((box.querySelector('.inv-unitprice-input')?.value || '').replace(/[^0-9]/g, ''), 10);
+
+    // 아무것도 입력 안 된 경우 스킵
+    const hasContent = itemNameRaw || sizeRaw || qtyRaw || !isNaN(unitPriceOverride);
+    if (!code && !hasContent) return null;
+
+    const PY_FACTOR    = 3.24;
     const lossMultiplier = lossRate > 0 ? (1 + lossRate / 100) : 1;
+
+    // 제품 데이터 (드롭다운 선택된 경우)
+    const p = products.find(x => x.code === code);
+
+    // ITEM명 / SIZE 결정
+    const itemName = itemNameRaw || (p ? `BARAM\n${p.code}` : '');
+    const size     = sizeRaw     || (p ? formatInvSize(p.spec) : '');
 
     let displayQty, unitPrice, total;
 
-    const boxPrice = getUnitValue(p, party, 'box', 'material');
-    const sqmPrice = getUnitValue(p, party, 'sqm', 'included');
-    const pyPrice  = getUnitValue(p, party, 'py',  'included');
+    // 단가 오버라이드 여부
+    const hasUnitPriceOverride = !isNaN(unitPriceOverride) && unitPriceOverride > 0;
 
-    if (unit === 'BOX') {
-        // BOX 입력: 박스 단가 × 박스수
-        const boxes = Math.ceil(qty);
-        unitPrice   = boxPrice;
-        displayQty  = boxes;
-        total       = boxes * unitPrice;
-    } else if (unit === 'M2') {
-        // M2 입력: m² 단가 × 입력 m² (로스율 적용)
-        const sqmWithLoss = qty * lossMultiplier;
-        unitPrice         = sqmPrice;
-        displayQty        = Math.round(sqmWithLoss * 1000) / 1000;
-        total             = Math.round(sqmWithLoss * unitPrice);
-    } else {
-        // PY 입력: 평 단가 × 입력 평 (로스율 적용)
-        const pyWithLoss = qty * lossMultiplier;
-        unitPrice        = pyPrice;
-        displayQty       = Math.round(pyWithLoss * 1000) / 1000;
-        total            = Math.round(pyWithLoss * unitPrice);
-    }
+    if (p && !hasUnitPriceOverride) {
+        // ── 자동계산 모드 (제품 선택 O, 단가 직접입력 X) ──
+        const boxPrice = getUnitValue(p, party, 'box', 'material');
+        const sqmPrice = getUnitValue(p, party, 'sqm', 'included');
+        const pyPrice  = getUnitValue(p, party, 'py',  'included');
 
-    if (splitCosts && unit !== 'BOX') {
-        const discount = getBoxDiscount(p.code);
-        if (discount !== null) {
-            const splitQty = displayQty;
-            const materialPrice = unit === 'M2'
-                ? ceilTo((pyPrice - discount) / PY_FACTOR, 100)
-                : pyPrice - discount;
-            const laborPrice = unit === 'M2'
-                ? ceilTo(discount / PY_FACTOR, 100)
-                : discount;
-
-            return [
-                {
-                    name: `BARAM\n${p.code}`,
-                    size: formatInvSize(p.spec),
-                    unit,
-                    qty: splitQty,
-                    unitPrice: materialPrice,
-                    total: Math.round(splitQty * materialPrice),
-                },
-                {
-                    name: '인건비, 부자재비',
-                    isLaborCost: true,
-                    size: '',
-                    unit,
-                    qty: splitQty,
-                    unitPrice: laborPrice,
-                    total: Math.round(splitQty * laborPrice),
-                }
-            ];
+        if (unitRaw === 'BOX') {
+            const boxes = Math.ceil(qtyRaw);
+            unitPrice  = boxPrice;
+            displayQty = boxes;
+            total      = boxes * unitPrice;
+        } else if (unitRaw === 'M2') {
+            const sqmWithLoss = qtyRaw * lossMultiplier;
+            unitPrice  = sqmPrice;
+            displayQty = Math.round(sqmWithLoss * 1000) / 1000;
+            total      = Math.round(sqmWithLoss * unitPrice);
+        } else if (unitRaw === 'PY') {
+            const pyWithLoss = qtyRaw * lossMultiplier;
+            unitPrice  = pyPrice;
+            displayQty = Math.round(pyWithLoss * 1000) / 1000;
+            total      = Math.round(pyWithLoss * unitPrice);
+        } else {
+            // 기타 단위: PY 기준 자동계산
+            const pyWithLoss = qtyRaw * lossMultiplier;
+            unitPrice  = pyPrice;
+            displayQty = Math.round(pyWithLoss * 1000) / 1000;
+            total      = Math.round(pyWithLoss * unitPrice);
         }
+
+        // 재료/인건비 분리 (자동계산 모드 + BOX 아닐 때만)
+        if (splitCosts && unitRaw !== 'BOX') {
+            const discount = getBoxDiscount(p.code);
+            if (discount !== null) {
+                const splitQty = displayQty;
+                const materialPrice = unitRaw === 'M2'
+                    ? ceilTo((pyPrice - discount) / PY_FACTOR, 100)
+                    : pyPrice - discount;
+                const laborPrice = unitRaw === 'M2'
+                    ? ceilTo(discount / PY_FACTOR, 100)
+                    : discount;
+                return [
+                    { name: itemName, size, unit: unitRaw, qty: splitQty, unitPrice: materialPrice, total: Math.round(splitQty * materialPrice) },
+                    { name: '인건비, 부자재비', isLaborCost: true, size: '', unit: unitRaw, qty: splitQty, unitPrice: laborPrice, total: Math.round(splitQty * laborPrice) }
+                ];
+            }
+        }
+
+    } else {
+        // ── 직접입력 모드 (단가 직접입력 OR 제품 미선택) ──
+        unitPrice  = hasUnitPriceOverride ? unitPriceOverride : 0;
+        displayQty = qtyRaw;
+        total      = Math.round(displayQty * unitPrice);
     }
 
-    return {
-        name: `BARAM\n${p.code}`,
-        size: formatInvSize(p.spec),
-        unit,
-        qty: displayQty,
-        unitPrice,
-        total,
-    };
+    return { name: itemName, size, unit: unitRaw, qty: displayQty, unitPrice, total };
 }
 
 function fmtNum(n) {
@@ -2602,8 +2678,8 @@ function renderInvoice() {
     makeTotal('GRAND TOTAL', grand, 'grand');
 
     // REMARKS 단위 표시 업데이트 - 모든 제품 박스의 단위 확인
-    const allUnits = [...document.querySelectorAll('[data-inv-item] .inv-unit-select')]
-        .map(s => s.value).filter(Boolean);
+    const allUnits = [...document.querySelectorAll('[data-inv-item] .inv-unit-input')]
+        .map(s => (s.value || '').trim().toUpperCase()).filter(Boolean);
     const unit1 = allUnits[0] || 'M2';
     const allBox = allUnits.length > 0 && allUnits.every(u => u === 'BOX');
 
