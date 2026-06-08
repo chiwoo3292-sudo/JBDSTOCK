@@ -2306,28 +2306,28 @@ function createInvoiceItem(index) {
           <div style="font-size:11px; color:#6674cc; font-weight:700; margin-bottom:10px;">✏️ 직접입력 모드 — 견적서에 그대로 반영됩니다</div>
           <div class="inv-field">
             <div class="inv-label">ITEM 명</div>
-            <input type="text" id="invManualName${index}" class="inv-manual-name" placeholder="예: BARAM W-1801 또는 공사비" style="width:100%;">
+            <input type="text" id="invManualName${index}" class="inv-manual-name" placeholder="" style="width:100%;">
           </div>
           <div class="inv-field">
             <div class="inv-label">SIZE</div>
-            <input type="text" id="invManualSize${index}" class="inv-manual-size" placeholder="예: 90 * 900 (비워두면 공란)" style="width:100%;">
+            <input type="text" id="invManualSize${index}" class="inv-manual-size" placeholder="" style="width:100%;">
           </div>
           <div class="inv-grid-2">
             <div class="inv-field">
               <div class="inv-label">단위</div>
-              <input type="text" id="invManualUnit${index}" class="inv-manual-unit" placeholder="M2 / PY / BOX / 식" list="invManualUnitList${index}" style="width:100%;">
+              <input type="text" id="invManualUnit${index}" class="inv-manual-unit" placeholder="" list="invManualUnitList${index}" style="width:100%;">
               <datalist id="invManualUnitList${index}">
                 <option value="M2"><option value="PY"><option value="BOX"><option value="식"><option value="EA"><option value="SET">
               </datalist>
             </div>
             <div class="inv-field">
               <div class="inv-label">수량</div>
-              <input type="text" id="invManualQty${index}" class="inv-manual-qty" placeholder="예: 25" inputmode="decimal" style="width:100%;">
+              <input type="text" id="invManualQty${index}" class="inv-manual-qty" placeholder="" inputmode="decimal" style="width:100%;">
             </div>
           </div>
           <div class="inv-field" style="margin-bottom:0;">
             <div class="inv-label">단가 (원)</div>
-            <input type="text" id="invManualPrice${index}" class="inv-manual-price" placeholder="예: 120,000" inputmode="numeric" style="width:100%;">
+            <input type="text" id="invManualPrice${index}" class="inv-manual-price" placeholder="" inputmode="numeric" style="width:100%;">
           </div>
         </div>
 
