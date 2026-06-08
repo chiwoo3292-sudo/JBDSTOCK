@@ -2352,6 +2352,12 @@ function createInvoiceItem(index) {
         renderInvoice();
     });
 
+    // 직접입력 필드 전체에 renderInvoice 바인딩
+    manualFields.querySelectorAll('input').forEach(el => {
+        if (el.classList.contains('inv-manual-price')) return; // 단가는 아래서 처리
+        el.addEventListener('input', renderInvoice);
+    });
+
     // 단가 콤마 포맷
     const priceInput = wrap.querySelector('.inv-manual-price');
     priceInput.addEventListener('input', function() {
