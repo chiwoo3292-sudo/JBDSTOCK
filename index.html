@@ -1015,6 +1015,10 @@ function unlock() {
         <input type="checkbox" id="invMergeLaborCheck" />
         인건비+부자재비 합산 표시
       </label>
+      <label class="check-chip">
+        <input type="checkbox" id="invDraftCheck" />
+        가견적서
+      </label>
     </div>
 
     <div id="invAllItems"></div>
@@ -2869,9 +2873,11 @@ async function saveInvoiceImage() {
         const dateStr    = rawDate.replace(/^20(\d\d)/, '$1');
         const billTo     = (document.getElementById('invBillTo')?.value || '').trim();
         const safeBillTo = billTo.replace(/[\\:*?"<>|]/g, '').trim();
+        const isDraft    = document.getElementById('invDraftCheck')?.checked;
+        const prefix     = isDraft ? '가' : '';
         const fileName   = safeBillTo
-            ? `견적서(${dateStr})_${safeBillTo}.jpg`
-            : `견적서(${dateStr}).jpg`;
+            ? `${prefix}견적서(${dateStr})_${safeBillTo}.jpg`
+            : `${prefix}견적서(${dateStr}).jpg`;
 
         // 7. 저장 — JPG blob
         const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
