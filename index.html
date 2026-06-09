@@ -2761,9 +2761,14 @@ function renderInvoice() {
     const unit1 = allUnits[0] || 'M2';
     const allBox = allUnits.length > 0 && allUnits.every(u => u === 'BOX');
 
-    // INVOICE(자재만) 표시 여부
+    // INVOICE 서브타이틀 표시 (자재만 / 가견적서)
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
-    if (subtitleEl) subtitleEl.textContent = allBox ? '(자재만)' : '';
+    if (subtitleEl) {
+        const isDraft = document.getElementById('invDraftCheck')?.checked;
+        if (isDraft) subtitleEl.textContent = '(가견적서)';
+        else if (allBox) subtitleEl.textContent = '(자재만)';
+        else subtitleEl.textContent = '';
+    }
 
     if (allBox) {
         // BOX 전용 REMARKS (빨간색 항목: 결제조건+운임비)
