@@ -1014,10 +1014,6 @@ function unlock() {
         <input type="checkbox" id="invMergeLaborCheck" />
         인건비+부자재비 합산 표시
       </label>
-      <label class="check-chip">
-        <input type="checkbox" id="invPreliminaryCheck" />
-        가견적서
-      </label>
     </div>
 
     <div id="invAllItems"></div>
@@ -2310,7 +2306,7 @@ function createInvoiceItem(index) {
           <div style="font-size:11px; color:#6674cc; font-weight:700; margin-bottom:10px;">✏️ 직접입력 모드 — 견적서에 그대로 반영됩니다</div>
           <div class="inv-field">
             <div class="inv-label">ITEM 명</div>
-            <input type="text" id="invManualName${index}" class="inv-manual-name" placeholder="" style="width:100%;">
+            <textarea id="invManualName${index}" class="inv-manual-name" rows="2" placeholder="" style="width:100%; resize:none; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; line-height:1.5; font-family:inherit;"></textarea>
           </div>
           <div class="inv-field">
             <div class="inv-label">SIZE</div>
@@ -2356,8 +2352,8 @@ function createInvoiceItem(index) {
         renderInvoice();
     });
 
-    // 직접입력 필드 전체에 renderInvoice 바인딩
-    manualFields.querySelectorAll('input').forEach(el => {
+    // 직접입력 필드 전체에 renderInvoice 바인딩 (textarea 포함)
+    manualFields.querySelectorAll('input, textarea').forEach(el => {
         if (el.classList.contains('inv-manual-price')) return; // 단가는 아래서 처리
         el.addEventListener('input', renderInvoice);
     });
@@ -2466,7 +2462,6 @@ function initInvoiceTab() {
         document.getElementById('invPrintBtn').addEventListener('click', printInvoice);
         document.getElementById('invSaveImgBtn').addEventListener('click', saveInvoiceImage);
         document.getElementById('invAddItemBtn')?.addEventListener('click', addInvoiceItem);
-        document.getElementById('invPreliminaryCheck')?.addEventListener('change', renderInvoice);
 
         // 모바일 scale 계산 + resize 대응
         window.addEventListener('resize', updateInvoiceScale);
@@ -2692,14 +2687,9 @@ function renderInvoice() {
     const unit1 = allUnits[0] || 'M2';
     const allBox = allUnits.length > 0 && allUnits.every(u => u === 'BOX');
 
-    // INVOICE 부제 표시 여부 (가견적서 > 자재만 우선순위)
+    // INVOICE(자재만) 표시 여부
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
-    const isPreliminary = document.getElementById('invPreliminaryCheck')?.checked;
-    if (subtitleEl) {
-        if (isPreliminary) subtitleEl.textContent = '(가견적서)';
-        else if (allBox) subtitleEl.textContent = '(자재만)';
-        else subtitleEl.textContent = '';
-    }
+    if (subtitleEl) subtitleEl.textContent = allBox ? '(자재만)' : '';
 
     if (allBox) {
         // BOX 전용 REMARKS (빨간색 항목: 결제조건+운임비)
