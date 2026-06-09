@@ -421,6 +421,7 @@ function unlock() {
   <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
   <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
   <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
+  <button type="button" class="tab-btn" data-tab="floorplanTab">📐 면적분석</button>
 </div>
 
   <section id="pricingTab" class="tab-panel active">
@@ -1109,7 +1110,66 @@ function unlock() {
   </div>
 </div>
 </section>
-<div id="toast" class="toast">복사 완료</div>
+
+<!-- ==================== 평면도 면적분석 탭 ==================== -->
+<section id="floorplanTab" class="tab-panel" style="display:none;">
+  <div class="card" style="max-width:540px; margin:0 auto;">
+    <h2 style="margin-bottom:16px;">📐 평면도 면적 분석</h2>
+    <p style="font-size:13px; color:#888; margin-bottom:20px; line-height:1.6;">
+      평면도 이미지 또는 PDF를 업로드하면 AI가 분석하여<br>원목마루 시공 정물량(로스율 제외)을 추정해드립니다.
+    </p>
+
+    <!-- 업로드 영역 -->
+    <div id="fpDropZone" style="border:2px dashed #ccc; border-radius:14px; padding:32px 20px; text-align:center; cursor:pointer; background:#fafafa; transition:border-color .2s; margin-bottom:16px;">
+      <div style="font-size:32px; margin-bottom:8px;">🏠</div>
+      <div style="font-size:14px; color:#555; font-weight:600;">클릭하거나 파일을 여기에 드래그하세요</div>
+      <div style="font-size:12px; color:#aaa; margin-top:6px;">JPG, PNG, PDF 지원</div>
+      <input type="file" id="fpFileInput" accept="image/*,application/pdf" style="display:none;">
+    </div>
+
+    <!-- 미리보기 -->
+    <div id="fpPreviewWrap" style="display:none; margin-bottom:16px; text-align:center;">
+      <img id="fpPreviewImg" style="max-width:100%; max-height:300px; border-radius:10px; border:1px solid #eee;">
+      <div id="fpFileName" style="font-size:12px; color:#aaa; margin-top:6px;"></div>
+    </div>
+
+    <!-- 추가 정보 입력 -->
+    <div style="background:#f9f9f9; border:1px solid #eee; border-radius:12px; padding:14px; margin-bottom:16px;">
+      <div style="font-size:12px; color:#666; font-weight:700; margin-bottom:10px;">추가 정보 (선택사항)</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <div style="font-size:11px; color:#999; margin-bottom:4px;">전용면적 (m²)</div>
+          <input type="number" id="fpAreaInput" placeholder="예: 114.5" style="width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13px;">
+        </div>
+        <div>
+          <div style="font-size:11px; color:#999; margin-bottom:4px;">제외 공간</div>
+          <input type="text" id="fpExcludeInput" placeholder="예: 현관,욕실,실외기실" style="width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13px;">
+        </div>
+      </div>
+    </div>
+
+    <button type="button" id="fpAnalyzeBtn" style="width:100%; padding:14px; background:#111; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; opacity:0.4; pointer-events:none;">
+      🔍 AI 면적 분석 시작
+    </button>
+
+    <!-- 결과 영역 -->
+    <div id="fpResultWrap" style="display:none; margin-top:20px;">
+      <div style="background:#f0f7ff; border:1px solid #c0d8ff; border-radius:14px; padding:20px;">
+        <div style="font-size:13px; font-weight:700; color:#3355cc; margin-bottom:12px;">📊 분석 결과</div>
+        <div id="fpResultText" style="font-size:14px; color:#333; line-height:1.8; white-space:pre-wrap;"></div>
+      </div>
+      <div style="margin-top:12px; font-size:11px; color:#aaa; text-align:center; line-height:1.6;">
+        ※ AI 추정값으로 실측 후 확인이 필요합니다.<br>현장 상황에 따라 실제 면적과 차이가 있을 수 있습니다.
+      </div>
+    </div>
+
+    <!-- 로딩 -->
+    <div id="fpLoading" style="display:none; text-align:center; padding:30px 0;">
+      <div style="font-size:24px; animation: spin 1s linear infinite; display:inline-block;">⏳</div>
+      <div style="font-size:13px; color:#888; margin-top:10px;">평면도를 분석 중입니다...</div>
+    </div>
+  </div>
+</section>
 <script>
 // products 배열은 PRICE 시트에서 동적으로 로드됩니다.
 let products = [];
@@ -2837,6 +2897,117 @@ async function saveInvoiceImage() {
         showToast('저장 실패: ' + e.message);
     }
 }
+
+// ==================== 평면도 면적분석 기능 ====================
+(function() {
+    const dropZone   = document.getElementById('fpDropZone');
+    const fileInput  = document.getElementById('fpFileInput');
+    const analyzeBtn = document.getElementById('fpAnalyzeBtn');
+    const previewWrap= document.getElementById('fpPreviewWrap');
+    const previewImg = document.getElementById('fpPreviewImg');
+    const fileNameEl = document.getElementById('fpFileName');
+    const resultWrap = document.getElementById('fpResultWrap');
+    const resultText = document.getElementById('fpResultText');
+    const loadingEl  = document.getElementById('fpLoading');
+
+    let currentFileData = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#6674cc'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#ccc'; });
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#ccc';
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+    });
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+        const allowed = ['image/jpeg','image/png','image/gif','image/webp','application/pdf'];
+        if (!allowed.includes(file.type)) { alert('JPG, PNG, PDF 파일만 지원합니다.'); return; }
+        fileNameEl.textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            currentFileData = { base64: dataUrl.split(',')[1], mediaType: file.type };
+            previewImg.src = file.type === 'application/pdf'
+                ? 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" rx="14" fill="%23f44336"/><text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-family="Arial" font-weight="bold">PDF</text></svg>'
+                : dataUrl;
+            previewWrap.style.display = 'block';
+            resultWrap.style.display = 'none';
+            analyzeBtn.style.opacity = '1';
+            analyzeBtn.style.pointerEvents = 'auto';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+        if (!currentFileData) return;
+        const area    = document.getElementById('fpAreaInput').value.trim();
+        const exclude = document.getElementById('fpExcludeInput').value.trim() || '현관, 욕실, 실외기실';
+
+        analyzeBtn.disabled = true;
+        loadingEl.style.display = 'block';
+        resultWrap.style.display = 'none';
+
+        const prompt = `이 평면도를 분석해서 원목마루 시공 면적을 계산해줘.
+제외 공간: ${exclude}
+${area ? `전용면적: ${area}m²` : ''}
+
+다음 형식으로 답변해줘:
+
+【 평형 정보 】
+타입: (예: 84A, 114 등)
+전용면적: OOm²
+
+【 공간별 면적 추정 】
+거실/주방: 약 OOm²
+침실1: 약 OOm²
+침실2: 약 OOm²
+침실3: 약 OOm² (있는 경우)
+드레스룸: 약 OOm² (있는 경우)
+
+【 제외 공간 】
+${exclude}: 약 OOm²
+벽체 감안 손실: 약 OOm²
+
+【 최종 시공 정물량 】
+▶ 원목마루 시공면적: 약 OOm² (로스율 제외)
+
+【 참고사항 】
+(특이사항 간단히)
+
+도면 치수 기반으로 계산하고, 불확실한 부분은 업계 평균값으로 추정해줘.`;
+
+        try {
+            const content = [
+                {
+                    type: currentFileData.mediaType === 'application/pdf' ? 'document' : 'image',
+                    source: { type: 'base64', media_type: currentFileData.mediaType, data: currentFileData.base64 }
+                },
+                { type: 'text', text: prompt }
+            ];
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content }] })
+            });
+            const data = await res.json();
+            const text = (data.content || []).map(b => b.text || '').join('');
+            resultText.textContent = text || '분석 결과를 가져오지 못했습니다.';
+            resultWrap.style.display = 'block';
+        } catch(err) {
+            resultText.textContent = '오류: ' + err.message;
+            resultWrap.style.display = 'block';
+        } finally {
+            loadingEl.style.display = 'none';
+            analyzeBtn.disabled = false;
+        }
+    });
+})();
 </script>
 <!-- ── PWA Service Worker 등록 ── -->
 <script>
