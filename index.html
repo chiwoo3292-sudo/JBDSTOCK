@@ -1014,6 +1014,10 @@ function unlock() {
         <input type="checkbox" id="invMergeLaborCheck" />
         인건비+부자재비 합산 표시
       </label>
+      <label class="check-chip">
+        <input type="checkbox" id="invPreliminaryCheck" />
+        가견적서
+      </label>
     </div>
 
     <div id="invAllItems"></div>
@@ -2462,6 +2466,7 @@ function initInvoiceTab() {
         document.getElementById('invPrintBtn').addEventListener('click', printInvoice);
         document.getElementById('invSaveImgBtn').addEventListener('click', saveInvoiceImage);
         document.getElementById('invAddItemBtn')?.addEventListener('click', addInvoiceItem);
+        document.getElementById('invPreliminaryCheck')?.addEventListener('change', renderInvoice);
 
         // 모바일 scale 계산 + resize 대응
         window.addEventListener('resize', updateInvoiceScale);
@@ -2687,9 +2692,14 @@ function renderInvoice() {
     const unit1 = allUnits[0] || 'M2';
     const allBox = allUnits.length > 0 && allUnits.every(u => u === 'BOX');
 
-    // INVOICE(자재만) 표시 여부
+    // INVOICE 부제 표시 여부 (가견적서 > 자재만 우선순위)
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
-    if (subtitleEl) subtitleEl.textContent = allBox ? '(자재만)' : '';
+    const isPreliminary = document.getElementById('invPreliminaryCheck')?.checked;
+    if (subtitleEl) {
+        if (isPreliminary) subtitleEl.textContent = '(가견적서)';
+        else if (allBox) subtitleEl.textContent = '(자재만)';
+        else subtitleEl.textContent = '';
+    }
 
     if (allBox) {
         // BOX 전용 REMARKS (빨간색 항목: 결제조건+운임비)
