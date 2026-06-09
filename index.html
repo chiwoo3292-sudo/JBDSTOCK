@@ -1539,7 +1539,7 @@ function initApp() {
   $('calcAreaInput').addEventListener('input',runCalculator);
   $('calcLossRateInput').addEventListener('input',runCalculator);
   $('calcResetBtn').addEventListener('click',resetCalculator);
-  document.querySelectorAll('.js-copy-template').forEach(btn=>btn.addEventListener('click',()=>copyToClipboard(templates[btn.dataset.template] || '')));
+  document.querySelectorAll('.js-copy-template').forEach(btn=>btn.addEventListener('click',()=>{ copyToClipboard(templates[btn.dataset.template] || ''); btn.blur(); }));
   document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>setTab(btn.dataset.tab)));
 }
 // PRICE 시트에서 products 로드 후 앱 초기화
