@@ -1019,6 +1019,10 @@ function unlock() {
         <input type="checkbox" id="invDraftCheck" />
         가견적서
       </label>
+      <label class="check-chip">
+        <input type="checkbox" id="invAdjustCheck" checked />
+        단수정리
+      </label>
     </div>
 
     <div id="invAllItems"></div>
@@ -2734,7 +2738,8 @@ function renderInvoice() {
     // SUB TOTAL
     const vat = Math.round(subTotal * 0.1);
     const grandRaw = subTotal + vat;
-    const grand = Math.floor(grandRaw / 10000) * 10000; // 단수정리 (만원 단위)
+    const useAdjust = document.getElementById('invAdjustCheck')?.checked !== false;
+    const grand = useAdjust ? Math.floor(grandRaw / 10000) * 10000 : grandRaw;
     const adjust = grand - grandRaw;
 
     const makeTotal = (label, val, cls='normal') => {
@@ -2750,7 +2755,7 @@ function renderInvoice() {
 
     makeTotal('SUB TOTAL', subTotal, 'subtotal');
     makeTotal('Tax Vat 10%', vat);
-    if (adjust !== 0) makeTotal('단수정리', adjust);
+    if (useAdjust && adjust !== 0) makeTotal('단수정리', adjust);
     makeTotal('GRAND TOTAL', grand, 'grand');
 
     // REMARKS 단위 표시 업데이트 - 모든 제품 박스의 단위 확인 (직접입력 모드 포함)
