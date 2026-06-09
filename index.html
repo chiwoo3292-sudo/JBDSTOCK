@@ -805,8 +805,8 @@ function unlock() {
 .inv-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .inv-item-box { background:#f9f9f9; border:1px solid #eee; border-radius:12px; padding:14px; margin-bottom:10px; }
 .inv-item-title { font-size:12px; font-weight:700; color:#555; margin-bottom:10px; }
-.inv-actions { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
-.inv-actions button { flex:1; min-height:40px; font-size:13px; }
+.inv-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+.inv-actions button { min-height:40px; font-size:13px; }
 
 /* ---- 견적서 미리보기 ---- */
 .inv-preview-wrap { background:#fff; border:1px solid #e0e0e0; border-radius:18px; padding:20px; }
@@ -897,8 +897,8 @@ function unlock() {
   .inv-field input, .inv-field select { height:40px !important; font-size:14px !important; }
 
   /* 하단 버튼 3개 — 한 줄 균등 배치 */
-  .inv-actions { display:grid !important; grid-template-columns:1fr 1fr 1fr !important; gap:4px !important; flex-wrap:unset !important; }
-  .inv-actions button { flex:unset !important; font-size:10px !important; padding:0 2px !important; white-space:nowrap !important; min-width:0 !important; min-height:40px !important; overflow:hidden !important; }
+  .inv-actions { display:grid !important; grid-template-columns:1fr 1fr !important; gap:4px !important; }
+  .inv-actions button { font-size:10px !important; padding:0 2px !important; white-space:nowrap !important; min-width:0 !important; min-height:40px !important; overflow:hidden !important; }
   /* 이모지 제거 후 텍스트만 표시 — 모바일 버튼 내부 이모지 숨김 */
   #invPrintBtn, #invSaveImgBtn { font-size:10px !important; letter-spacing:-0.3px !important; }
   /* 모바일: 이모지 숨기고 텍스트만 */
@@ -1037,6 +1037,7 @@ function unlock() {
       <button type="button" id="invPreviewBtn">미리보기 갱신</button>
       <button type="button" id="invPrintBtn" class="secondary"><span class="btn-icon">🖨</span><span class="btn-text"> 인쇄</span></button>
       <button type="button" id="invSaveImgBtn" class="secondary"><span class="btn-icon">💾</span><span class="btn-text"> 이미지저장</span></button>
+      <button type="button" id="invSavePdfBtn" class="secondary"><span class="btn-icon">📄</span><span class="btn-text"> PDF저장</span></button>
     </div>
   </div>
 
@@ -2539,6 +2540,7 @@ function initInvoiceTab() {
         document.getElementById('invPreviewBtn').addEventListener('click', renderInvoice);
         document.getElementById('invPrintBtn').addEventListener('click', printInvoice);
         document.getElementById('invSaveImgBtn').addEventListener('click', saveInvoiceImage);
+        document.getElementById('invSavePdfBtn').addEventListener('click', saveInvoicePdf);
         document.getElementById('invAddItemBtn')?.addEventListener('click', addInvoiceItem);
 
         // 모바일 scale 계산 + resize 대응
@@ -2925,7 +2927,58 @@ async function saveInvoiceImage() {
     }
 }
 
-// ==================== 평면도 면적분석 기능 ====================
+async function saveInvoicePdf() {
+    try {
+        renderInvoice();
+        await new Promise(r => setTimeout(r, 300));
+
+        const el = document.getElementById('invoiceDoc');
+        if (!el) { showToast('견적서를 먼저 생성해주세요.'); return; }
+
+        const canvas = await html2canvas(el, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            windowWidth: el.scrollWidth,
+            windowHeight: el.scrollHeight
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const imgW = canvas.width;
+        const imgH = canvas.height;
+
+        // A4 비율 계산 (pt 단위: A4 = 595.28 x 841.89)
+        const pdfW = 595.28;
+        const pdfH = (imgH * pdfW) / imgW;
+
+        // jsPDF 동적 로드
+        if (!window.jspdf) {
+            await new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                s.onload = res; s.onerror = rej;
+                document.head.appendChild(s);
+            });
+        }
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: pdfH > pdfW ? 'portrait' : 'landscape', unit: 'pt', format: [pdfW, pdfH] });
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+
+        const billTo   = document.getElementById('invBillTo')?.value.trim() || '';
+        const safeName = billTo.replace(/[\\/:*?"<>|]/g, '_');
+        const dateStr  = new Date().toISOString().slice(0,10);
+        const isDraft  = document.getElementById('invDraftCheck')?.checked;
+        const prefix   = isDraft ? '가' : '';
+        const fileName = safeName ? `${prefix}견적서(${dateStr})_${safeName}.pdf` : `${prefix}견적서(${dateStr}).pdf`;
+
+        pdf.save(fileName);
+        showToast('PDF 저장 완료');
+    } catch(e) {
+        if (e && e.name === 'AbortError') return;
+        showToast('PDF 저장 실패: ' + e.message);
+    }
+}
 (function() {
     const dropZone   = document.getElementById('fpDropZone');
     const fileInput  = document.getElementById('fpFileInput');
