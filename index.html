@@ -2928,6 +2928,7 @@ async function saveInvoiceImage() {
 }
 
 async function saveInvoicePdf() {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     try {
         renderInvoice();
         await new Promise(r => setTimeout(r, 300));
@@ -2972,7 +2973,24 @@ async function saveInvoicePdf() {
         const prefix   = isDraft ? '가' : '';
         const fileName = safeName ? `${prefix}견적서(${dateStr})_${safeName}.pdf` : `${prefix}견적서(${dateStr}).pdf`;
 
-        pdf.save(fileName);
+        const pdfBlob = pdf.output('blob');
+        if (!isMobile && window.showSaveFilePicker) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: fileName,
+                types: [{ description: 'PDF 파일', accept: { 'application/pdf': ['.pdf'] } }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(pdfBlob);
+            await writable.close();
+        } else {
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+        }
         showToast('PDF 저장 완료');
     } catch(e) {
         if (e && e.name === 'AbortError') return;
