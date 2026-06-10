@@ -3297,6 +3297,9 @@ async function saveInvoicePdf() {
         if (!allContacts.length) loadContacts();
     });
 })();
+
+// ==================== 평면도 면적분석 기능 ====================
+(function() {
     const fileInput  = document.getElementById('fpFileInput');
     const analyzeBtn = document.getElementById('fpAnalyzeBtn');
     const previewWrap= document.getElementById('fpPreviewWrap');
@@ -3431,9 +3434,8 @@ ${exclude}: 약 OOm²
         }
     });
 })();
-</script>
-<!-- ── PWA Service Worker 등록 ── -->
-<script>
+
+// ==================== 명함스캐닝 기능 ====================
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js')
