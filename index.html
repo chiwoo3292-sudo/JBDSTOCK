@@ -422,6 +422,8 @@ function unlock() {
   <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
   <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
   <button type="button" class="tab-btn" data-tab="floorplanTab">📐 면적분석</button>
+  <button type="button" class="tab-btn" data-tab="cardScanTab">📷 명함스캐닝</button>
+  <button type="button" class="tab-btn" data-tab="contactsTab">📋 연락처</button>
 </div>
 
   <section id="pricingTab" class="tab-panel active">
@@ -1189,6 +1191,76 @@ function unlock() {
     </div>
   </div>
 </section>
+
+<!-- ==================== 명함스캐닝 탭 ==================== -->
+<section id="cardScanTab" class="tab-panel" style="display:none;">
+  <div class="card" style="max-width:480px; margin:0 auto;">
+    <h2 style="margin-bottom:6px;">📷 명함 스캐닝</h2>
+    <p style="font-size:13px; color:#888; margin-bottom:16px;">명함을 촬영하면 텍스트를 자동 추출합니다.</p>
+
+    <!-- 카메라 뷰 -->
+    <div id="cardCameraWrap" style="display:none; position:relative; width:100%; border-radius:14px; overflow:hidden; background:#000; margin-bottom:12px;">
+      <video id="cardVideo" autoplay playsinline style="width:100%; display:block;"></video>
+      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.45);"></div>
+        <div style="position:relative; width:82%; aspect-ratio:16/10; border:2px solid rgba(255,255,255,0.8); border-radius:8px; z-index:2;">
+          <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); color:#fff; font-size:11px; white-space:nowrap; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,.7);">명함을 사각형 안에 맞춰주세요</div>
+          <div style="position:absolute; top:-2px; left:-2px; width:18px; height:18px; border-top:3px solid #4cf; border-left:3px solid #4cf; border-radius:3px 0 0 0;"></div>
+          <div style="position:absolute; top:-2px; right:-2px; width:18px; height:18px; border-top:3px solid #4cf; border-right:3px solid #4cf; border-radius:0 3px 0 0;"></div>
+          <div style="position:absolute; bottom:-2px; left:-2px; width:18px; height:18px; border-bottom:3px solid #4cf; border-left:3px solid #4cf; border-radius:0 0 0 3px;"></div>
+          <div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-bottom:3px solid #4cf; border-right:3px solid #4cf; border-radius:0 0 3px 0;"></div>
+        </div>
+      </div>
+      <canvas id="cardCanvas" style="display:none;"></canvas>
+    </div>
+
+    <!-- 촬영 이미지 미리보기 -->
+    <div id="cardPreviewWrap" style="display:none; margin-bottom:12px; text-align:center;">
+      <img id="cardPreviewImg" style="max-width:100%; border-radius:10px; border:1px solid #eee;">
+    </div>
+
+    <!-- 버튼 -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
+      <button type="button" id="cardStartBtn" style="grid-column:1/-1; padding:13px; background:#111; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📷 카메라 시작</button>
+      <button type="button" id="cardShootBtn" style="padding:13px; background:#3355cc; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:none;">⚡ 촬영</button>
+      <button type="button" id="cardRetakeBtn" style="padding:13px; background:#888; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:none;">🔄 다시찍기</button>
+      <button type="button" id="cardExtractBtn" style="padding:13px; background:#4caf50; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:none;">🔍 텍스트 추출</button>
+    </div>
+
+    <div id="cardLoading" style="display:none; text-align:center; padding:16px; color:#888; font-size:13px;">⏳ 텍스트 추출 중...</div>
+
+    <!-- 추출 결과 입력폼 -->
+    <div id="cardFormWrap" style="display:none;">
+      <div style="background:#f0f7ff; border:1px solid #c0d8ff; border-radius:12px; padding:14px; margin-bottom:14px;">
+        <div style="font-size:12px; color:#3355cc; font-weight:700; margin-bottom:10px;">📝 추출된 정보 확인 및 수정</div>
+        <div class="inv-field"><div class="inv-label">업체명</div><input type="text" id="cardCompany" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
+        <div class="inv-field"><div class="inv-label">이름</div><input type="text" id="cardName" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
+        <div class="inv-field"><div class="inv-label">직급</div><input type="text" id="cardPosition" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
+        <div class="inv-field" style="margin-bottom:0;"><div class="inv-label">연락처</div><input type="text" id="cardPhone" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
+      </div>
+      <details style="margin-bottom:14px;">
+        <summary style="font-size:12px; color:#aaa; cursor:pointer;">원본 추출 텍스트 보기</summary>
+        <div id="cardRawText" style="font-size:11px; color:#666; background:#f9f9f9; border-radius:8px; padding:10px; margin-top:6px; white-space:pre-wrap; line-height:1.6;"></div>
+      </details>
+      <button type="button" id="cardSaveBtn" style="width:100%; padding:13px; background:#111; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;">💾 구글 시트에 저장</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 연락처 탭 ==================== -->
+<section id="contactsTab" class="tab-panel" style="display:none;">
+  <div class="card" style="max-width:600px; margin:0 auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="margin:0;">📋 연락처</h2>
+      <button type="button" id="contactsRefreshBtn" style="padding:6px 14px; background:#111; color:#fff; border:none; border-radius:8px; font-size:12px; cursor:pointer;">🔄 새로고침</button>
+    </div>
+    <input type="text" id="contactsSearch" placeholder="업체명 / 이름 / 연락처 검색" style="width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:10px; font-size:14px; margin-bottom:14px;">
+    <div id="contactsLoading" style="text-align:center; color:#aaa; font-size:13px; padding:20px;">불러오는 중...</div>
+    <div id="contactsList" style="display:none; display:flex; flex-direction:column; gap:8px;"></div>
+    <div id="contactsEmpty" style="display:none; text-align:center; color:#aaa; font-size:13px; padding:30px;">저장된 연락처가 없습니다.</div>
+  </div>
+</section>
+
 <script>
 // products 배열은 PRICE 시트에서 동적으로 로드됩니다.
 let products = [];
@@ -1569,9 +1641,10 @@ const SHEET_CONFIG = {
     PRICE:    'PRICE',
     STOCK:    'STOCK',
     TOOLTIP:  'TOOLTIP',
-    RESERVE:  'RESERVE',   // 예약일정 시트
-    ORDER:    '발주현황',    // <품번/발주물량/단위/비고>
-    ARRIVAL:  '입고예정일',  // <품번/입고물량/단위/비고>
+    RESERVE:  'RESERVE',
+    ORDER:    '발주현황',
+    ARRIVAL:  '입고예정일',
+    CONTACTS: '연락처',
 };
 
 // 구글 시트 gviz JSON 파싱 공통 함수
@@ -2997,8 +3070,233 @@ async function saveInvoicePdf() {
         showToast('PDF 저장 실패: ' + e.message);
     }
 }
+
+// ==================== 명함스캐닝 기능 ====================
 (function() {
-    const dropZone   = document.getElementById('fpDropZone');
+    let stream = null;
+    let capturedBlob = null;
+
+    const cameraWrap  = document.getElementById('cardCameraWrap');
+    const video       = document.getElementById('cardVideo');
+    const canvas      = document.getElementById('cardCanvas');
+    const previewWrap = document.getElementById('cardPreviewWrap');
+    const previewImg  = document.getElementById('cardPreviewImg');
+    const startBtn    = document.getElementById('cardStartBtn');
+    const shootBtn    = document.getElementById('cardShootBtn');
+    const retakeBtn   = document.getElementById('cardRetakeBtn');
+    const extractBtn  = document.getElementById('cardExtractBtn');
+    const loadingEl   = document.getElementById('cardLoading');
+    const formWrap    = document.getElementById('cardFormWrap');
+    const rawTextEl   = document.getElementById('cardRawText');
+    const saveBtn     = document.getElementById('cardSaveBtn');
+
+    startBtn.addEventListener('click', async () => {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+            });
+            video.srcObject = stream;
+            cameraWrap.style.display = 'block';
+            startBtn.style.display = 'none';
+            shootBtn.style.display = 'block';
+            formWrap.style.display = 'none';
+            previewWrap.style.display = 'none';
+        } catch(e) { showToast('카메라 접근 실패: ' + e.message); }
+    });
+
+    shootBtn.addEventListener('click', () => {
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        canvas.toBlob(blob => {
+            capturedBlob = blob;
+            previewImg.src = URL.createObjectURL(blob);
+            previewWrap.style.display = 'block';
+            cameraWrap.style.display = 'none';
+            shootBtn.style.display = 'none';
+            retakeBtn.style.display = 'block';
+            extractBtn.style.display = 'block';
+            if (stream) stream.getTracks().forEach(t => t.stop());
+        }, 'image/jpeg', 0.95);
+    });
+
+    retakeBtn.addEventListener('click', async () => {
+        previewWrap.style.display = 'none';
+        formWrap.style.display = 'none';
+        retakeBtn.style.display = 'none';
+        extractBtn.style.display = 'none';
+        capturedBlob = null;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            video.srcObject = stream;
+            cameraWrap.style.display = 'block';
+            shootBtn.style.display = 'block';
+        } catch(e) { startBtn.style.display = 'block'; }
+    });
+
+    extractBtn.addEventListener('click', async () => {
+        if (!capturedBlob) return;
+        loadingEl.style.display = 'block';
+        extractBtn.disabled = true;
+        try {
+            if (!window.Tesseract) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
+            }
+            const url = URL.createObjectURL(capturedBlob);
+            const result = await Tesseract.recognize(url, 'kor+eng', {
+                logger: m => { if (m.status === 'recognizing text') loadingEl.textContent = `⏳ 추출 중... ${Math.round(m.progress*100)}%`; }
+            });
+            URL.revokeObjectURL(url);
+            const text = result.data.text;
+            rawTextEl.textContent = text;
+            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+            // 전화번호
+            const phoneMatch = text.match(/(\d{2,3}[-.\s]?\d{3,4}[-.\s]?\d{4})/);
+            document.getElementById('cardPhone').value = phoneMatch ? phoneMatch[1].replace(/\s/g,'-') : '';
+
+            // 업체명
+            const companyLine = lines.find(l => /\(주\)|㈜|Co\.|Inc\.|주식회사|건설|인테리어|마루|건재|자재/i.test(l))
+                || lines.sort((a,b) => b.length - a.length)[0] || '';
+            document.getElementById('cardCompany').value = companyLine;
+
+            // 직급
+            const positionLine = lines.find(l => /대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장/i.test(l)) || '';
+            document.getElementById('cardPosition').value = positionLine;
+
+            // 이름
+            const nameLine = lines.find(l => /^[가-힣]{2,4}$/.test(l.replace(/\s/g,'')) && l !== positionLine) || '';
+            document.getElementById('cardName').value = nameLine;
+
+            formWrap.style.display = 'block';
+        } catch(e) {
+            showToast('추출 실패: ' + e.message);
+        } finally {
+            loadingEl.style.display = 'none';
+            loadingEl.textContent = '⏳ 텍스트 추출 중...';
+            extractBtn.disabled = false;
+        }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+        const company  = document.getElementById('cardCompany').value.trim();
+        const name     = document.getElementById('cardName').value.trim();
+        const position = document.getElementById('cardPosition').value.trim();
+        const phone    = document.getElementById('cardPhone').value.trim();
+        if (!company && !name && !phone) { showToast('저장할 정보를 입력해주세요.'); return; }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = '저장 중...';
+        try {
+            const today = new Date().toISOString().slice(0,10);
+            const res = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'appendRow',
+                    spreadsheetId: SHEET_CONFIG.ID,
+                    sheetName: SHEET_CONFIG.CONTACTS,
+                    row: [company, name, position, phone, today]
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'ok' || data.result === 'success' || data.success) {
+                showToast('✅ 저장 완료!');
+                ['cardCompany','cardName','cardPosition','cardPhone'].forEach(id => document.getElementById(id).value = '');
+                rawTextEl.textContent = '';
+                formWrap.style.display = 'none';
+                previewWrap.style.display = 'none';
+                retakeBtn.style.display = 'none';
+                extractBtn.style.display = 'none';
+                startBtn.style.display = 'block';
+                capturedBlob = null;
+            } else {
+                showToast('저장 실패: ' + JSON.stringify(data));
+            }
+        } catch(e) {
+            showToast('저장 오류: ' + e.message);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 구글 시트에 저장';
+        }
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.tab !== 'cardScanTab' && stream) {
+                stream.getTracks().forEach(t => t.stop());
+                stream = null;
+            }
+        });
+    });
+})();
+
+// ==================== 연락처 기능 ====================
+(function() {
+    let allContacts = [];
+
+    async function loadContacts() {
+        const loadingEl = document.getElementById('contactsLoading');
+        const listEl    = document.getElementById('contactsList');
+        const emptyEl   = document.getElementById('contactsEmpty');
+        loadingEl.style.display = 'block';
+        loadingEl.textContent = '불러오는 중...';
+        listEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+        try {
+            const rows = await fetchSheetJson(SHEET_CONFIG.CONTACTS);
+            allContacts = rows.map(r => ({
+                company:  r['업체명'] || '',
+                name:     r['이름']   || '',
+                position: r['직급']   || '',
+                phone:    r['연락처'] || '',
+                date:     r['등록일'] || '',
+            })).filter(r => r.company || r.name || r.phone);
+            renderContacts(allContacts);
+        } catch(e) {
+            loadingEl.textContent = '불러오기 실패: ' + e.message;
+        }
+    }
+
+    function renderContacts(list) {
+        const loadingEl = document.getElementById('contactsLoading');
+        const listEl    = document.getElementById('contactsList');
+        const emptyEl   = document.getElementById('contactsEmpty');
+        loadingEl.style.display = 'none';
+        if (!list.length) { emptyEl.style.display = 'block'; listEl.style.display = 'none'; return; }
+        listEl.style.display = 'flex';
+        listEl.innerHTML = list.map(c => `
+            <div style="background:#f9f9f9; border:1px solid #eee; border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <div>
+                    <div style="font-size:14px; font-weight:700; color:#111;">${c.company || '-'}</div>
+                    <div style="font-size:13px; color:#444; margin-top:2px;">${c.name}${c.position ? ` <span style="color:#888; font-size:11px;">${c.position}</span>` : ''}</div>
+                    <div style="font-size:13px; color:#3355cc; margin-top:2px;">${c.phone || '-'}</div>
+                </div>
+                <a href="tel:${c.phone}" style="padding:8px 14px; background:#111; color:#fff; border-radius:8px; font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap;">📞 전화</a>
+            </div>
+        `).join('');
+    }
+
+    document.getElementById('contactsSearch').addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        if (!q) { renderContacts(allContacts); return; }
+        renderContacts(allContacts.filter(c =>
+            c.company.toLowerCase().includes(q) ||
+            c.name.toLowerCase().includes(q) ||
+            c.phone.includes(q)
+        ));
+    });
+
+    document.getElementById('contactsRefreshBtn').addEventListener('click', loadContacts);
+    document.querySelector('[data-tab="contactsTab"]').addEventListener('click', () => {
+        if (!allContacts.length) loadContacts();
+    });
+})();
     const fileInput  = document.getElementById('fpFileInput');
     const analyzeBtn = document.getElementById('fpAnalyzeBtn');
     const previewWrap= document.getElementById('fpPreviewWrap');
