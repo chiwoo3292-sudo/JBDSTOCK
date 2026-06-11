@@ -3190,9 +3190,8 @@ video.addEventListener('click', async () => {
     const track = stream.getVideoTracks()[0];
     if (track && track.applyConstraints) {
         try {
-            await track.applyConstraints({
-                advanced: [{ focusMode: 'continuous' }]
-            });
+            await track.applyConstraints(track.getConstraints());
+            showToast('초점 조정됨');
         } catch (e) {
             console.warn('초점 재조정 실패:', e);
         }
