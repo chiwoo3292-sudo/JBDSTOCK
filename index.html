@@ -323,98 +323,24 @@
 </head>
 <body spellcheck="false">
 
-<div id="authOverlay">
-    <div class="auth-card">
-        <h2 style="margin: 0 0 10px; font-size: 20px; color: #111; font-weight: 700;">시스템 잠금</h2>
-        <p style="margin: 0 0 20px; font-size: 13px; color: #666;">프로그램을 이용하려면 비밀번호를 입력하세요.</p>
-        <input type="password" id="authPassword" placeholder="비밀번호 입력"
-               style="width:100%; height:48px; padding:0 12px; font-size:16px; border:1px solid #ddd; border-radius:12px; box-sizing:border-box; text-align:center; margin-bottom:14px;">
+
+<!-- ==================== 잠금 섹션 ==================== -->
+<section id="lockSection" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f5f5f5; z-index:99999; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+    <div style="background:#fff; padding:32px 24px; border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,0.1); text-align:center; width:90%; max-width:340px;">
+        <h2 style="margin:0 0 10px; font-size:20px; color:#111; font-weight:700;">시스템 잠금</h2>
+        <p style="margin:0 0 20px; font-size:13px; color:#666;">프로그램을 이용하려면 비밀번호를 입력하세요.</p>
+        <input type="password" id="authPassword" placeholder="비밀번호 입력" style="width:100%; height:48px; padding:0 12px; font-size:16px; border:1px solid #ddd; border-radius:12px; box-sizing:border-box; text-align:center; margin-bottom:14px;">
         <button id="authBtn" style="width:100%; height:48px; background:#111; color:#fff; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer;">확인</button>
         <p id="authError" style="margin:10px 0 0; font-size:12px; color:#d63031; display:none; font-weight:bold;">❌ 비밀번호가 올바르지 않습니다.</p>
     </div>
-</div>
+</section>
 
-<script>
-(function() {
-    const PASS = '7736';
-    const SESSION_KEY = 'baram_auth';
-    const mainContainer = document.querySelector('.wrap');
-    const overlay = document.getElementById('authOverlay');
 
-    // iOS 줌인 해제: scale을 0.1로 찍었다가 1.0으로 복구하면 Safari가 재계산
 
-    function resetScale() {
-    const meta = document.querySelector('meta[name="viewport"]');
-    if (!meta) return;
-    meta.content = 'width=device-width, initial-scale=0.1, maximum-scale=3.0, user-scalable=yes';
-    setTimeout(() => {
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes';
-    }, 50);
-}
 
-function unlock() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.style.display = 'none';
-    if (mainContainer) mainContainer.style.display = 'block';
 
-    // 렌더링 직후 무조건 최상단으로 이동
-    // requestAnimationFrame 이중 적용: 레이아웃 계산 완료 후 스크롤
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-            document.body.scrollTop = 0;
-            document.documentElement.scrollTop = 0;
-            // iOS Safari 대응: 추가 보험
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-                document.body.scrollTop = 0;
-                document.documentElement.scrollTop = 0;
-            }, 80);
-        });
-    });
-}
-
-    if (sessionStorage.getItem(SESSION_KEY) === '1') {
-        unlock();
-    } else {
-        if (mainContainer) mainContainer.style.display = 'none';
-    }
-
-    function checkPassword() {
-    const pwdInput = document.getElementById('authPassword');
-    const val = pwdInput.value;
-    const errorMsg = document.getElementById('authError');
-    
-    if (val === PASS) {
-        sessionStorage.setItem(SESSION_KEY, '1');
-        pwdInput.blur(); // 포커스 해제
-        unlock();
-    } else {
-        errorMsg.style.display = 'block';
-        pwdInput.value = '';
-        // 핵심: { preventScroll: true } 추가
-        pwdInput.focus({ preventScroll: true }); 
-    }
-}
-
-    document.getElementById('authBtn').addEventListener('click', checkPassword);
-    document.getElementById('authPassword').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') checkPassword();
-    });
-
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'F12' ||
-            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-            (e.ctrlKey && e.key === 'U')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-})();
-</script>
-  
-<div class="wrap">
+<section id="mainSection" style="display:none;">
+  <div class="wrap">
   <div class="tabs no-capture">
   <button type="button" class="tab-btn active" data-tab="pricingTab">단가표</button>
   <button type="button" class="tab-btn" data-tab="calculatorTab">계산기</button>
@@ -628,67 +554,6 @@ function unlock() {
       </div>
       <textarea id="workMemo" spellcheck="false" style="width:100%; flex: 1; min-height: 200px; padding:15px; border:1px solid #ddd; border-radius:8px; font-size:15px; line-height:1.6; resize:none; box-sizing:border-box; background:#fdfdfd; overflow-y:auto;" placeholder="업무 내용을 자유롭게 입력하세요..."></textarea>
     </div>
-
-    <script>
-    (function() {
-        const memoArea = document.getElementById('workMemo');
-        if (!memoArea) return;
-
-        // 1. 최초 저장 데이터 로드
-        memoArea.value = localStorage.getItem('baram_work_memo') || '';
-
-        // 타이핑 시 글씨를 쓰고 있는 '줄'을 감지해서 항상 내 눈높이(모니터 중간)에 맞춰주는 특수 마법 함수
-        const keepEyesLevel = () => {
-            // 메모 탭이 숨겨져 있을 때는 스크롤 보정을 완전히 정지 (비밀번호 화면 등 튕김 차단)
-            const panel = document.getElementById('memoTab');
-            if (!panel || panel.style.display === 'none') return;
-
-            // 현재 사용자가 글자를 입력하고 있는 커서의 줄 위치 계산
-            const cursorPosition = memoArea.selectionStart;
-            const textUpToCursor = memoArea.value.substring(0, cursorPosition);
-            const currentLineNum = textUpToCursor.split('\n').length;
-            const totalLines = memoArea.value.split('\n').length;
-
-            // 줄바꿈이 일어났거나 긴 글 하단을 수정 중일 때
-            const lineHeight = 24; // 글자 크기 대비 1줄당 대략적인 높이(px)
-            const currentCursorTop = currentLineNum * lineHeight;
-            const memoVisibleHeight = memoArea.clientHeight;
-
-            // 커서가 입력창 내에서 현재 보여지는 스크롤 화면의 하단 구역(70% 지점)을 넘어가려고 하면
-            if (currentCursorTop > memoArea.scrollTop + (memoVisibleHeight * 0.7)) {
-                // 커서 줄이 메모창의 정중앙에 배치되도록 메모장 내부 스크롤을 실시간으로 슥 올려줍니다.
-                memoArea.scrollTop = currentCursorTop - (memoVisibleHeight / 2);
-            }
-        };
-
-        // 2. 글자 입력할 때마다 저장 및 눈높이 추적 실행
-        memoArea.addEventListener('input', () => {
-            localStorage.setItem('baram_work_memo', memoArea.value);
-            keepEyesLevel();
-        });
-
-        // 방향키 이동, 엔터, 지우기, 마우스 클릭 시에도 완벽하게 내 시선을 추적합니다.
-        memoArea.addEventListener('click', keepEyesLevel);
-        memoArea.addEventListener('keyup', (e) => {
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace'].includes(e.key)) {
-                keepEyesLevel();
-            }
-        });
-
-        // 3. 상단 탭 버튼 클릭하여 메모장 켜질 때 스크롤 초기 세팅
-
-        // 전체 삭제 기능 연동
-        const clearBtn = document.getElementById('clearMemo');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                if (confirm('메모장의 모든 내용을 정말로 삭제하시겠습니까?')) {
-                    memoArea.value = '';
-                    localStorage.removeItem('baram_work_memo');
-                }
-            });
-        }
-    })();
-    </script>
 </section>
 
 <section id="stockTab" class="tab-panel">
@@ -821,7 +686,7 @@ function unlock() {
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand { display:block; margin-left:7px; font-family:'Times New Roman',serif; font-size:13px; color:#111; line-height:1; letter-spacing:5px; white-space:nowrap; }
+.inv-brand { display:block; margin-left:7px; font-family:'Times New Roman',serif; font-size:12px; color:#111; line-height:1; letter-spacing:10px; white-space:nowrap; }
 /* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
 .inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
@@ -1194,58 +1059,90 @@ function unlock() {
 
 <!-- ==================== 명함스캐닝 탭 ==================== -->
 <section id="cardScanTab" class="tab-panel" style="display:none;">
-  <div class="card" style="max-width:480px; margin:0 auto;">
+  <div class="card" style="max-width:520px; margin:0 auto;">
     <h2 style="margin-bottom:6px;">📷 명함 스캐닝</h2>
-    <p style="font-size:13px; color:#888; margin-bottom:16px;">명함을 촬영하면 텍스트를 자동 추출합니다.</p>
+    <p style="font-size:13px; color:#888; margin-bottom:16px;">명함을 촬영하면 텍스트를 자동 추출합니다. 모든 필드 직접 수정 가능합니다.</p>
 
-    <!-- 카메라 뷰 -->
-    <div id="cardCameraWrap" style="display:none; position:relative; width:100%; border-radius:14px; overflow:hidden; background:#000; margin-bottom:12px;">
-      <video id="cardVideo" autoplay playsinline style="width:100%; display:block;"></video>
-      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.45);"></div>
-        <div style="position:relative; width:82%; aspect-ratio:16/10; border:2px solid rgba(255,255,255,0.8); border-radius:8px; z-index:2;">
-          <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); color:#fff; font-size:11px; white-space:nowrap; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,.7);">명함을 사각형 안에 맞춰주세요</div>
-          <div style="position:absolute; top:-2px; left:-2px; width:18px; height:18px; border-top:3px solid #4cf; border-left:3px solid #4cf; border-radius:3px 0 0 0;"></div>
-          <div style="position:absolute; top:-2px; right:-2px; width:18px; height:18px; border-top:3px solid #4cf; border-right:3px solid #4cf; border-radius:0 3px 0 0;"></div>
-          <div style="position:absolute; bottom:-2px; left:-2px; width:18px; height:18px; border-bottom:3px solid #4cf; border-left:3px solid #4cf; border-radius:0 0 0 3px;"></div>
-          <div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-bottom:3px solid #4cf; border-right:3px solid #4cf; border-radius:0 0 3px 0;"></div>
-        </div>
-      </div>
-      <canvas id="cardCanvas" style="display:none;"></canvas>
-    </div>
+    <button type="button" id="cardStartBtn" style="width:100%; padding:14px; background:#111; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:12px;">📷 명함 촬영</button>
 
     <!-- 촬영 이미지 미리보기 -->
-    <div id="cardPreviewWrap" style="display:none; margin-bottom:12px; text-align:center;">
-      <img id="cardPreviewImg" style="max-width:100%; border-radius:10px; border:1px solid #eee;">
+    <div id="cardPreviewWrap" style="display:none; margin-bottom:16px;">
+      <img id="cardPreviewImg" style="width:100%; border-radius:12px; border:1px solid #eee; display:block;">
     </div>
 
-    <!-- 버튼 -->
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
-      <button type="button" id="cardStartBtn" style="grid-column:1/-1; padding:13px; background:#111; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📷 카메라 시작</button>
-      <button type="button" id="cardShootBtn" style="padding:13px; background:#3355cc; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:none;">⚡ 촬영</button>
-      <button type="button" id="cardRetakeBtn" style="padding:13px; background:#888; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:none;">🔄 다시찍기</button>
-      <button type="button" id="cardExtractBtn" style="padding:13px; background:#4caf50; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:none;">🔍 텍스트 추출</button>
+    <!-- OCR 로딩 -->
+    <div id="cardLoading" style="display:none; text-align:center; padding:24px; color:#888; font-size:13px; background:#f9f9f9; border-radius:12px; margin-bottom:16px;">
+      <div style="font-size:28px; margin-bottom:8px;">⏳</div>
+      <div id="cardLoadingText">텍스트 추출 중...</div>
     </div>
 
-    <div id="cardLoading" style="display:none; text-align:center; padding:16px; color:#888; font-size:13px;">⏳ 텍스트 추출 중...</div>
-
-    <!-- 추출 결과 입력폼 -->
+    <!-- 데이터 입력 폼 -->
     <div id="cardFormWrap" style="display:none;">
-      <div style="background:#f0f7ff; border:1px solid #c0d8ff; border-radius:12px; padding:14px; margin-bottom:14px;">
-        <div style="font-size:12px; color:#3355cc; font-weight:700; margin-bottom:10px;">📝 추출된 정보 확인 및 수정</div>
-        <div class="inv-field"><div class="inv-label">업체명</div><input type="text" id="cardCompany" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
-        <div class="inv-field"><div class="inv-label">이름</div><input type="text" id="cardName" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
-        <div class="inv-field"><div class="inv-label">직급</div><input type="text" id="cardPosition" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
-        <div class="inv-field" style="margin-bottom:0;"><div class="inv-label">연락처</div><input type="text" id="cardPhone" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;"></div>
+      <div style="background:#f0f7ff; border:1px solid #c0d8ff; border-radius:14px; padding:16px; margin-bottom:14px;">
+        <div style="font-size:12px; color:#3355cc; font-weight:700; margin-bottom:14px;">📝 정보 확인 및 수정 (모든 항목 직접 입력 가능)</div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">업체명</div>
+          <input type="text" id="cardCompany" placeholder="업체명 직접 입력" style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; box-sizing:border-box;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div>
+            <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">이름</div>
+            <input type="text" id="cardName" placeholder="직접 입력" style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; box-sizing:border-box;">
+          </div>
+          <div>
+            <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">직급</div>
+            <input type="text" id="cardPosition" placeholder="직접 입력" style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">모바일 <span style="color:#aaa; font-weight:400;">(010-XXXX-XXXX)</span></div>
+          <input type="tel" id="cardMobile" placeholder="010-0000-0000" style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; box-sizing:border-box;">
+        </div>
+        <div>
+          <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">유선번호 <span style="color:#aaa; font-weight:400;">(XX-XXXX-XXXX)</span></div>
+          <input type="tel" id="cardPhone" placeholder="02-0000-0000" style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; box-sizing:border-box;">
+        </div>
       </div>
+
       <details style="margin-bottom:14px;">
-        <summary style="font-size:12px; color:#aaa; cursor:pointer;">원본 추출 텍스트 보기</summary>
-        <div id="cardRawText" style="font-size:11px; color:#666; background:#f9f9f9; border-radius:8px; padding:10px; margin-top:6px; white-space:pre-wrap; line-height:1.6;"></div>
+        <summary style="font-size:12px; color:#aaa; cursor:pointer; padding:6px 0;">원본 추출 텍스트 보기</summary>
+        <div id="cardRawText" style="font-size:11px; color:#666; background:#f9f9f9; border-radius:8px; padding:10px; margin-top:6px; white-space:pre-wrap; line-height:1.6; max-height:150px; overflow-y:auto;"></div>
       </details>
-      <button type="button" id="cardSaveBtn" style="width:100%; padding:13px; background:#111; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;">💾 구글 시트에 저장</button>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <button type="button" id="cardRetakeBtn" style="padding:13px; background:#888; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">🔄 다시찍기</button>
+        <button type="button" id="cardSaveBtn" style="padding:13px; background:#111; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;">💾 저장</button>
+      </div>
     </div>
   </div>
 </section>
+
+<!-- 전체화면 카메라 오버레이 -->
+<div id="cameraOverlay" style="display:none; position:fixed; inset:0; z-index:9999; background:#000;">
+  <video id="cardVideo" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; display:block;"></video>
+  <canvas id="cardCanvas" style="display:none;"></canvas>
+  <!-- 가이드 오버레이 -->
+  <div style="position:absolute; inset:0; pointer-events:none;">
+    <div style="position:absolute; top:0; left:0; right:0; height:20%; background:rgba(0,0,0,0.6);"></div>
+    <div style="position:absolute; bottom:0; left:0; right:0; height:25%; background:rgba(0,0,0,0.6);"></div>
+    <div style="position:absolute; top:20%; bottom:25%; left:0; width:5%; background:rgba(0,0,0,0.6);"></div>
+    <div style="position:absolute; top:20%; bottom:25%; right:0; width:5%; background:rgba(0,0,0,0.6);"></div>
+    <div style="position:absolute; top:20%; bottom:25%; left:5%; right:5%; border:2px solid rgba(255,255,255,0.8); border-radius:8px;">
+      <div style="position:absolute; top:-28px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; white-space:nowrap; font-weight:700; text-shadow:0 1px 4px rgba(0,0,0,.8);">명함을 아래 네모 영역에 위치시킨 후 촬영해주세요!</div>
+      <div style="position:absolute; top:-2px; left:-2px; width:22px; height:22px; border-top:4px solid #4cf; border-left:4px solid #4cf; border-radius:4px 0 0 0;"></div>
+      <div style="position:absolute; top:-2px; right:-2px; width:22px; height:22px; border-top:4px solid #4cf; border-right:4px solid #4cf; border-radius:0 4px 0 0;"></div>
+      <div style="position:absolute; bottom:-2px; left:-2px; width:22px; height:22px; border-bottom:4px solid #4cf; border-left:4px solid #4cf; border-radius:0 0 0 4px;"></div>
+      <div style="position:absolute; bottom:-2px; right:-2px; width:22px; height:22px; border-bottom:4px solid #4cf; border-right:4px solid #4cf; border-radius:0 0 4px 0;"></div>
+    </div>
+  </div>
+  <!-- 하단 컨트롤 -->
+  <div style="position:absolute; bottom:0; left:0; right:0; height:25%; display:flex; align-items:center; justify-content:space-between; padding:0 32px;">
+    <button type="button" id="overlayCancelBtn" style="padding:10px 22px; background:rgba(255,255,255,0.15); color:#fff; border:2px solid rgba(255,255,255,0.4); border-radius:50px; font-size:14px; font-weight:700; cursor:pointer;">✕ 취소</button>
+    <button type="button" id="overlayShootBtn" style="width:72px; height:72px; background:#fff; border:4px solid rgba(255,255,255,0.4); border-radius:50%; font-size:28px; cursor:pointer; box-shadow:0 0 0 6px rgba(255,255,255,0.2);">📷</button>
+    <div style="width:80px;"></div>
+  </div>
+</div>
 
 <!-- ==================== 연락처 탭 ==================== -->
 <section id="contactsTab" class="tab-panel" style="display:none;">
@@ -1254,12 +1151,162 @@ function unlock() {
       <h2 style="margin:0;">📋 연락처</h2>
       <button type="button" id="contactsRefreshBtn" style="padding:6px 14px; background:#111; color:#fff; border:none; border-radius:8px; font-size:12px; cursor:pointer;">🔄 새로고침</button>
     </div>
-    <input type="text" id="contactsSearch" placeholder="업체명 / 이름 / 연락처 검색" style="width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:10px; font-size:14px; margin-bottom:14px;">
-    <div id="contactsLoading" style="text-align:center; color:#aaa; font-size:13px; padding:20px;">불러오는 중...</div>
-    <div id="contactsList" style="display:none; display:flex; flex-direction:column; gap:8px;"></div>
-    <div id="contactsEmpty" style="display:none; text-align:center; color:#aaa; font-size:13px; padding:30px;">저장된 연락처가 없습니다.</div>
+    <input type="text" id="contactsSearch" placeholder="🔍  업체명 / 이름 / 번호 검색" style="width:100%; padding:12px 16px; border:1px solid #ddd; border-radius:12px; font-size:14px; margin-bottom:16px; background:#f9f9f9; box-sizing:border-box;">
+    <div id="contactsLoading" style="text-align:center; color:#aaa; font-size:13px; padding:30px;">불러오는 중...</div>
+    <div id="contactsList" style="display:none; display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
+    <div id="contactsEmpty" style="display:none; text-align:center; color:#aaa; font-size:13px; padding:40px;">저장된 연락처가 없습니다.</div>
+  </div>
+  <!-- 툴팁 팝업 -->
+  <div id="contactTooltip" style="display:none; position:fixed; inset:0; z-index:8888; background:rgba(0,0,0,0.5);" onclick="this.style.display='none'">
+    <div style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:20px 20px 0 0; padding:24px 20px 36px; max-width:600px; margin:0 auto;" onclick="event.stopPropagation()">
+      <div style="width:40px; height:4px; background:#ddd; border-radius:2px; margin:0 auto 20px;"></div>
+      <div id="tooltipCompany" style="font-size:18px; font-weight:800; color:#111; margin-bottom:4px;"></div>
+      <div id="tooltipNamePos" style="font-size:14px; color:#666; margin-bottom:20px;"></div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div id="tooltipMobileRow" style="display:none; align-items:center; justify-content:space-between; background:#f9f9f9; border-radius:12px; padding:12px 16px;">
+          <div>
+            <div style="font-size:11px; color:#aaa; font-weight:700; margin-bottom:2px;">모바일</div>
+            <div id="tooltipMobile" style="font-size:16px; font-weight:700; color:#111;"></div>
+          </div>
+          <a id="tooltipMobileCall" href="#" style="padding:10px 18px; background:#111; color:#fff; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">📞 전화</a>
+        </div>
+        <div id="tooltipPhoneRow" style="display:none; align-items:center; justify-content:space-between; background:#f9f9f9; border-radius:12px; padding:12px 16px;">
+          <div>
+            <div style="font-size:11px; color:#aaa; font-weight:700; margin-bottom:2px;">유선번호</div>
+            <div id="tooltipPhone" style="font-size:16px; font-weight:700; color:#111;"></div>
+          </div>
+          <a id="tooltipPhoneCall" href="#" style="padding:10px 18px; background:#555; color:#fff; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">📞 전화</a>
+        </div>
+      </div>
+      <button onclick="document.getElementById('contactTooltip').style.display='none'" style="width:100%; margin-top:20px; padding:14px; background:#f0f0f0; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; color:#555;">닫기</button>
+    </div>
   </div>
 </section>
+
+<script>
+(function() {
+localStorage.removeItem('baram_auth');
+sessionStorage.removeItem('baram_auth');
+    const PASS = '7736';
+    const SESSION_KEY = 'baram_auth';
+    
+    const lockSection = document.getElementById('lockSection');
+    const mainSection = document.getElementById('mainSection');
+    const authBtn = document.getElementById('authBtn');
+    const authPassword = document.getElementById('authPassword');
+    const authError = document.getElementById('authError');
+
+    // 잠금 중 body 스크롤 차단
+    function lockBody() {
+        document.body.style.overflow = 'hidden';
+    }
+    function unlockBody() {
+        document.body.style.overflow = '';
+    }
+    
+    function unlock() {
+    if (lockSection) lockSection.style.display = 'none';
+    if (mainSection) mainSection.style.display = 'block';
+    localStorage.setItem(SESSION_KEY, '1');
+    unlockBody();
+    window.scrollTo(0, 0);
+}
+    
+    function checkPassword() {
+        const val = authPassword.value;
+        if (val === PASS) {
+            unlock();
+        } else {
+            authError.style.display = 'block';
+            authPassword.value = '';
+            authPassword.focus();
+        }
+    }
+    
+    if (localStorage.getItem(SESSION_KEY) === '1') {
+        unlock();
+    } else {
+        lockBody();
+    }
+    
+    authBtn.addEventListener('click', checkPassword);
+    authPassword.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') checkPassword();
+    });
+    
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+            (e.ctrlKey && e.key === 'U')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+})();
+</script>
+
+<script>
+    (function() {
+        const memoArea = document.getElementById('workMemo');
+        if (!memoArea) return;
+
+        // 1. 최초 저장 데이터 로드
+        memoArea.value = localStorage.getItem('baram_work_memo') || '';
+
+        // 타이핑 시 글씨를 쓰고 있는 '줄'을 감지해서 항상 내 눈높이(모니터 중간)에 맞춰주는 특수 마법 함수
+        const keepEyesLevel = () => {
+            // 메모 탭이 숨겨져 있을 때는 스크롤 보정을 완전히 정지 (비밀번호 화면 등 튕김 차단)
+            const panel = document.getElementById('memoTab');
+            if (!panel || panel.style.display === 'none') return;
+
+            // 현재 사용자가 글자를 입력하고 있는 커서의 줄 위치 계산
+            const cursorPosition = memoArea.selectionStart;
+            const textUpToCursor = memoArea.value.substring(0, cursorPosition);
+            const currentLineNum = textUpToCursor.split('\n').length;
+            const totalLines = memoArea.value.split('\n').length;
+
+            // 줄바꿈이 일어났거나 긴 글 하단을 수정 중일 때
+            const lineHeight = 24; // 글자 크기 대비 1줄당 대략적인 높이(px)
+            const currentCursorTop = currentLineNum * lineHeight;
+            const memoVisibleHeight = memoArea.clientHeight;
+
+            // 커서가 입력창 내에서 현재 보여지는 스크롤 화면의 하단 구역(70% 지점)을 넘어가려고 하면
+            if (currentCursorTop > memoArea.scrollTop + (memoVisibleHeight * 0.7)) {
+                // 커서 줄이 메모창의 정중앙에 배치되도록 메모장 내부 스크롤을 실시간으로 슥 올려줍니다.
+                memoArea.scrollTop = currentCursorTop - (memoVisibleHeight / 2);
+            }
+        };
+
+        // 2. 글자 입력할 때마다 저장 및 눈높이 추적 실행
+        memoArea.addEventListener('input', () => {
+            localStorage.setItem('baram_work_memo', memoArea.value);
+            keepEyesLevel();
+        });
+
+        // 방향키 이동, 엔터, 지우기, 마우스 클릭 시에도 완벽하게 내 시선을 추적합니다.
+        memoArea.addEventListener('click', keepEyesLevel);
+        memoArea.addEventListener('keyup', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace'].includes(e.key)) {
+                keepEyesLevel();
+            }
+        });
+
+        // 3. 상단 탭 버튼 클릭하여 메모장 켜질 때 스크롤 초기 세팅
+
+        // 전체 삭제 기능 연동
+        const clearBtn = document.getElementById('clearMemo');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (confirm('메모장의 모든 내용을 정말로 삭제하시겠습니까?')) {
+                    memoArea.value = '';
+                    localStorage.removeItem('baram_work_memo');
+                }
+            });
+        }
+    })();
+    </script>
+
 
 <script>
 // products 배열은 PRICE 시트에서 동적으로 로드됩니다.
@@ -3076,70 +3123,88 @@ async function saveInvoicePdf() {
     let stream = null;
     let capturedBlob = null;
 
-    const cameraWrap  = document.getElementById('cardCameraWrap');
-    const video       = document.getElementById('cardVideo');
-    const canvas      = document.getElementById('cardCanvas');
+    const startBtn    = document.getElementById('cardStartBtn');
+    const retakeBtn   = document.getElementById('cardRetakeBtn');
+    const saveBtn     = document.getElementById('cardSaveBtn');
     const previewWrap = document.getElementById('cardPreviewWrap');
     const previewImg  = document.getElementById('cardPreviewImg');
-    const startBtn    = document.getElementById('cardStartBtn');
-    const shootBtn    = document.getElementById('cardShootBtn');
-    const retakeBtn   = document.getElementById('cardRetakeBtn');
-    const extractBtn  = document.getElementById('cardExtractBtn');
     const loadingEl   = document.getElementById('cardLoading');
+    const loadingText = document.getElementById('cardLoadingText');
     const formWrap    = document.getElementById('cardFormWrap');
     const rawTextEl   = document.getElementById('cardRawText');
-    const saveBtn     = document.getElementById('cardSaveBtn');
+    const overlay     = document.getElementById('cameraOverlay');
+    const video       = document.getElementById('cardVideo');
+    const canvas      = document.getElementById('cardCanvas');
+    const shootBtn    = document.getElementById('overlayShootBtn');
+    const cancelBtn   = document.getElementById('overlayCancelBtn');
 
+    function resetForm() {
+        ['cardCompany','cardName','cardPosition','cardMobile','cardPhone']
+            .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+        if (rawTextEl) rawTextEl.textContent = '';
+    }
+
+    function stopCamera() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        overlay.style.display = 'none';
+        if (window.screen.orientation && window.screen.orientation.unlock) {
+            window.screen.orientation.unlock();
+        }
+    }
+
+    // ── 명함 촬영 버튼 ──
     startBtn.addEventListener('click', async () => {
+        resetForm();
+        previewWrap.style.display = 'none';
+        formWrap.style.display = 'none';
         try {
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+                video: { facingMode: { exact: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
             });
-            video.srcObject = stream;
-            cameraWrap.style.display = 'block';
-            startBtn.style.display = 'none';
-            shootBtn.style.display = 'block';
-            formWrap.style.display = 'none';
-            previewWrap.style.display = 'none';
-        } catch(e) { showToast('카메라 접근 실패: ' + e.message); }
+        } catch(e) {
+            // 후면카메라 없으면 기본 카메라로 재시도
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+                });
+            } catch(e2) {
+                showToast('카메라 접근 실패: ' + e2.message); return;
+            }
+        }
+        video.srcObject = stream;
+        overlay.style.display = 'block';
+        // 가로모드 전환 시도
+        if (window.screen.orientation && window.screen.orientation.lock) {
+            window.screen.orientation.lock('landscape').catch(() => {});
+        }
     });
 
+    // ── 촬영 버튼 ──
     shootBtn.addEventListener('click', () => {
-        canvas.width  = video.videoWidth;
-        canvas.height = video.videoHeight;
+        if (!stream) return;
+        canvas.width  = video.videoWidth  || 1280;
+        canvas.height = video.videoHeight || 720;
         canvas.getContext('2d').drawImage(video, 0, 0);
         canvas.toBlob(blob => {
             capturedBlob = blob;
             previewImg.src = URL.createObjectURL(blob);
+            stopCamera();
             previewWrap.style.display = 'block';
-            cameraWrap.style.display = 'none';
-            shootBtn.style.display = 'none';
-            retakeBtn.style.display = 'block';
-            extractBtn.style.display = 'block';
-            if (stream) stream.getTracks().forEach(t => t.stop());
+            runOCR();
         }, 'image/jpeg', 0.95);
     });
 
-    retakeBtn.addEventListener('click', async () => {
-        previewWrap.style.display = 'none';
-        formWrap.style.display = 'none';
-        retakeBtn.style.display = 'none';
-        extractBtn.style.display = 'none';
-        capturedBlob = null;
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            video.srcObject = stream;
-            cameraWrap.style.display = 'block';
-            shootBtn.style.display = 'block';
-        } catch(e) { startBtn.style.display = 'block'; }
-    });
+    // ── 취소 버튼 ──
+    cancelBtn.addEventListener('click', stopCamera);
 
-    extractBtn.addEventListener('click', async () => {
-        if (!capturedBlob) return;
+    // ── OCR 실행 ──
+    async function runOCR() {
         loadingEl.style.display = 'block';
-        extractBtn.disabled = true;
+        formWrap.style.display = 'none';
+        if (loadingText) loadingText.textContent = '텍스트 추출 중...';
         try {
             if (!window.Tesseract) {
+                if (loadingText) loadingText.textContent = 'OCR 엔진 로딩 중...';
                 await new Promise((res, rej) => {
                     const s = document.createElement('script');
                     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
@@ -3149,51 +3214,88 @@ async function saveInvoicePdf() {
             }
             const url = URL.createObjectURL(capturedBlob);
             const result = await Tesseract.recognize(url, 'kor+eng', {
-                logger: m => { if (m.status === 'recognizing text') loadingEl.textContent = `⏳ 추출 중... ${Math.round(m.progress*100)}%`; }
+                logger: m => {
+                    if (m.status === 'recognizing text' && loadingText)
+                        loadingText.textContent = `추출 중... ${Math.round(m.progress * 100)}%`;
+                }
             });
             URL.revokeObjectURL(url);
             const text = result.data.text;
             rawTextEl.textContent = text;
-            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-            // 전화번호
-            const phoneMatch = text.match(/(\d{2,3}[-.\s]?\d{3,4}[-.\s]?\d{4})/);
-            document.getElementById('cardPhone').value = phoneMatch ? phoneMatch[1].replace(/\s/g,'-') : '';
-
-            // 업체명
-            const companyLine = lines.find(l => /\(주\)|㈜|Co\.|Inc\.|주식회사|건설|인테리어|마루|건재|자재/i.test(l))
-                || lines.sort((a,b) => b.length - a.length)[0] || '';
-            document.getElementById('cardCompany').value = companyLine;
-
-            // 직급
-            const positionLine = lines.find(l => /대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장/i.test(l)) || '';
-            document.getElementById('cardPosition').value = positionLine;
-
-            // 이름
-            const nameLine = lines.find(l => /^[가-힣]{2,4}$/.test(l.replace(/\s/g,'')) && l !== positionLine) || '';
-            document.getElementById('cardName').value = nameLine;
-
-            formWrap.style.display = 'block';
+            parseAndFill(text);
         } catch(e) {
-            showToast('추출 실패: ' + e.message);
+            if (loadingText) loadingText.textContent = '추출 실패 - 직접 입력해주세요';
+            await new Promise(r => setTimeout(r, 1200));
         } finally {
             loadingEl.style.display = 'none';
-            loadingEl.textContent = '⏳ 텍스트 추출 중...';
-            extractBtn.disabled = false;
+            formWrap.style.display = 'block';
         }
+    }
+
+    // ── 텍스트 파싱 ──
+    function parseAndFill(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+        // 모바일 (010)
+        const mobileMatch = text.match(/010[-.\s]?\d{3,4}[-.\s]?\d{4}/);
+        document.getElementById('cardMobile').value = mobileMatch ? formatPhone(mobileMatch[0]) : '';
+
+        // 유선 (010 제외)
+        const allPhones = [...text.matchAll(/\d{2,3}[-.\s]?\d{3,4}[-.\s]?\d{4}/g)];
+        const landline = allPhones.find(m => !m[0].replace(/\D/g,'').startsWith('010'));
+        document.getElementById('cardPhone').value = landline ? formatPhone(landline[0]) : '';
+
+        // 업체명
+        const companyLine = lines.find(l =>
+            /\(주\)|㈜|Co\.|Inc\.|주식회사|건설|인테리어|마루|건재|자재|그룹|기업|산업|유한|파트너|엔터|서비스/i.test(l)) || '';
+        document.getElementById('cardCompany').value = companyLine;
+
+        // 직급
+        const positionLine = lines.find(l =>
+            /대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저|director|manager/i.test(l)) || '';
+        document.getElementById('cardPosition').value = positionLine;
+
+        // 이름 (2~4글자 한글)
+        const nameLine = lines.find(l =>
+            /^[가-힣]{2,4}$/.test(l.replace(/\s/g, '')) && l !== positionLine) || '';
+        document.getElementById('cardName').value = nameLine;
+    }
+
+    function formatPhone(raw) {
+        const d = raw.replace(/\D/g, '');
+        if (d.length === 11) return d.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+        if (d.length === 10) {
+            if (d.startsWith('02')) return d.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+            return d.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        }
+        if (d.length === 9 && d.startsWith('02')) return d.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+        return raw;
+    }
+
+    // ── 다시찍기 ──
+    retakeBtn.addEventListener('click', () => {
+        previewWrap.style.display = 'none';
+        formWrap.style.display = 'none';
+        capturedBlob = null;
+        resetForm();
+        startBtn.click();
     });
 
+    // ── 저장 ──
     saveBtn.addEventListener('click', async () => {
         const company  = document.getElementById('cardCompany').value.trim();
         const name     = document.getElementById('cardName').value.trim();
         const position = document.getElementById('cardPosition').value.trim();
+        const mobile   = document.getElementById('cardMobile').value.trim();
         const phone    = document.getElementById('cardPhone').value.trim();
-        if (!company && !name && !phone) { showToast('저장할 정보를 입력해주세요.'); return; }
+        const today    = new Date().toISOString().slice(0, 10);
 
+        if (!company && !name && !mobile && !phone) {
+            showToast('저장할 정보를 입력해주세요.'); return;
+        }
         saveBtn.disabled = true;
         saveBtn.textContent = '저장 중...';
         try {
-            const today = new Date().toISOString().slice(0,10);
             const res = await fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -3201,20 +3303,16 @@ async function saveInvoicePdf() {
                     action: 'appendRow',
                     spreadsheetId: SHEET_CONFIG.ID,
                     sheetName: SHEET_CONFIG.CONTACTS,
-                    row: [company, name, position, phone, today]
+                    row: [company, name, position, mobile, phone, today]
                 })
             });
             const data = await res.json();
             if (data.status === 'ok' || data.result === 'success' || data.success) {
                 showToast('✅ 저장 완료!');
-                ['cardCompany','cardName','cardPosition','cardPhone'].forEach(id => document.getElementById(id).value = '');
-                rawTextEl.textContent = '';
-                formWrap.style.display = 'none';
                 previewWrap.style.display = 'none';
-                retakeBtn.style.display = 'none';
-                extractBtn.style.display = 'none';
-                startBtn.style.display = 'block';
+                formWrap.style.display = 'none';
                 capturedBlob = null;
+                resetForm();
             } else {
                 showToast('저장 실패: ' + JSON.stringify(data));
             }
@@ -3222,16 +3320,14 @@ async function saveInvoicePdf() {
             showToast('저장 오류: ' + e.message);
         } finally {
             saveBtn.disabled = false;
-            saveBtn.textContent = '💾 구글 시트에 저장';
+            saveBtn.textContent = '💾 저장';
         }
     });
 
+    // 탭 이동 시 카메라 정지
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (btn.dataset.tab !== 'cardScanTab' && stream) {
-                stream.getTracks().forEach(t => t.stop());
-                stream = null;
-            }
+            if (btn.dataset.tab !== 'cardScanTab') stopCamera();
         });
     });
 })();
@@ -3251,12 +3347,13 @@ async function saveInvoicePdf() {
         try {
             const rows = await fetchSheetJson(SHEET_CONFIG.CONTACTS);
             allContacts = rows.map(r => ({
-                company:  r['업체명'] || '',
-                name:     r['이름']   || '',
-                position: r['직급']   || '',
-                phone:    r['연락처'] || '',
-                date:     r['등록일'] || '',
-            })).filter(r => r.company || r.name || r.phone);
+                company:  r['업체명']   || '',
+                name:     r['이름']     || '',
+                position: r['직급']     || '',
+                mobile:   r['모바일']   || '',
+                phone:    r['유선번호'] || '',
+                date:     r['등록일']   || '',
+            })).filter(r => r.company || r.name || r.mobile || r.phone);
             renderContacts(allContacts);
         } catch(e) {
             loadingEl.textContent = '불러오기 실패: ' + e.message;
@@ -3268,19 +3365,46 @@ async function saveInvoicePdf() {
         const listEl    = document.getElementById('contactsList');
         const emptyEl   = document.getElementById('contactsEmpty');
         loadingEl.style.display = 'none';
-        if (!list.length) { emptyEl.style.display = 'block'; listEl.style.display = 'none'; return; }
-        listEl.style.display = 'flex';
-        listEl.innerHTML = list.map(c => `
-            <div style="background:#f9f9f9; border:1px solid #eee; border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
-                <div>
-                    <div style="font-size:14px; font-weight:700; color:#111;">${c.company || '-'}</div>
-                    <div style="font-size:13px; color:#444; margin-top:2px;">${c.name}${c.position ? ` <span style="color:#888; font-size:11px;">${c.position}</span>` : ''}</div>
-                    <div style="font-size:13px; color:#3355cc; margin-top:2px;">${c.phone || '-'}</div>
-                </div>
-                <a href="tel:${c.phone}" style="padding:8px 14px; background:#111; color:#fff; border-radius:8px; font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap;">📞 전화</a>
+        if (!list.length) {
+            emptyEl.style.display = 'block';
+            listEl.style.display = 'none';
+            return;
+        }
+        listEl.style.display = 'grid';
+        listEl.innerHTML = list.map((c, i) => `
+            <div onclick="showContactTooltip(${i})" style="background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <div style="width:42px; height:42px; background:#111; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:18px;">🏢</div>
+                <div style="font-size:13px; font-weight:800; color:#111; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.company || '-'}</div>
+                <div style="font-size:12px; color:#555; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name || ''}${c.position ? ' · ' + c.position : ''}</div>
+                <div style="font-size:12px; color:#3355cc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.mobile || c.phone || '-'}</div>
             </div>
         `).join('');
     }
+
+    window.showContactTooltip = function(idx) {
+        const c = allContacts[idx];
+        if (!c) return;
+        document.getElementById('tooltipCompany').textContent = c.company || '-';
+        document.getElementById('tooltipNamePos').textContent =
+            [c.name, c.position].filter(Boolean).join(' · ') || '-';
+
+        const mobileRow = document.getElementById('tooltipMobileRow');
+        const phoneRow  = document.getElementById('tooltipPhoneRow');
+
+        if (c.mobile) {
+            document.getElementById('tooltipMobile').textContent = c.mobile;
+            document.getElementById('tooltipMobileCall').href = 'tel:' + c.mobile;
+            mobileRow.style.display = 'flex';
+        } else { mobileRow.style.display = 'none'; }
+
+        if (c.phone) {
+            document.getElementById('tooltipPhone').textContent = c.phone;
+            document.getElementById('tooltipPhoneCall').href = 'tel:' + c.phone;
+            phoneRow.style.display = 'flex';
+        } else { phoneRow.style.display = 'none'; }
+
+        document.getElementById('contactTooltip').style.display = 'block';
+    };
 
     document.getElementById('contactsSearch').addEventListener('input', function() {
         const q = this.value.trim().toLowerCase();
@@ -3288,7 +3412,8 @@ async function saveInvoicePdf() {
         renderContacts(allContacts.filter(c =>
             c.company.toLowerCase().includes(q) ||
             c.name.toLowerCase().includes(q) ||
-            c.phone.includes(q)
+            (c.mobile && c.mobile.includes(q)) ||
+            (c.phone  && c.phone.includes(q))
         ));
     });
 
@@ -3468,5 +3593,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
 </body>
 </html>
