@@ -890,6 +890,10 @@
         <input type="checkbox" id="invAdjustCheck" checked />
         단수정리
       </label>
+      <label class="check-chip">
+        <input type="checkbox" id="invBoxCalcCheck" />
+        박스기준 헤베계산
+      </label>
     </div>
 
     <div id="invAllItems"></div>
@@ -2932,13 +2936,20 @@ function getInvItemFromBox(box, splitCosts=false) {
         total       = boxes * unitPrice;
     } else if (unit === 'M2') {
         const sqmWithLoss = qty * lossMultiplier;
-        // 박스 수 올림 → 실제 시공 헤베 = 박스수 × box_m2 → 소수점 둘째자리 반올림
-        const boxM2   = p.box_m2 || 1;
-        const boxes   = Math.ceil(sqmWithLoss / boxM2);
-        const realSqm = Math.round(boxes * boxM2 * 100) / 100;
-        unitPrice  = sqmPrice;
-        displayQty = realSqm;
-        total      = Math.round(realSqm * unitPrice);
+        const useBoxCalc  = !!document.getElementById('invBoxCalcCheck')?.checked;
+        if (useBoxCalc && p.box_m2) {
+            // 박스기준 헤베계산: 박스 올림 → 실헤베 소수점 둘째자리 반올림
+            const boxes   = Math.ceil(sqmWithLoss / p.box_m2);
+            const realSqm = Math.round(boxes * p.box_m2 * 100) / 100;
+            unitPrice  = sqmPrice;
+            displayQty = realSqm;
+            total      = Math.round(realSqm * unitPrice);
+        } else {
+            // 기존 방식
+            unitPrice  = sqmPrice;
+            displayQty = Math.round(sqmWithLoss * 1000) / 1000;
+            total      = Math.round(sqmWithLoss * unitPrice);
+        }
     } else {
         const pyWithLoss = qty * lossMultiplier;
         unitPrice        = pyPrice;
