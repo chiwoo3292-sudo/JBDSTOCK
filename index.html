@@ -892,7 +892,7 @@
       </label>
       <label class="check-chip">
         <input type="checkbox" id="invBoxCalcCheck" />
-        박스기준 헤베계산
+        박스기준 계산
       </label>
     </div>
 
@@ -2938,7 +2938,7 @@ function getInvItemFromBox(box, splitCosts=false) {
         const sqmWithLoss = qty * lossMultiplier;
         const useBoxCalc  = !!document.getElementById('invBoxCalcCheck')?.checked;
         if (useBoxCalc && p.box_m2) {
-            // 박스기준 헤베계산: 박스 올림 → 실헤베 소수점 둘째자리 반올림
+            // 박스기준 계산: 박스 올림 → 실헤베 소수점 둘째자리 반올림
             const boxes   = Math.ceil(sqmWithLoss / p.box_m2);
             const realSqm = Math.round(boxes * p.box_m2 * 100) / 100;
             unitPrice  = sqmPrice;
