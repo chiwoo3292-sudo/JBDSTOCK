@@ -1294,13 +1294,33 @@
         const companyLine = lines.find(l => /\(주\)|㈜|Co\.|Inc\.|주식회사|건설|인테리어|마루|건재|자재|그룹|기업|산업|유한|파트너|엔터|서비스/i.test(l)) || '';
         if (companyEl) companyEl.value = companyLine;
 
-        // 직급
-        const positionLine = lines.find(l => /대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저|director|manager/i.test(l)) || '';
-        if (positionEl) positionEl.value = positionLine;
+        // 직급 + 이름 파싱 (같은 줄에 있을 수 있음)
+        const posKeyword = /대표이사|대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저|director|manager/i;
+        const positionLine = lines.find(l => posKeyword.test(l)) || '';
 
-        // 이름 (2~4글자 한글)
-        const nameLine = lines.find(l => /^[가-힣]{2,4}$/.test(l.replace(/\s/g, '')) && l !== positionLine) || '';
-        if (nameEl) nameEl.value = nameLine;
+        let positionValue = '';
+        let nameValue = '';
+
+        if (positionLine) {
+            const posMatch = positionLine.match(/대표이사|대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저/i);
+            positionValue = posMatch ? posMatch[0] : positionLine;
+            // 구분자(ㅣ, |, /, ·) 및 공백 제거 후 이름 추출
+            const cleaned = positionLine
+                .replace(positionValue, '')
+                .replace(/[ㅣ|\/·\-\s]/g, '')
+                .trim();
+            if (/^[가-힣]{2,4}$/.test(cleaned)) nameValue = cleaned;
+        }
+
+        // 같은 줄에 이름 없으면 별도 줄에서 찾기
+        if (!nameValue) {
+            nameValue = lines.find(l =>
+                /^[가-힣]{2,4}$/.test(l.replace(/\s/g, '')) &&
+                l !== positionLine) || '';
+        }
+
+        if (positionEl) positionEl.value = positionValue;
+        if (nameEl) nameEl.value = nameValue;
     }
 
     // --- 이미지 업로드 처리 ---
@@ -2707,6 +2727,8 @@ function createInvoiceItem(index) {
               <select id="invParty${index}" class="inv-party-select">
                 <option value="consumer">소비자가</option>
                 <option value="vendor">업체가</option>
+                <option value="consumer_material">소비자가 (자재만)</option>
+                <option value="vendor_material">업체가 (자재만)</option>
               </select>
             </div>
             <div class="inv-field" style="margin-bottom:0;">
@@ -2921,14 +2943,19 @@ function getInvItemFromBox(box, splitCosts=false) {
     }
 
     // ── 기존 자동계산 모드 ──
-    const code  = box.querySelector('.inv-product-select')?.value;
-    const unit  = box.querySelector('.inv-unit-select')?.value || 'M2';
-    const qty   = parseFloat(box.querySelector('.inv-qty-input')?.value) || 0;
-    const party = box.querySelector('.inv-party-select')?.value || 'consumer';
-    const lossRate = parseFloat(box.querySelector('.inv-loss-input')?.value) || 0;
+    const code      = box.querySelector('.inv-product-select')?.value;
+    const unit      = box.querySelector('.inv-unit-select')?.value || 'M2';
+    const qty       = parseFloat(box.querySelector('.inv-qty-input')?.value) || 0;
+    const partyRaw  = box.querySelector('.inv-party-select')?.value || 'consumer';
+    const lossRate  = parseFloat(box.querySelector('.inv-loss-input')?.value) || 0;
     if (!code) return null;
     const p = products.find(x => x.code === code);
     if (!p) return null;
+
+    // 자재만 여부 분리
+    const isMaterialOnly = partyRaw.endsWith('_material');
+    const party     = partyRaw.replace('_material', '');
+    const priceMode = isMaterialOnly ? 'material' : 'included';
 
     const PY_FACTOR = 3.24;
     const lossMultiplier = lossRate > 0 ? (1 + lossRate / 100) : 1;
@@ -2936,8 +2963,8 @@ function getInvItemFromBox(box, splitCosts=false) {
     let displayQty, unitPrice, total;
 
     const boxPrice = getUnitValue(p, party, 'box', 'material');
-    const sqmPrice = getUnitValue(p, party, 'sqm', 'included');
-    const pyPrice  = getUnitValue(p, party, 'py',  'included');
+    const sqmPrice = getUnitValue(p, party, 'sqm', priceMode);
+    const pyPrice  = getUnitValue(p, party, 'py',  priceMode);
 
     if (unit === 'BOX') {
         const boxes = Math.ceil(qty);
@@ -3129,6 +3156,11 @@ function renderInvoice() {
     const unit1 = allUnits[0] || 'M2';
     const allBox = allUnits.length > 0 && allUnits.every(u => u === 'BOX');
 
+    // 자재만 여부 - 가격기준으로 판단
+    const allParties = [...document.querySelectorAll('[data-inv-item] .inv-party-select')]
+        .map(s => s.value).filter(Boolean);
+    const isMaterialMode = allParties.length > 0 && allParties.every(v => v.endsWith('_material'));
+
     // INVOICE / ESTIMATE 타이틀 + inv-brand letter-spacing 동적 조정
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
     const titleEl    = document.querySelector('.inv-title');
@@ -3136,16 +3168,15 @@ function renderInvoice() {
     if (subtitleEl) {
         const isDraft = document.getElementById('invDraftCheck')?.checked;
         if (isDraft) {
-            // ESTIMATE 모드
+            // ESTIMATE 모드 - ESTIMATE 너비에 맞게 letter-spacing 조정
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
-            if (brandEl) brandEl.style.letterSpacing = '15.4px';
-            subtitleEl.textContent = '';
+            if (brandEl) brandEl.style.letterSpacing = '13.5px';
+            subtitleEl.textContent = isMaterialMode ? '(자재만)' : '';
         } else {
-            // INVOICE 모드 복원
+            // INVOICE 모드 복원 - INVOICE 너비에 맞게 기본값
             if (titleEl) titleEl.childNodes[0].textContent = 'INVOICE';
-            if (brandEl) brandEl.style.letterSpacing = '';
-            if (allBox) subtitleEl.textContent = '(자재만)';
-            else subtitleEl.textContent = '';
+            if (brandEl) brandEl.style.letterSpacing = '12px';
+            subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         }
     }
 
@@ -3531,47 +3562,40 @@ video.addEventListener('click', async () => {
         }
     }
 
-    // ── 텍스트 파싱 ──
+    // ── 텍스트 파싱 (첫번째 IIFE의 parseAndFill 공유 사용) ──
     function parseAndFill(text) {
         const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
-        // 모바일 (010)
         const mobileMatch = text.match(/010[-.\s]?\d{3,4}[-.\s]?\d{4}/);
         document.getElementById('cardMobile').value = mobileMatch ? formatPhone(mobileMatch[0]) : '';
 
-        // 유선 (010 제외)
         const allPhones = [...text.matchAll(/\d{2,3}[-.\s]?\d{3,4}[-.\s]?\d{4}/g)];
         const landline = allPhones.find(m => !m[0].replace(/\D/g,'').startsWith('010'));
         document.getElementById('cardPhone').value = landline ? formatPhone(landline[0]) : '';
 
-        // 업체명
         const companyLine = lines.find(l =>
             /\(주\)|㈜|Co\.|Inc\.|주식회사|건설|인테리어|마루|건재|자재|그룹|기업|산업|유한|파트너|엔터|서비스/i.test(l)) || '';
         document.getElementById('cardCompany').value = companyLine;
 
-        // 직급 + 이름 파싱 (같은 줄에 있을 수 있음)
-        const positionKeywords = /대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저|director|manager/i;
-        const positionLine = lines.find(l => positionKeywords.test(l)) || '';
+        const posKeyword = /대표이사|대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저|director|manager/i;
+        const positionLine = lines.find(l => posKeyword.test(l)) || '';
 
         let positionValue = '';
         let nameValue = '';
 
         if (positionLine) {
-            // 직급 키워드 추출
             const posMatch = positionLine.match(/대표이사|대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저/i);
             positionValue = posMatch ? posMatch[0] : positionLine;
-
-            // 같은 줄에서 이름(2~4글자 한글) 분리
-            const nameInSameLine = positionLine.replace(positionValue, '').trim();
-            if (/^[가-힣]{2,4}$/.test(nameInSameLine)) {
-                nameValue = nameInSameLine;
-            }
+            const cleaned = positionLine
+                .replace(positionValue, '')
+                .replace(/[ㅣ|\/·\-\s]/g, '')
+                .trim();
+            if (/^[가-힣]{2,4}$/.test(cleaned)) nameValue = cleaned;
         }
-
-        // 이름이 같은 줄에 없으면 별도 라인에서 찾기
         if (!nameValue) {
             nameValue = lines.find(l =>
-                /^[가-힣]{2,4}$/.test(l.replace(/\s/g, '')) && l !== positionLine) || '';
+                /^[가-힣]{2,4}$/.test(l.replace(/\s/g, '')) &&
+                l !== positionLine) || '';
         }
 
         document.getElementById('cardPosition').value = positionValue;
@@ -3596,49 +3620,6 @@ video.addEventListener('click', async () => {
         capturedBlob = null;
         resetForm();
         startBtn.click();
-    });
-
-    // ── 저장 ──
-    saveBtn.addEventListener('click', async () => {
-        const company  = document.getElementById('cardCompany').value.trim();
-        const name     = document.getElementById('cardName').value.trim();
-        const position = document.getElementById('cardPosition').value.trim();
-        const mobile   = document.getElementById('cardMobile').value.trim();
-        const phone    = document.getElementById('cardPhone').value.trim();
-        const today    = new Date().toISOString().slice(0, 10);
-
-        if (!company && !name && !mobile && !phone) {
-            showToast('저장할 정보를 입력해주세요.'); return;
-        }
-        saveBtn.disabled = true;
-        saveBtn.textContent = '저장 중...';
-        try {
-            const res = await fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'appendRow',
-                    spreadsheetId: SHEET_CONFIG.ID,
-                    sheetName: SHEET_CONFIG.CONTACTS,
-                    row: [company, name, position, mobile, phone, today]
-                })
-            });
-            const data = await res.json();
-            if (data.status === 'ok' || data.result === 'success' || data.success) {
-                showToast('✅ 저장 완료!');
-                previewWrap.style.display = 'none';
-                formWrap.style.display = 'none';
-                capturedBlob = null;
-                resetForm();
-            } else {
-                showToast('저장 실패: ' + JSON.stringify(data));
-            }
-        } catch(e) {
-            showToast('저장 오류: ' + e.message);
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = '💾 저장';
-        }
     });
 
     // 탭 이동 시 카메라 정지
