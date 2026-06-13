@@ -920,7 +920,7 @@
     <div style="overflow-x:auto;">
       <div id="invoiceDoc">
         <div class="inv-brand">JIBOKDEUKMARU</div>
-        <div class="inv-title">INVOICE<span id="pvInvoiceSubtitle" style="font-size:56px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-weight:900; letter-spacing:-1px;"></span></div>
+        <div class="inv-title">INVOICE<span id="pvInvoiceSubtitle" style="font-size:50px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-weight:900; letter-spacing:-1px;"></span></div>
 
         <div class="inv-meta-grid">
           <div>
@@ -3170,12 +3170,12 @@ function renderInvoice() {
         if (isDraft) {
             // ESTIMATE 모드 - ESTIMATE 너비에 맞게 letter-spacing 조정
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
-            if (brandEl) brandEl.style.letterSpacing = '13.5px';
+            if (brandEl) brandEl.style.letterSpacing = '9.8px';
             subtitleEl.textContent = isMaterialMode ? '(자재만)' : '';
         } else {
             // INVOICE 모드 복원 - INVOICE 너비에 맞게 기본값
             if (titleEl) titleEl.childNodes[0].textContent = 'INVOICE';
-            if (brandEl) brandEl.style.letterSpacing = '12px';
+            if (brandEl) brandEl.style.letterSpacing = '8.5px';
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         }
     }
