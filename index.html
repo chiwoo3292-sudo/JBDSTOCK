@@ -1921,17 +1921,28 @@ const SHEET_CONFIG = {
 };
 
 // 구글 시트 gviz JSON 파싱 공통 함수
-async function fetchSheetJson(sheetName) {
+async function fetchSheetJson(sheetName, timeoutMs = 10000) {
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(sheetName)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`네트워크 오류 (${sheetName})`);
-    const text = await res.text();
-    const start = text.indexOf('{');
-    const end   = text.lastIndexOf('}');
-    if (start === -1 || end === -1) throw new Error(`JSON 파싱 실패 (${sheetName})`);
-    const json = JSON.parse(text.substring(start, end + 1));
-    if (json.status === 'error') throw new Error(`시트 접근 오류 (${sheetName})`);
-    return json.table.rows;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error(`네트워크 오류 (${sheetName}): ${res.status}`);
+        const text = await res.text();
+        const start = text.indexOf('{');
+        const end   = text.lastIndexOf('}');
+        if (start === -1 || end === -1) throw new Error(`JSON 파싱 실패 (${sheetName})`);
+        const json = JSON.parse(text.substring(start, end + 1));
+        if (json.status === 'error') throw new Error(`시트 접근 오류 (${sheetName})`);
+        return json.table.rows;
+    } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') throw new Error(`요청 시간 초과 (${timeoutMs/1000}초) - 시트: ${sheetName}`);
+        throw err;
+    }
 }
 
 function getCellVal(cell) {
@@ -3681,28 +3692,32 @@ saveBtn.addEventListener('click', async () => {
     let allContacts = [];
 
     async function loadContacts() {
-        const loadingEl = document.getElementById('contactsLoading');
-        const listEl    = document.getElementById('contactsList');
-        const emptyEl   = document.getElementById('contactsEmpty');
-        loadingEl.style.display = 'block';
-        loadingEl.textContent = '불러오는 중...';
-        listEl.style.display = 'none';
-        emptyEl.style.display = 'none';
-        try {
-            const rows = await fetchSheetJson(SHEET_CONFIG.CONTACTS);
-            allContacts = rows.map(r => ({
-                company:  r['업체명']   || '',
-                name:     r['이름']     || '',
-                position: r['직급']     || '',
-                mobile:   r['모바일']   || '',
-                phone:    r['유선번호'] || '',
-                date:     r['등록일']   || '',
-            })).filter(r => r.company || r.name || r.mobile || r.phone);
-            renderContacts(allContacts);
-        } catch(e) {
-            loadingEl.textContent = '불러오기 실패: ' + e.message;
-        }
+    const loadingEl = document.getElementById('contactsLoading');
+    const listEl    = document.getElementById('contactsList');
+    const emptyEl   = document.getElementById('contactsEmpty');
+    loadingEl.style.display = 'block';
+    loadingEl.textContent = '불러오는 중...';
+    listEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    try {
+        const rows = await fetchSheetJson(SHEET_CONFIG.CONTACTS);
+        allContacts = rows.map(r => ({
+            company:  r['업체명']   || '',
+            name:     r['이름']     || '',
+            position: r['직급']     || '',
+            mobile:   r['모바일']   || '',
+            phone:    r['유선번호'] || '',
+            date:     r['등록일']   || '',
+        })).filter(r => r.company || r.name || r.mobile || r.phone);
+        renderContacts(allContacts);
+    } catch(e) {
+        console.error('loadContacts 오류:', e);
+        loadingEl.innerHTML = `⚠️ 불러오기 실패: ${e.message}<br><button id="retryContactsBtn" style="margin-top:10px; padding:6px 12px; background:#111; color:#fff; border:none; border-radius:8px; cursor:pointer;">다시 시도</button>`;
+        const retryBtn = document.getElementById('retryContactsBtn');
+        if (retryBtn) retryBtn.addEventListener('click', () => loadContacts());
+        showToast('연락처 로드 실패: ' + e.message);
     }
+}
 
     function renderContacts(list) {
         const loadingEl = document.getElementById('contactsLoading');
