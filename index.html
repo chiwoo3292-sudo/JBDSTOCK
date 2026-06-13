@@ -3549,15 +3549,33 @@ video.addEventListener('click', async () => {
             /\(주\)|㈜|Co\.|Inc\.|주식회사|건설|인테리어|마루|건재|자재|그룹|기업|산업|유한|파트너|엔터|서비스/i.test(l)) || '';
         document.getElementById('cardCompany').value = companyLine;
 
-        // 직급
-        const positionLine = lines.find(l =>
-            /대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저|director|manager/i.test(l)) || '';
-        document.getElementById('cardPosition').value = positionLine;
+        // 직급 + 이름 파싱 (같은 줄에 있을 수 있음)
+        const positionKeywords = /대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저|director|manager/i;
+        const positionLine = lines.find(l => positionKeywords.test(l)) || '';
 
-        // 이름 (2~4글자 한글)
-        const nameLine = lines.find(l =>
-            /^[가-힣]{2,4}$/.test(l.replace(/\s/g, '')) && l !== positionLine) || '';
-        document.getElementById('cardName').value = nameLine;
+        let positionValue = '';
+        let nameValue = '';
+
+        if (positionLine) {
+            // 직급 키워드 추출
+            const posMatch = positionLine.match(/대표이사|대표|사장|이사|상무|전무|부장|차장|과장|대리|팀장|주임|사원|원장|소장|실장|본부장|매니저/i);
+            positionValue = posMatch ? posMatch[0] : positionLine;
+
+            // 같은 줄에서 이름(2~4글자 한글) 분리
+            const nameInSameLine = positionLine.replace(positionValue, '').trim();
+            if (/^[가-힣]{2,4}$/.test(nameInSameLine)) {
+                nameValue = nameInSameLine;
+            }
+        }
+
+        // 이름이 같은 줄에 없으면 별도 라인에서 찾기
+        if (!nameValue) {
+            nameValue = lines.find(l =>
+                /^[가-힣]{2,4}$/.test(l.replace(/\s/g, '')) && l !== positionLine) || '';
+        }
+
+        document.getElementById('cardPosition').value = positionValue;
+        document.getElementById('cardName').value = nameValue;
     }
 
     function formatPhone(raw) {
