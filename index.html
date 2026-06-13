@@ -686,9 +686,9 @@
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand { display:block; margin-left:7px; font-family:'Times New Roman',serif; font-size:12px; color:#111; line-height:1; letter-spacing:12px; white-space:nowrap; }
+.inv-brand { display:block; margin-left:7px; font-family:'Times New Roman',serif; font-size:12px; color:#111; line-height:1; letter-spacing:10px; white-space:nowrap; }
 /* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
-.inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:50px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
+.inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:56px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
 .inv-meta-grid .right-block { align-self:end; justify-self:end; width:auto; min-width:0; }
 .inv-meta-row { display:grid; grid-template-columns:62px 1fr; min-height:22px; align-items:center; }
@@ -710,7 +710,7 @@
 .inv-table th:nth-child(1), .inv-table td:nth-child(1) { width:28% !important; }
 .inv-table th:nth-child(2), .inv-table td:nth-child(2) { width:19% !important; }
 .inv-table th:nth-child(2) { text-align:center; padding-left:8px; }
-.inv-table td:nth-child(2) { text-align:left; padding-left:22px; }
+.inv-table td:nth-child(2) { text-align:left; padding-left:8px; }
 .inv-table th:nth-child(3), .inv-table td:nth-child(3) { width:9% !important; text-align:center; }
 .inv-table th:nth-child(4), .inv-table td:nth-child(4) { width:12% !important; text-align:center; }
 .inv-table th:nth-child(5), .inv-table td:nth-child(5) { width:4% !important; }
@@ -3119,13 +3119,24 @@ function renderInvoice() {
     const unit1 = allUnits[0] || 'M2';
     const allBox = allUnits.length > 0 && allUnits.every(u => u === 'BOX');
 
-    // INVOICE 서브타이틀 표시 (자재만 / 가견적서)
+    // INVOICE / ESTIMATE 타이틀 + inv-brand letter-spacing 동적 조정
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
+    const titleEl    = document.querySelector('.inv-title');
+    const brandEl    = document.querySelector('.inv-brand');
     if (subtitleEl) {
         const isDraft = document.getElementById('invDraftCheck')?.checked;
-        if (isDraft) subtitleEl.textContent = '(가견적서)';
-        else if (allBox) subtitleEl.textContent = '(자재만)';
-        else subtitleEl.textContent = '';
+        if (isDraft) {
+            // ESTIMATE 모드
+            if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
+            if (brandEl) brandEl.style.letterSpacing = '7.2px';
+            subtitleEl.textContent = '';
+        } else {
+            // INVOICE 모드 복원
+            if (titleEl) titleEl.childNodes[0].textContent = 'INVOICE';
+            if (brandEl) brandEl.style.letterSpacing = '';
+            if (allBox) subtitleEl.textContent = '(자재만)';
+            else subtitleEl.textContent = '';
+        }
     }
 
     if (allBox) {
@@ -3453,32 +3464,32 @@ video.addEventListener('click', async () => {
     // ── 취소 버튼 ──
     cancelBtn.addEventListener('click', stopCamera);
 
-    // ── OCR 실행 (ML Kit Text Recognition) ──
+    // ── OCR 실행 (@jcesarmobile/capacitor-ocr) ──
     async function runOCR() {
         loadingEl.style.display = 'block';
         formWrap.style.display = 'none';
         if (loadingText) loadingText.textContent = '텍스트 추출 중...';
         try {
-            // Capacitor ML Kit 플러그인 확인
-            const MLKit = window.Capacitor?.Plugins?.TextRecognition;
-            if (!MLKit) throw new Error('ML Kit 플러그인 없음');
+            const Ocr = window.Capacitor?.Plugins?.Ocr;
+            if (!Ocr) throw new Error('OCR 플러그인 없음');
 
-            // blob → base64 변환
-            const base64 = await new Promise((res, rej) => {
+            // blob → base64 data URL 변환
+            const base64DataUrl = await new Promise((res, rej) => {
                 const reader = new FileReader();
-                reader.onload = e => res(e.target.result.split(',')[1]);
+                reader.onload = e => res(e.target.result);
                 reader.onerror = rej;
                 reader.readAsDataURL(capturedBlob);
             });
 
-            const result = await MLKit.recognize({ base64Image: base64 });
-            const text = (result.text || result.lines?.map(l => l.text).join('\n') || '').trim();
+            const result = await Ocr.process({ image: base64DataUrl });
+            const text = (result.text || '').trim();
 
             if (!text) throw new Error('텍스트 없음');
             rawTextEl.textContent = text;
             parseAndFill(text);
+
         } catch(e) {
-            // ML Kit 실패 시 Tesseract fallback
+            // fallback: Tesseract.js
             if (loadingText) loadingText.textContent = 'OCR 엔진 로딩 중...';
             try {
                 if (!window.Tesseract) {
