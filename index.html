@@ -3622,6 +3622,52 @@ video.addEventListener('click', async () => {
         startBtn.click();
     });
 
+// ── 저장 (카메라 방식) ──
+saveBtn.addEventListener('click', async () => {
+    const company  = document.getElementById('cardCompany').value.trim();
+    const name     = document.getElementById('cardName').value.trim();
+    const position = document.getElementById('cardPosition').value.trim();
+    const mobile   = document.getElementById('cardMobile').value.trim();
+    const phone    = document.getElementById('cardPhone').value.trim();
+    const today    = new Date().toISOString().slice(0, 10);
+
+    if (!company && !name && !mobile && !phone) {
+        showToast('저장할 정보를 입력해주세요.');
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중...';
+
+    try {
+        const res = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'appendRow',
+                spreadsheetId: SHEET_CONFIG.ID,
+                sheetName: SHEET_CONFIG.CONTACTS,
+                row: [company, name, position, mobile, phone, today]
+            })
+        });
+        const data = await res.json();
+        if (data.status === 'ok' || data.result === 'success' || data.success) {
+            showToast('✅ 저장 완료!');
+            resetForm();
+            previewWrap.style.display = 'none';
+            formWrap.style.display = 'none';
+            capturedBlob = null;
+        } else {
+            showToast('저장 실패: ' + JSON.stringify(data));
+        }
+    } catch(e) {
+        showToast('저장 오류: ' + e.message);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 저장';
+    }
+});
+
     // 탭 이동 시 카메라 정지
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
