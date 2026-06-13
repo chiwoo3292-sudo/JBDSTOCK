@@ -2954,13 +2954,14 @@ function getInvItemFromBox(box, splitCosts=false) {
         const pyWithLoss = qty * lossMultiplier;
         const useBoxCalc = !!document.getElementById('invBoxCalcCheck')?.checked;
         if (useBoxCalc && p.box_m2) {
-            // 박스기준 헤베계산: PY → m² → 박스 올림 → 실헤베 소수점 둘째자리 반올림
-            const sqmWithLoss = pyWithLoss / PY_FACTOR;
+            // 박스기준 PY계산: PY×3.24 → ÷box_m2 → 올림 → ×box_m2 → ÷3.24 → 소수점 둘째자리 올림
+            const sqmWithLoss = pyWithLoss * PY_FACTOR;
             const boxes       = Math.ceil(sqmWithLoss / p.box_m2);
-            const realSqm     = Math.round(boxes * p.box_m2 * 100) / 100;
-            unitPrice  = sqmPrice;
-            displayQty = realSqm;
-            total      = Math.round(realSqm * unitPrice);
+            const realSqm     = boxes * p.box_m2;
+            const realPy      = Math.ceil(realSqm / PY_FACTOR * 100) / 100;
+            unitPrice  = pyPrice;
+            displayQty = realPy;
+            total      = Math.round(realPy * unitPrice);
         } else {
             // 기존 방식
             unitPrice  = pyPrice;
