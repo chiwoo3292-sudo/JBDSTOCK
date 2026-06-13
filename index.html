@@ -892,7 +892,7 @@
       </label>
       <label class="check-chip">
         <input type="checkbox" id="invBoxCalcCheck" />
-        박스기준 계산
+        박스기준 헤베계산
       </label>
     </div>
 
@@ -2938,7 +2938,7 @@ function getInvItemFromBox(box, splitCosts=false) {
         const sqmWithLoss = qty * lossMultiplier;
         const useBoxCalc  = !!document.getElementById('invBoxCalcCheck')?.checked;
         if (useBoxCalc && p.box_m2) {
-            // 박스기준 계산: 박스 올림 → 실헤베 소수점 둘째자리 반올림
+            // 박스기준 헤베계산: 박스 올림 → 실헤베 소수점 둘째자리 반올림
             const boxes   = Math.ceil(sqmWithLoss / p.box_m2);
             const realSqm = Math.round(boxes * p.box_m2 * 100) / 100;
             unitPrice  = sqmPrice;
@@ -2952,9 +2952,21 @@ function getInvItemFromBox(box, splitCosts=false) {
         }
     } else {
         const pyWithLoss = qty * lossMultiplier;
-        unitPrice        = pyPrice;
-        displayQty       = Math.round(pyWithLoss * 1000) / 1000;
-        total            = Math.round(pyWithLoss * unitPrice);
+        const useBoxCalc = !!document.getElementById('invBoxCalcCheck')?.checked;
+        if (useBoxCalc && p.box_m2) {
+            // 박스기준 헤베계산: PY → m² → 박스 올림 → 실헤베 소수점 둘째자리 반올림
+            const sqmWithLoss = pyWithLoss / PY_FACTOR;
+            const boxes       = Math.ceil(sqmWithLoss / p.box_m2);
+            const realSqm     = Math.round(boxes * p.box_m2 * 100) / 100;
+            unitPrice  = sqmPrice;
+            displayQty = realSqm;
+            total      = Math.round(realSqm * unitPrice);
+        } else {
+            // 기존 방식
+            unitPrice  = pyPrice;
+            displayQty = Math.round(pyWithLoss * 1000) / 1000;
+            total      = Math.round(pyWithLoss * unitPrice);
+        }
     }
 
     if (splitCosts && unit !== 'BOX') {
@@ -3440,35 +3452,57 @@ video.addEventListener('click', async () => {
     // ── 취소 버튼 ──
     cancelBtn.addEventListener('click', stopCamera);
 
-    // ── OCR 실행 ──
+    // ── OCR 실행 (ML Kit Text Recognition) ──
     async function runOCR() {
         loadingEl.style.display = 'block';
         formWrap.style.display = 'none';
         if (loadingText) loadingText.textContent = '텍스트 추출 중...';
         try {
-            if (!window.Tesseract) {
-                if (loadingText) loadingText.textContent = 'OCR 엔진 로딩 중...';
-                await new Promise((res, rej) => {
-                    const s = document.createElement('script');
-                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
-                    s.onload = res; s.onerror = rej;
-                    document.head.appendChild(s);
-                });
-            }
-            const url = URL.createObjectURL(capturedBlob);
-            const result = await Tesseract.recognize(url, 'kor+eng', {
-                logger: m => {
-                    if (m.status === 'recognizing text' && loadingText)
-                        loadingText.textContent = `추출 중... ${Math.round(m.progress * 100)}%`;
-                }
+            // Capacitor ML Kit 플러그인 확인
+            const MLKit = window.Capacitor?.Plugins?.TextRecognition;
+            if (!MLKit) throw new Error('ML Kit 플러그인 없음');
+
+            // blob → base64 변환
+            const base64 = await new Promise((res, rej) => {
+                const reader = new FileReader();
+                reader.onload = e => res(e.target.result.split(',')[1]);
+                reader.onerror = rej;
+                reader.readAsDataURL(capturedBlob);
             });
-            URL.revokeObjectURL(url);
-            const text = result.data.text;
+
+            const result = await MLKit.recognize({ base64Image: base64 });
+            const text = (result.text || result.lines?.map(l => l.text).join('\n') || '').trim();
+
+            if (!text) throw new Error('텍스트 없음');
             rawTextEl.textContent = text;
             parseAndFill(text);
         } catch(e) {
-            if (loadingText) loadingText.textContent = '추출 실패 - 직접 입력해주세요';
-            await new Promise(r => setTimeout(r, 1200));
+            // ML Kit 실패 시 Tesseract fallback
+            if (loadingText) loadingText.textContent = 'OCR 엔진 로딩 중...';
+            try {
+                if (!window.Tesseract) {
+                    await new Promise((res, rej) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
+                        s.onload = res; s.onerror = rej;
+                        document.head.appendChild(s);
+                    });
+                }
+                const url = URL.createObjectURL(capturedBlob);
+                const result = await Tesseract.recognize(url, 'kor+eng', {
+                    logger: m => {
+                        if (m.status === 'recognizing text' && loadingText)
+                            loadingText.textContent = `추출 중... ${Math.round(m.progress * 100)}%`;
+                    }
+                });
+                URL.revokeObjectURL(url);
+                const text = result.data.text;
+                rawTextEl.textContent = text;
+                parseAndFill(text);
+            } catch(e2) {
+                if (loadingText) loadingText.textContent = '추출 실패 - 직접 입력해주세요';
+                await new Promise(r => setTimeout(r, 1200));
+            }
         } finally {
             loadingEl.style.display = 'none';
             formWrap.style.display = 'block';
