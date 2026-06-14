@@ -695,7 +695,7 @@
   font-size:11px; color:#0f172a; border:1px solid #111; border-radius:0;
   box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;
 }
-.inv-brand { display:block; margin-left:10px; font-family:'Times New Roman','Tinos',serif; font-size:10.6px; color:#111; line-height:1; letter-spacing:12px; white-space:nowrap; }
+.inv-brand { display:block; margin-left:10px; font-family:'Times New Roman','Tinos',serif; font-size:10.6px; color:#111; line-height:1; letter-spacing:20px; white-space:nowrap; }
 /* INVOICE 타이틀: G마켓 산스 Bold 31.5pt → px환산 ~42px, 실제 크기는 56px 유지하되 font-family만 교체 */
 .inv-title { margin:8px 0 94px 7px; font-family:'GmarketSans','G마켓 산스','Gmarket Sans','NanumGothicExtraBold','맑은 고딕',sans-serif; font-size:50px; font-weight:900; letter-spacing:-1px; line-height:.86; color:#242424; }
 .inv-meta-grid { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:end; margin-bottom:38px; padding-bottom:5px; border-bottom:1px solid #9a9a9a; }
@@ -1155,8 +1155,7 @@
     <div style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:20px 20px 0 0; padding:24px 20px 36px; max-width:600px; margin:0 auto;" onclick="event.stopPropagation()">
       <div style="width:40px; height:4px; background:#ddd; border-radius:2px; margin:0 auto 20px;"></div>
       <div id="tooltipCompany" style="font-size:18px; font-weight:800; color:#111; margin-bottom:4px;"></div>
-      <div id="tooltipNamePos" style="font-size:14px; color:#666; margin-bottom:4px;"></div>
-      <div id="tooltipDate" style="font-size:12px; color:#bbb; margin-bottom:20px;"></div>
+      <div id="tooltipNamePos" style="font-size:14px; color:#666; margin-bottom:20px;"></div>
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div id="tooltipMobileRow" style="display:none; align-items:center; justify-content:space-between; background:#f9f9f9; border-radius:12px; padding:12px 16px;">
           <div>
@@ -2648,9 +2647,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btn.dataset.tab === 'invoiceTab') {
                 initInvoiceTab();
             }
-            else if (btn.dataset.tab === 'contactsTab') {
-                fetchContactsData();
-            }
         });
     });
 
@@ -3701,11 +3697,10 @@ saveBtn.addEventListener('click', async () => {
 })();
 
 // ==================== 연락처 기능 ====================
-// ============================================================
-//  연락처 (Contacts 시트) — 단일 정의
-// ============================================================
-let allContacts = [];
-async function fetchContactsData() {
+(function() {
+    let allContacts = [];
+
+    async function loadContacts() {
     const loadingEl = document.getElementById('contactsLoading');
     const listEl    = document.getElementById('contactsList');
     const emptyEl   = document.getElementById('contactsEmpty');
@@ -3715,45 +3710,47 @@ async function fetchContactsData() {
     emptyEl.style.display = 'none';
     try {
         const rows = await fetchSheetJson(SHEET_CONFIG.CONTACTS);
-        allContacts = rows.map(r => ({
-            company:  r['업체명']   || '',
-            name:     r['이름']     || '',
-            position: r['직급']     || '',
-            mobile:   r['모바일']   || '',
-            phone:    r['유선번호'] || '',
-            date:     r['등록일']   || '',
-        })).filter(r => r.company || r.name || r.mobile || r.phone);
+        allContacts = rows
+            .filter(row => row && row.c)
+            .map(row => ({
+                company:  getCellVal(row.c[0]),
+                name:     getCellVal(row.c[1]),
+                position: getCellVal(row.c[2]),
+                mobile:   getCellVal(row.c[3]),
+                phone:    getCellVal(row.c[4]),
+                date:     getCellVal(row.c[5]),
+            }))
+            .filter(r => r.company || r.name || r.mobile || r.phone);
         renderContacts(allContacts);
     } catch(e) {
         console.error('loadContacts 오류:', e);
-        loadingEl.innerHTML = '⚠️ 불러오기 실패: ${e.message}<br><button id="retryContactsBtn" style="margin-top:10px; padding:6px 12px; background:#111; color:#fff; border:none; border-radius:8px; cursor:pointer;">다시 시도</button>';
+        loadingEl.innerHTML = `⚠️ 불러오기 실패: ${e.message}<br><button id="retryContactsBtn" style="margin-top:10px; padding:6px 12px; background:#111; color:#fff; border:none; border-radius:8px; cursor:pointer;">다시 시도</button>`;
         const retryBtn = document.getElementById('retryContactsBtn');
         if (retryBtn) retryBtn.addEventListener('click', () => loadContacts());
         showToast('연락처 로드 실패: ' + e.message);
     }
 }
-function renderContacts(list) {
-    const loadingEl = document.getElementById('contactsLoading');
-    const listEl    = document.getElementById('contactsList');
-    const emptyEl   = document.getElementById('contactsEmpty');
-    loadingEl.style.display = 'none';
-    if (!list.length) {
-        emptyEl.style.display = 'block';
-        listEl.style.display = 'none';
-        return;
-    }
-    listEl.style.display = 'grid';
-    listEl.innerHTML = list.map((c, i) => `
-        <div onclick="showContactTooltip(${i})" style="background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <div style="width:42px; height:42px; background:#111; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:18px;">🏢</div>
-            <div style="font-size:13px; font-weight:800; color:#111; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.company || '-'}</div>
-            <div style="font-size:12px; color:#555; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name || ''}${c.position ? ' · ' + c.position : ''}</div>
-            <div style="font-size:12px; color:#3355cc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.mobile || c.phone || '-'}</div>
-        </div>
-    `).join('');
-}
 
-(function() {
+    function renderContacts(list) {
+        const loadingEl = document.getElementById('contactsLoading');
+        const listEl    = document.getElementById('contactsList');
+        const emptyEl   = document.getElementById('contactsEmpty');
+        loadingEl.style.display = 'none';
+        if (!list.length) {
+            emptyEl.style.display = 'block';
+            listEl.style.display = 'none';
+            return;
+        }
+        listEl.style.display = 'grid';
+        listEl.innerHTML = list.map((c, i) => `
+            <div onclick="showContactTooltip(${i})" style="background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <div style="width:42px; height:42px; background:#111; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:18px;">🏢</div>
+                <div style="font-size:13px; font-weight:800; color:#111; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.company || '-'}</div>
+                <div style="font-size:12px; color:#555; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name || ''}${c.position ? ' · ' + c.position : ''}</div>
+                <div style="font-size:12px; color:#3355cc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.mobile || c.phone || '-'}</div>
+            </div>
+        `).join('');
+    }
 
     window.showContactTooltip = function(idx) {
         const c = allContacts[idx];
@@ -3761,7 +3758,6 @@ function renderContacts(list) {
         document.getElementById('tooltipCompany').textContent = c.company || '-';
         document.getElementById('tooltipNamePos').textContent =
             [c.name, c.position].filter(Boolean).join(' · ') || '-';
-        document.getElementById('tooltipDate').textContent = c.date ? `등록일: ${c.date}` : '';
 
         const mobileRow = document.getElementById('tooltipMobileRow');
         const phoneRow  = document.getElementById('tooltipPhoneRow');
