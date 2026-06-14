@@ -2648,6 +2648,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btn.dataset.tab === 'invoiceTab') {
                 initInvoiceTab();
             }
+            else if (btn.dataset.tab === 'contactsTab') {
+                fetchContactsData();
+            }
         });
     });
 
@@ -3698,10 +3701,11 @@ saveBtn.addEventListener('click', async () => {
 })();
 
 // ==================== 연락처 기능 ====================
-(function() {
-    let allContacts = [];
-
-    async function loadContacts() {
+// ============================================================
+//  연락처 (Contacts 시트) — 단일 정의
+// ============================================================
+let allContacts = [];
+async function fetchContactsData() {
     const loadingEl = document.getElementById('contactsLoading');
     const listEl    = document.getElementById('contactsList');
     const emptyEl   = document.getElementById('contactsEmpty');
@@ -3711,48 +3715,45 @@ saveBtn.addEventListener('click', async () => {
     emptyEl.style.display = 'none';
     try {
         const rows = await fetchSheetJson(SHEET_CONFIG.CONTACTS);
-        allContacts = rows
-            .filter(row => row && row.c)
-            .map(row => ({
-                company:  getCellVal(row.c[0]),
-                name:     getCellVal(row.c[1]),
-                position: getCellVal(row.c[2]),
-                mobile:   getCellVal(row.c[3]),
-                phone:    getCellVal(row.c[4]),
-                date:     getCellVal(row.c[5]),
-            }))
-            .filter(r => r.company || r.name || r.mobile || r.phone);
+        allContacts = rows.map(r => ({
+            company:  r['업체명']   || '',
+            name:     r['이름']     || '',
+            position: r['직급']     || '',
+            mobile:   r['모바일']   || '',
+            phone:    r['유선번호'] || '',
+            date:     r['등록일']   || '',
+        })).filter(r => r.company || r.name || r.mobile || r.phone);
         renderContacts(allContacts);
     } catch(e) {
         console.error('loadContacts 오류:', e);
-        loadingEl.innerHTML = `⚠️ 불러오기 실패: ${e.message}<br><button id="retryContactsBtn" style="margin-top:10px; padding:6px 12px; background:#111; color:#fff; border:none; border-radius:8px; cursor:pointer;">다시 시도</button>`;
+        loadingEl.innerHTML = '⚠️ 불러오기 실패: ${e.message}<br><button id="retryContactsBtn" style="margin-top:10px; padding:6px 12px; background:#111; color:#fff; border:none; border-radius:8px; cursor:pointer;">다시 시도</button>';
         const retryBtn = document.getElementById('retryContactsBtn');
         if (retryBtn) retryBtn.addEventListener('click', () => loadContacts());
         showToast('연락처 로드 실패: ' + e.message);
     }
 }
-
-    function renderContacts(list) {
-        const loadingEl = document.getElementById('contactsLoading');
-        const listEl    = document.getElementById('contactsList');
-        const emptyEl   = document.getElementById('contactsEmpty');
-        loadingEl.style.display = 'none';
-        if (!list.length) {
-            emptyEl.style.display = 'block';
-            listEl.style.display = 'none';
-            return;
-        }
-        listEl.style.display = 'grid';
-        listEl.innerHTML = list.map((c, i) => `
-            <div onclick="showContactTooltip(${i})" style="background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                <div style="width:42px; height:42px; background:#111; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:18px;">🏢</div>
-                <div style="font-size:13px; font-weight:800; color:#111; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.company || '-'}</div>
-                <div style="font-size:12px; color:#555; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name || ''}${c.position ? ' · ' + c.position : ''}</div>
-                <div style="font-size:12px; color:#3355cc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.mobile || c.phone || '-'}</div>
-                ${c.date ? `<div style="font-size:11px; color:#bbb; margin-top:4px;">${c.date}</div>` : ''}
-            </div>
-        `).join('');
+function renderContacts(list) {
+    const loadingEl = document.getElementById('contactsLoading');
+    const listEl    = document.getElementById('contactsList');
+    const emptyEl   = document.getElementById('contactsEmpty');
+    loadingEl.style.display = 'none';
+    if (!list.length) {
+        emptyEl.style.display = 'block';
+        listEl.style.display = 'none';
+        return;
     }
+    listEl.style.display = 'grid';
+    listEl.innerHTML = list.map((c, i) => `
+        <div onclick="showContactTooltip(${i})" style="background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="width:42px; height:42px; background:#111; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:18px;">🏢</div>
+            <div style="font-size:13px; font-weight:800; color:#111; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.company || '-'}</div>
+            <div style="font-size:12px; color:#555; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name || ''}${c.position ? ' · ' + c.position : ''}</div>
+            <div style="font-size:12px; color:#3355cc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.mobile || c.phone || '-'}</div>
+        </div>
+    `).join('');
+}
+
+(function() {
 
     window.showContactTooltip = function(idx) {
         const c = allContacts[idx];
