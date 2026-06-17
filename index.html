@@ -3190,10 +3190,12 @@ function renderInvoice() {
     const unit1 = allUnits[0] || 'M2';
     const allBox = allUnits.length > 0 && allUnits.every(u => u === 'BOX');
 
-    // 자재만 여부 - 가격기준으로 판단
-    const allParties = [...document.querySelectorAll('[data-inv-item] .inv-party-select')]
-        .map(s => s.value).filter(Boolean);
-    const isMaterialMode = allParties.length > 0 && allParties.every(v => v.endsWith('_material'));
+    // 자재만 여부 - 직접입력 모드 제외, 드롭다운 방식 제품 중 하나라도 자재만이면 표시
+    const allParties = [...document.querySelectorAll('[data-inv-item]')]
+        .filter(box => !box.closest('.inv-extra-item-wrap')?.querySelector('.inv-manual-toggle')?.checked)
+        .map(box => box.querySelector('.inv-party-select')?.value || '')
+        .filter(Boolean);
+    const isMaterialMode = allParties.length > 0 && allParties.some(v => v.endsWith('_material'));
 
     // INVOICE / ESTIMATE 타이틀 + inv-brand letter-spacing 동적 조정
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
