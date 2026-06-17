@@ -904,14 +904,6 @@
         <input type="checkbox" id="invBoxCalcCheck" />
         박스기준 헤베계산
       </label>
-      <label class="check-chip">
-        <input type="checkbox" id="invAsCheck" />
-        AS견적서
-      </label>
-      <label class="check-chip">
-        <input type="checkbox" id="invRemarksEditCheck" />
-        REMARKS 직접입력
-      </label>
     </div>
 
     <div id="invAllItems"></div>
@@ -990,7 +982,6 @@
               원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
               이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.
             </div>
-            <textarea id="invRemarksTextarea" placeholder="REMARKS 내용을 직접 입력하세요." style="display:none; width:100%; min-height:80px !important; font-size:9.3px; font-family:'KoPubWorldDotum','KoPubWorld Dotum','맑은 고딕',sans-serif; color:#172033; line-height:1.55; border:1px solid #ddd; border-radius:6px; padding:6px 8px; box-sizing:border-box; resize:vertical;" oninput="renderInvoice()"></textarea>
             <div class="inv-contact">
               <div class="inv-contact-title">CONTACT</div>
               서울시 강남구 언주로 133길 25 지복득마루<br>
@@ -2995,9 +2986,8 @@ function getInvItemFromBox(box, splitCosts=false) {
     const p = products.find(x => x.code === code);
     if (!p) return null;
 
-    // 자재만 여부 분리 (AS견적서 체크 시 무조건 자재만)
-    const isAsMode    = !!document.getElementById('invAsCheck')?.checked;
-    const isMaterialOnly = isAsMode || partyRaw.endsWith('_material');
+    // 자재만 여부 분리
+    const isMaterialOnly = partyRaw.endsWith('_material');
     const party     = partyRaw.replace('_material', '');
     const priceMode = isMaterialOnly ? 'material' : 'included';
 
@@ -3207,65 +3197,23 @@ function renderInvoice() {
         .filter(Boolean);
     const isMaterialMode = allParties.length > 0 && allParties.some(v => v.endsWith('_material'));
 
-    // ── AS견적서 체크 여부 ──
-    const isAs = !!document.getElementById('invAsCheck')?.checked;
-
-    // 시공 예정일 라벨 동적 변경
-    document.querySelectorAll('.inv-label').forEach(el => {
-        if (el.textContent.trim() === '시공 예정일' || el.textContent.trim() === 'AS 예정일') {
-            el.textContent = isAs ? 'AS 예정일' : '시공 예정일';
-        }
-    });
-    const pvWorkDateKey = document.querySelector('#pvWorkDate')?.closest('.inv-meta-row')?.querySelector('.inv-meta-key');
-    if (pvWorkDateKey) pvWorkDateKey.textContent = isAs ? 'AS 예정일' : '시공 예정일';
-
-    // INVOICE / ESTIMATE / AS견적서 타이틀 + inv-brand letter-spacing 동적 조정
+    // INVOICE / ESTIMATE 타이틀 + inv-brand letter-spacing 동적 조정
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
     const titleEl    = document.querySelector('.inv-title');
     const brandEl    = document.querySelector('.inv-brand');
     if (subtitleEl) {
         const isDraft = document.getElementById('invDraftCheck')?.checked;
-        if (isAs) {
-            // AS견적서 모드
-            if (titleEl) titleEl.childNodes[0].textContent = 'AS견적서';
-            if (brandEl) brandEl.style.letterSpacing = '10.2px';
-            subtitleEl.textContent = '';
-        } else if (isDraft) {
-            // ESTIMATE 모드
+        if (isDraft) {
+            // ESTIMATE 모드 - ESTIMATE 너비에 맞게 letter-spacing 조정
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
             if (brandEl) brandEl.style.letterSpacing = '16px';
             subtitleEl.textContent = isMaterialMode ? '(자재만)' : '';
         } else {
-            // INVOICE 모드 복원
+            // INVOICE 모드 복원 - INVOICE 너비에 맞게 기본값
             if (titleEl) titleEl.childNodes[0].textContent = 'INVOICE';
             if (brandEl) brandEl.style.letterSpacing = '12.2px';
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         }
-    }
-
-    // REMARKS 직접입력 / 자동 전환
-    const remarksEditCheck = !!document.getElementById('invRemarksEditCheck')?.checked;
-    const remarksDiv       = document.getElementById('pvRemarks');
-    const remarksTextarea  = document.getElementById('invRemarksTextarea');
-
-    if (isAs) {
-        // AS견적서: REMARKS 내용 비움
-        if (remarksDiv)      { remarksDiv.style.display = 'block'; remarksDiv.innerHTML = '<div class="inv-remarks-title">REMARKS</div>'; }
-        if (remarksTextarea) remarksTextarea.style.display = 'none';
-        return; // REMARKS 자동생성 스킵
-    } else if (remarksEditCheck) {
-        // 직접입력 모드: textarea 표시, pvRemarks 숨김
-        if (remarksDiv)      remarksDiv.style.display = 'none';
-        if (remarksTextarea) {
-            remarksTextarea.style.display = 'block';
-            // pvRemarks에 textarea 내용 반영 (인쇄/저장용)
-            remarksDiv.innerHTML = '<div class="inv-remarks-title">REMARKS</div>' + (remarksTextarea.value || '');
-        }
-        return; // REMARKS 자동생성 스킵
-    } else {
-        // 자동생성 모드: pvRemarks 표시, textarea 숨김
-        if (remarksDiv)      remarksDiv.style.display = 'block';
-        if (remarksTextarea) remarksTextarea.style.display = 'none';
     }
 
     // 제품별 박스 메타 정보 생성 (품번(Xpcs/Y㎡ or Y평))
