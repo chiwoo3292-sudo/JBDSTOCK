@@ -745,7 +745,7 @@
 .inv-total-table td.td-won { text-align:right !important; }
 .inv-lower { display:grid; grid-template-columns:1fr 235px; gap:34px; margin-top:64px; }
 /* REMARKS 내용: KoPubWorld돋움체 Light 7pt */
-.inv-remarks { font-family:'KoPubWorldDotum','KoPubWorld Dotum','맑은 고딕','Malgun Gothic',sans-serif; font-size:9.3px; font-weight:300; color:#172033; line-height:1.55; border:0; padding:0; margin:0; }
+.inv-remarks { font-family:'KoPubWorldDotum','KoPubWorld Dotum','맑은 고딕','Malgun Gothic',sans-serif; font-size:9.3px; font-weight:300; color:#172033; line-height:1.55; border:0; padding:0; margin:0; min-height:100px; }
 /* REMARKS 타이틀: Century Gothic 7pt Bold */
 .inv-remarks-title { font-family:'CenturyGothic','Century Gothic','AppleGothic','맑은 고딕',sans-serif; font-size:9.3px; font-weight:700; color:#020617; margin-bottom:5px; }
 /* CONTACT 타이틀: Century Gothic 7pt Bold */
@@ -889,8 +889,16 @@
         재료비 / 인건비+부자재비 분리
       </label>
       <label class="check-chip">
+        <input type="checkbox" id="invRemarksEditCheck" />
+        REMARKS 직접입력
+      </label>
+      <label class="check-chip">
         <input type="checkbox" id="invMergeLaborCheck" />
         인건비+부자재비 합산 표시
+      </label>
+      <label class="check-chip">
+        <input type="checkbox" id="invBoxCalcCheck" />
+        박스기준 헤베계산
       </label>
       <label class="check-chip">
         <input type="checkbox" id="invDraftCheck" />
@@ -901,9 +909,15 @@
         단수정리
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invBoxCalcCheck" />
-        박스기준 헤베계산
+        <input type="checkbox" id="invAsCheck" />
+        AS견적서
       </label>
+
+
+    <!-- REMARKS 직접입력 textarea (체크 시 표시) -->
+    <div id="invRemarksEditWrap" style="display:none; margin-bottom:12px;">
+      <div class="inv-label" style="margin-bottom:6px;">REMARKS 내용 직접입력</div>
+      <textarea id="invRemarksTextarea" placeholder="REMARKS 하단 내용을 입력하세요." style="width:100%; min-height:80px !important; font-size:13px; font-family:inherit; color:#333; line-height:1.6; border:1px solid #ddd; border-radius:8px; padding:10px 12px; box-sizing:border-box; resize:vertical;" oninput="renderInvoice()"></textarea>
     </div>
 
     <div id="invAllItems"></div>
@@ -2986,8 +3000,9 @@ function getInvItemFromBox(box, splitCosts=false) {
     const p = products.find(x => x.code === code);
     if (!p) return null;
 
-    // 자재만 여부 분리
-    const isMaterialOnly = partyRaw.endsWith('_material');
+    // 자재만 여부 분리 (AS견적서 체크 시 무조건 자재만)
+    const isAsMode    = !!document.getElementById('invAsCheck')?.checked;
+    const isMaterialOnly = isAsMode || partyRaw.endsWith('_material');
     const party     = partyRaw.replace('_material', '');
     const priceMode = isMaterialOnly ? 'material' : 'included';
 
@@ -3197,23 +3212,60 @@ function renderInvoice() {
         .filter(Boolean);
     const isMaterialMode = allParties.length > 0 && allParties.some(v => v.endsWith('_material'));
 
-    // INVOICE / ESTIMATE 타이틀 + inv-brand letter-spacing 동적 조정
+    // ── AS견적서 체크 여부 ──
+    const isAs = !!document.getElementById('invAsCheck')?.checked;
+
+    // 시공 예정일 라벨 동적 변경
+    document.querySelectorAll('.inv-label').forEach(el => {
+        if (el.textContent.trim() === '시공 예정일' || el.textContent.trim() === 'AS 예정일') {
+            el.textContent = isAs ? 'AS 예정일' : '시공 예정일';
+        }
+    });
+    const pvWorkDateKey = document.querySelector('#pvWorkDate')?.closest('.inv-meta-row')?.querySelector('.inv-meta-key');
+    if (pvWorkDateKey) pvWorkDateKey.textContent = isAs ? 'AS 예정일' : '시공 예정일';
+
+    // INVOICE / ESTIMATE / AS견적서 타이틀 + inv-brand letter-spacing 동적 조정
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
     const titleEl    = document.querySelector('.inv-title');
     const brandEl    = document.querySelector('.inv-brand');
     if (subtitleEl) {
         const isDraft = document.getElementById('invDraftCheck')?.checked;
-        if (isDraft) {
-            // ESTIMATE 모드 - ESTIMATE 너비에 맞게 letter-spacing 조정
+        if (isAs) {
+            // AS견적서 모드
+            if (titleEl) titleEl.childNodes[0].textContent = 'AS견적서';
+            if (brandEl) brandEl.style.letterSpacing = '10.2px';
+            subtitleEl.textContent = '';
+        } else if (isDraft) {
+            // ESTIMATE 모드
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
             if (brandEl) brandEl.style.letterSpacing = '16px';
             subtitleEl.textContent = isMaterialMode ? '(자재만)' : '';
         } else {
-            // INVOICE 모드 복원 - INVOICE 너비에 맞게 기본값
+            // INVOICE 모드 복원
             if (titleEl) titleEl.childNodes[0].textContent = 'INVOICE';
             if (brandEl) brandEl.style.letterSpacing = '12.2px';
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         }
+    }
+
+    // REMARKS 직접입력 / 자동 전환
+    const remarksEditCheck = !!document.getElementById('invRemarksEditCheck')?.checked;
+    const remarksEditWrap  = document.getElementById('invRemarksEditWrap');
+    const remarksDiv       = document.getElementById('pvRemarks');
+    const remarksTextarea  = document.getElementById('invRemarksTextarea');
+
+    // 좌측 패널 textarea 표시 토글
+    if (remarksEditWrap) remarksEditWrap.style.display = remarksEditCheck ? 'block' : 'none';
+
+    if (isAs) {
+        // AS견적서: REMARKS 타이틀만 남기고 내용 비움 (영역 높이 유지)
+        if (remarksDiv) remarksDiv.innerHTML = '<div class="inv-remarks-title">REMARKS</div>';
+        return; // REMARKS 자동생성 스킵
+    } else if (remarksEditCheck && remarksTextarea) {
+        // 직접입력 모드: textarea 내용을 pvRemarks에 반영
+        const customText = (remarksTextarea.value || '').replace(/\n/g, '<br>');
+        if (remarksDiv) remarksDiv.innerHTML = '<div class="inv-remarks-title">REMARKS</div><span style="font-family:\'KoPubWorldDotum\',\'KoPubWorld Dotum\',\'맑은 고딕\',sans-serif; font-size:9.3px; font-weight:300; color:#172033; line-height:1.55;">' + customText + '</span>';
+        return; // REMARKS 자동생성 스킵
     }
 
     // 제품별 박스 메타 정보 생성 (품번(Xpcs/Y㎡ or Y평))
