@@ -3240,12 +3240,13 @@ function renderInvoice() {
         return `  [1BOX = ${metaList.join(', ')}]`;
     }
 
-    if (allBox) {
-        // BOX 전용 REMARKS (빨간색 항목: 결제조건+운임비)
-        const boxMeta = buildBoxMetaStr('BOX');
+    if (allBox || isMaterialMode) {
+        // BOX 또는 자재만 선택 시 REMARKS (결제조건+운임비 착불)
+        const unitLabel = allBox ? 'BOX' : (unit1 === 'PY' ? 'PY' : 'M2');
+        const boxMeta = buildBoxMetaStr(unitLabel);
         document.getElementById('pvRemarks').innerHTML =
             `<div class="inv-remarks-title">REMARKS</div>
-단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/BOX${boxMeta}<br>
+단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/${unitLabel}${boxMeta}<br>
 <span class="inv-red">결제조건 : 완납 후, 출고</span><br>
 <span class="inv-red">운임비 착불</span><br>
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
