@@ -3237,7 +3237,7 @@ function renderInvoice() {
             }
         });
         if (!metaList.length) return '';
-        return `  [1BOX = ${metaList.join(', ')}]`;
+        return `  <span style="color:#888;">[1BOX = ${metaList.join(', ')}]</span>`;
     }
 
     if (allBox || isMaterialMode) {
