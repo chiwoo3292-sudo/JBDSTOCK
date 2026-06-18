@@ -2907,6 +2907,11 @@ function initInvoiceTab() {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', renderInvoice);
             if (el && (el.tagName === 'SELECT')) el.addEventListener('change', renderInvoice);
+
+const remarksTextarea = document.getElementById('invRemarksTextarea');
+        if (remarksTextarea) {
+            remarksTextarea.addEventListener('input', renderInvoice);
+        }
         });
 
         // 공과잡비: 숫자 입력 시 콤마+원 포맷 표시
