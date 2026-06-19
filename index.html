@@ -2106,7 +2106,11 @@ function setTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(panel => {
     panel.style.display = panel.id === tabId ? 'block' : 'none';
   });
-  // 탭 전환 시 모바일 줌 상태 초기화 (다른 탭에서 줌된 상태 유지 방지)
+  // 예약관리 탭 진입 시 자동 로드
+  if (tabId === 'reservationTab' && typeof loadReservations === 'function') {
+    loadReservations();
+  }
+  // 탭 전환 시 모바일 줌 상태 초기화
   resetViewportZoom();
 }
 
