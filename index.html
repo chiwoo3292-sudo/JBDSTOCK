@@ -1502,8 +1502,8 @@
     const closedSlots = Object.entries(slotState).filter(([,v])=>v==='closed').map(([k])=>k);
     document.getElementById('slotMsg').textContent = '저장 중...';
     try {
-      const params = new URLSearchParams({ action:'saveSlots', date, closedSlots: closedSlots.join(',') });
-      const res = await fetch(`${RSV_URL}?${params}`);
+      const closedStr = closedSlots.length > 0 ? closedSlots.join(',') : '';
+      const res = await fetch(`${RSV_URL}?action=saveSlots&date=${encodeURIComponent(date)}&closedSlots=${encodeURIComponent(closedStr)}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('slotMsg').textContent = '✅ 저장 완료!';
