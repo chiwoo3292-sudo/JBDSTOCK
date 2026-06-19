@@ -360,6 +360,7 @@
   <button type="button" class="tab-btn" data-tab="floorplanTab">📐 면적분석</button>
   <button type="button" class="tab-btn" data-tab="cardScanTab">📷 명함스캐닝</button>
   <button type="button" class="tab-btn" data-tab="contactsTab">📋 연락처</button>
+  <button type="button" class="tab-btn" data-tab="reservationTab">📅 예약관리</button>
 </div>
 
   <section id="pricingTab" class="tab-panel active">
@@ -1193,10 +1194,340 @@
   </div>
 </section>
 
+<!-- ========================================================== -->
+<!-- 📅 예약관리 탭 -->
+<!-- ========================================================== -->
+<section id="reservationTab" class="tab-panel" style="display:none;">
+<style>
+  /* ── 예약관리 전용 스타일 ── */
+  .rsv-wrap { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:900px){ .rsv-wrap { grid-template-columns: 1fr; } }
+
+  .rsv-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
+  .rsv-card-title { font-size:15px; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+  /* 예약 목록 */
+  .rsv-filter-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .rsv-filter-btn { padding:6px 14px; border:1px solid #ddd; border-radius:999px; background:#fff; font-size:12px; font-weight:700; cursor:pointer; color:#555; }
+  .rsv-filter-btn.on { background:#111; color:#fff; border-color:#111; }
+
+  .rsv-list { display:flex; flex-direction:column; gap:8px; max-height:600px; overflow-y:auto; }
+  .rsv-item { border:1px solid #eee; border-radius:12px; padding:14px 16px; cursor:pointer; transition:all 0.15s; }
+  .rsv-item:hover { border-color:#111; background:#fafafa; }
+  .rsv-item.selected { border-color:#111; background:#f5f5f5; }
+  .rsv-item-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .rsv-item-name { font-size:14px; font-weight:800; }
+  .rsv-badge { padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+  .rsv-badge.대기 { background:#fff3cd; color:#856404; border:1px solid #ffc107; }
+  .rsv-badge.확정 { background:#d1f0e0; color:#1a7a45; border:1px solid #28a745; }
+  .rsv-badge.취소 { background:#f8d7da; color:#842029; border:1px solid #dc3545; }
+  .rsv-item-info { font-size:12px; color:#777; display:flex; gap:12px; flex-wrap:wrap; }
+
+  /* 상세/액션 */
+  .rsv-detail { background:#f9f9f9; border-radius:12px; padding:16px; margin-bottom:14px; font-size:13px; line-height:2; }
+  .rsv-detail-row { display:grid; grid-template-columns:90px 1fr; }
+  .rsv-detail-label { color:#888; font-weight:700; }
+  .rsv-detail-val { color:#111; font-weight:500; }
+  .rsv-action-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+  .rsv-btn-confirm { background:#1a7a45; color:#fff; border:none; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; width:100%; }
+  .rsv-btn-cancel  { background:#fff; color:#842029; border:1px solid #dc3545; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; width:100%; }
+  .rsv-btn-confirm:hover { background:#155c35; }
+  .rsv-btn-cancel:hover  { background:#f8d7da; }
+  .rsv-empty { text-align:center; color:#aaa; font-size:13px; padding:40px 0; }
+
+  /* 슬롯관리 */
+  .slot-date-row { display:flex; gap:8px; align-items:center; margin-bottom:14px; }
+  .slot-date-row input[type="date"] { flex:1; height:38px; padding:0 12px; border:1px solid #ddd; border-radius:10px; font-size:13px; font-family:inherit; }
+  .slot-date-row button { height:38px; padding:0 16px; white-space:nowrap; border-radius:10px; }
+  .slot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .slot-cell { border:1px solid #ddd; border-radius:10px; padding:10px 8px; text-align:center; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; color:#333; background:#fff; }
+  .slot-cell.closed { background:#f8d7da; border-color:#dc3545; color:#842029; }
+  .slot-cell:hover { border-color:#111; }
+  .slot-legend { display:flex; gap:12px; font-size:11px; color:#888; margin-top:10px; }
+  .slot-legend span { display:flex; align-items:center; gap:4px; }
+  .slot-legend .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .slot-save-row { margin-top:14px; display:flex; gap:8px; }
+  .slot-save-row button { flex:1; height:40px; border-radius:10px; font-size:13px; font-weight:700; }
+  .slot-btn-save { background:#111; color:#fff; border:none; cursor:pointer; }
+  .slot-btn-reset { background:#fff; color:#555; border:1px solid #ddd; cursor:pointer; }
+</style>
+
+<div class="rsv-wrap">
+
+  <!-- 좌: 예약 목록 -->
+  <div class="rsv-card">
+    <div class="rsv-card-title">📋 예약 목록
+      <button onclick="loadReservations()" style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;">🔄 새로고침</button>
+    </div>
+
+    <div class="rsv-filter-row">
+      <button class="rsv-filter-btn on" data-filter="전체" onclick="setRsvFilter(this)">전체</button>
+      <button class="rsv-filter-btn" data-filter="대기" onclick="setRsvFilter(this)">대기</button>
+      <button class="rsv-filter-btn" data-filter="확정" onclick="setRsvFilter(this)">확정</button>
+      <button class="rsv-filter-btn" data-filter="취소" onclick="setRsvFilter(this)">취소</button>
+    </div>
+
+    <input type="text" id="rsvSearch" placeholder="🔍 이름 / 연락처 / 날짜 검색"
+      style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:10px;font-size:13px;margin-bottom:12px;font-family:inherit;"
+      oninput="renderRsvList()">
+
+    <div id="rsvList" class="rsv-list">
+      <div class="rsv-empty">새로고침을 눌러 예약 목록을 불러오세요.</div>
+    </div>
+  </div>
+
+  <!-- 우: 상세 + 슬롯관리 -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+
+    <!-- 예약 상세 -->
+    <div class="rsv-card" id="rsvDetailCard">
+      <div class="rsv-card-title">📄 예약 상세</div>
+      <div id="rsvDetailBody">
+        <div class="rsv-empty">목록에서 예약을 선택하세요.</div>
+      </div>
+    </div>
+
+    <!-- 슬롯 관리 -->
+    <div class="rsv-card">
+      <div class="rsv-card-title">⏰ 쇼룸 슬롯 관리</div>
+      <div class="slot-date-row">
+        <input type="date" id="slotDate">
+        <button onclick="loadSlots()" style="background:#111;color:#fff;border:none;cursor:pointer;">불러오기</button>
+      </div>
+      <div id="slotGrid" class="slot-grid"></div>
+      <div class="slot-legend">
+        <span><span class="dot" style="background:#ddd;border:1px solid #ccc;"></span> 오픈</span>
+        <span><span class="dot" style="background:#f8d7da;border:1px solid #dc3545;"></span> 마감</span>
+      </div>
+      <div class="slot-save-row">
+        <button class="slot-btn-save" onclick="saveSlots()">💾 저장</button>
+        <button class="slot-btn-reset" onclick="resetSlots()">↩ 초기화</button>
+      </div>
+      <div id="slotMsg" style="font-size:12px;color:#555;margin-top:8px;text-align:center;"></div>
+    </div>
+
+  </div>
+</div>
+
 <script>
-(function() {
-    // --- DOM 요소 ---
-    const uploadInput = document.getElementById('cardUploadInput');
+(function(){
+  const RSV_URL = 'https://script.google.com/macros/s/AKfycbwY6cKchDaskiNYBJiVW9A7_gu_PkiYQZMZiZ1WxrQw74MUYCQJCxE3pPohve9zFKSnew/exec';
+  const DEFAULT_SLOTS = [
+    '10:00~10:30','10:30~11:00','11:00~11:30','11:30~12:00',
+    '12:00~12:30','12:30~13:00','13:00~13:30','13:30~14:00',
+    '14:00~14:30','14:30~15:00','15:00~15:30','15:30~16:00'
+  ];
+
+  let allReservations = [];
+  let currentFilter = '전체';
+  let selectedRsv = null;
+  let slotState = {}; // { '10:00~10:30': 'open'|'closed', ... }
+
+  // ── 오늘 날짜 기본 세팅 ──
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  document.getElementById('slotDate').value = todayStr;
+
+  // ── 예약 목록 불러오기 ──
+  window.loadReservations = async function() {
+    document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
+    try {
+      const res = await fetch(`${RSV_URL}?action=getReservations`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        allReservations = data.rows || [];
+        renderRsvList();
+      } else {
+        document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오기 실패: ' + (data.message||'') + '</div>';
+      }
+    } catch(e) {
+      document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">오류: ' + e.message + '</div>';
+    }
+  };
+
+  // ── 필터 ──
+  window.setRsvFilter = function(btn) {
+    document.querySelectorAll('.rsv-filter-btn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    currentFilter = btn.dataset.filter;
+    renderRsvList();
+  };
+
+  // ── 목록 렌더링 ──
+  window.renderRsvList = function() {
+    const q = document.getElementById('rsvSearch').value.trim().toLowerCase();
+    let list = allReservations.filter(r => {
+      if (currentFilter !== '전체' && r.status !== currentFilter) return false;
+      if (q) {
+        const haystack = `${r.name} ${r.phone} ${r.date} ${r.visitorType}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+
+    if (!list.length) {
+      document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">해당 예약이 없습니다.</div>';
+      return;
+    }
+
+    // 날짜 최신순 정렬
+    list.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+
+    document.getElementById('rsvList').innerHTML = list.map((r,i) => `
+      <div class="rsv-item${selectedRsv && selectedRsv.receiptNo === r.receiptNo ? ' selected':''}"
+           onclick="selectRsv(${allReservations.indexOf(r)})">
+        <div class="rsv-item-top">
+          <span class="rsv-item-name">${r.name} <span style="font-weight:400;color:#888;font-size:12px;">${r.visitorType||''}</span></span>
+          <span class="rsv-badge ${r.status||'대기'}">${r.status||'대기'}</span>
+        </div>
+        <div class="rsv-item-info">
+          <span>📅 ${r.date} ${r.time}</span>
+          <span>📞 ${r.phone}</span>
+          ${r.company ? `<span>🏢 ${r.company}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+  };
+
+  // ── 예약 선택 ──
+  window.selectRsv = function(idx) {
+    selectedRsv = allReservations[idx];
+    renderRsvList();
+    renderRsvDetail(selectedRsv);
+  };
+
+  // ── 상세 렌더링 ──
+  function renderRsvDetail(r) {
+    const rows = [
+      ['접수번호', r.receiptNo||'-'],
+      ['접수일시', r.submittedAt||'-'],
+      ['상담날짜', r.date||'-'],
+      ['상담시간', r.time||'-'],
+      ['예약자유형', r.visitorType||'-'],
+      ['방문인원', r.visitCount||'-'],
+      ['재방문', r.revisit||'-'],
+      ['성함', r.name||'-'],
+      ['연락처', r.phone||'-'],
+      ['업체명', r.company||'-'],
+      ['현장주소', r.address||'-'],
+      ['공간유형', r.spaceType||'-'],
+      ['평수', r.size||'-'],
+      ['층수', r.floor||'-'],
+      ['엘리베이터', r.elevator||'-'],
+      ['시공예정일', r.workDate||'-'],
+      ['선호제품', r.products||'-'],
+      ['전달사항', r.memo||'-'],
+      ['처리상태', r.status||'대기'],
+    ];
+
+    document.getElementById('rsvDetailBody').innerHTML = `
+      <div class="rsv-detail">
+        ${rows.map(([l,v]) => `
+          <div class="rsv-detail-row">
+            <span class="rsv-detail-label">${l}</span>
+            <span class="rsv-detail-val">${v}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="rsv-action-row">
+        <button class="rsv-btn-confirm" onclick="updateStatus('확정')">✅ 예약 확정</button>
+        <button class="rsv-btn-cancel"  onclick="updateStatus('취소')">❌ 예약 취소</button>
+      </div>
+      <div id="rsvActionMsg" style="font-size:12px;color:#555;text-align:center;"></div>
+    `;
+  }
+
+  // ── 상태 변경 ──
+  window.updateStatus = async function(newStatus) {
+    if (!selectedRsv) return;
+    if (!confirm(`[${selectedRsv.name}] 예약을 "${newStatus}" 처리하시겠습니까?`)) return;
+    document.getElementById('rsvActionMsg').textContent = '처리 중...';
+    try {
+      const res = await fetch(`${RSV_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        selectedRsv.status = newStatus;
+        const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
+        if (idx !== -1) allReservations[idx].status = newStatus;
+        renderRsvList();
+        renderRsvDetail(selectedRsv);
+        document.getElementById('rsvActionMsg').textContent = `✅ "${newStatus}" 처리 완료`;
+      } else {
+        document.getElementById('rsvActionMsg').textContent = '❌ 오류: ' + (data.message||'');
+      }
+    } catch(e) {
+      document.getElementById('rsvActionMsg').textContent = '❌ 오류: ' + e.message;
+    }
+  };
+
+  // ── 슬롯 불러오기 ──
+  window.loadSlots = async function() {
+    const date = document.getElementById('slotDate').value;
+    if (!date) { alert('날짜를 선택해주세요.'); return; }
+    document.getElementById('slotMsg').textContent = '불러오는 중...';
+    slotState = {};
+    DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
+    try {
+      const res = await fetch(`${RSV_URL}?action=getSlots&date=${date}`);
+      const data = await res.json();
+      if (data.status === 'ok' && data.closedSlots) {
+        data.closedSlots.forEach(s => slotState[s] = 'closed');
+      }
+      document.getElementById('slotMsg').textContent = '';
+    } catch(e) {
+      document.getElementById('slotMsg').textContent = '불러오기 실패, 기본값으로 표시합니다.';
+    }
+    renderSlotGrid();
+  };
+
+  // ── 슬롯 그리드 렌더링 ──
+  function renderSlotGrid() {
+    document.getElementById('slotGrid').innerHTML = DEFAULT_SLOTS.map(s => `
+      <div class="slot-cell${slotState[s]==='closed'?' closed':''}" onclick="toggleSlot('${s}')">
+        ${s}<br><span style="font-size:10px;font-weight:400;">${slotState[s]==='closed'?'마감':'오픈'}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── 슬롯 토글 ──
+  window.toggleSlot = function(slot) {
+    slotState[slot] = slotState[slot] === 'closed' ? 'open' : 'closed';
+    renderSlotGrid();
+  };
+
+  // ── 슬롯 저장 ──
+  window.saveSlots = async function() {
+    const date = document.getElementById('slotDate').value;
+    if (!date) { alert('날짜를 선택해주세요.'); return; }
+    const closedSlots = Object.entries(slotState).filter(([,v])=>v==='closed').map(([k])=>k);
+    document.getElementById('slotMsg').textContent = '저장 중...';
+    try {
+      const params = new URLSearchParams({ action:'saveSlots', date, closedSlots: closedSlots.join(',') });
+      const res = await fetch(`${RSV_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        document.getElementById('slotMsg').textContent = '✅ 저장 완료!';
+        setTimeout(() => document.getElementById('slotMsg').textContent = '', 2000);
+      } else {
+        document.getElementById('slotMsg').textContent = '❌ ' + (data.message||'저장 실패');
+      }
+    } catch(e) {
+      document.getElementById('slotMsg').textContent = '❌ 오류: ' + e.message;
+    }
+  };
+
+  // ── 슬롯 초기화 (전체 오픈) ──
+  window.resetSlots = function() {
+    DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
+    renderSlotGrid();
+    document.getElementById('slotMsg').textContent = '전체 오픈으로 초기화되었습니다. 저장 버튼을 눌러주세요.';
+  };
+
+  // 초기 슬롯 그리드 렌더
+  DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
+  renderSlotGrid();
+})();
+</script>
     const previewWrap = document.getElementById('cardPreviewWrap');
     const previewImg  = document.getElementById('cardPreviewImg');
     const loadingEl   = document.getElementById('cardLoading');
