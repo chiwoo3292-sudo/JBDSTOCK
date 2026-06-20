@@ -1679,22 +1679,48 @@
     }).join('');
   };
 
+  // ── 접수일시 포맷: "2026년6월19일 07시16분" ──
+  function csFormatSubmittedAt(val) {
+    if (!val) return '-';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    return `${y}년${m}월${day}일 ${hh}시${mm}분`;
+  }
+
   window.openConsultDetail = function(idx) {
     selectedConsult = allConsults[idx];
     const r = selectedConsult;
     formState = {
-      sampleGiven: r.sampleGiven || '',
-      cardGiven:   r.cardGiven   || '',
-      revisit:     r.revisit     || '',
-      priceInfo:   r.priceInfo   || '',
+      sampleGiven: r.sampleGiven     || '',
+      cardGiven:   r.cardGiven       || '',
+      revisit:     r.revisitConsult  || '', // 상담 시 재방문 여부 (예약 시 재방문여부와 별도)
+      priceInfo:   r.priceInfo       || '',
     };
 
     document.getElementById('csDetailBody').innerHTML = `
       <div class="cs-readonly-box">
-        <div class="cs-readonly-row"><span class="cs-readonly-label">접수번호</span><span class="cs-readonly-val">${r.receiptNo}</span></div>
-        <div class="cs-readonly-row"><span class="cs-readonly-label">상담날짜</span><span class="cs-readonly-val">${r.date} ${r.time}</span></div>
-        <div class="cs-readonly-row"><span class="cs-readonly-label">성함</span><span class="cs-readonly-val">${r.name}</span></div>
-        <div class="cs-readonly-row"><span class="cs-readonly-label">연락처</span><span class="cs-readonly-val">${r.phone}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">접수번호</span><span class="cs-readonly-val">${r.receiptNo||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">접수일시</span><span class="cs-readonly-val">${csFormatSubmittedAt(r.submittedAt)}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">상담날짜</span><span class="cs-readonly-val">${r.date||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">상담시간</span><span class="cs-readonly-val">${r.time||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">예약자유형</span><span class="cs-readonly-val">${r.visitorType||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">방문인원</span><span class="cs-readonly-val">${r.visitCount||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">재방문(예약시)</span><span class="cs-readonly-val">${r.revisit||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">성함</span><span class="cs-readonly-val">${r.name||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">연락처</span><span class="cs-readonly-val">${r.phone||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">업체명</span><span class="cs-readonly-val">${r.company||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">현장주소</span><span class="cs-readonly-val">${r.address||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">공간유형</span><span class="cs-readonly-val">${r.spaceType||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">평수</span><span class="cs-readonly-val">${r.size||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">층수</span><span class="cs-readonly-val">${r.floor||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">엘리베이터</span><span class="cs-readonly-val">${r.elevator||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">시공예정일</span><span class="cs-readonly-val">${r.workDate||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">선호제품</span><span class="cs-readonly-val">${r.products||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">전달사항</span><span class="cs-readonly-val">${r.memo||'-'}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">처리상태</span><span class="cs-readonly-val">${r.status||'-'}</span></div>
       </div>
 
       <div class="cs-form-group">
@@ -1724,7 +1750,7 @@
       </div>
 
       <div class="cs-form-group">
-        <label>재방문 여부</label>
+        <label>재방문 여부 (상담 후 예상)</label>
         <div class="cs-yn-group" id="csRevisitGroup">
           <div class="cs-yn-btn ${formState.revisit==='재방문 예상'?'active':''}" data-val="재방문 예상" onclick="setYn('revisit','재방문 예상')">재방문 예상</div>
           <div class="cs-yn-btn ${formState.revisit==='재방문 어려움'?'active':''}" data-val="재방문 어려움" onclick="setYn('revisit','재방문 어려움')">재방문 어려움</div>
