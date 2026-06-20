@@ -1396,11 +1396,24 @@
     renderRsvDetail(selectedRsv);
   };
 
+  // ── 접수일시 포맷: "2026년6월19일 07시16분" ──
+  function formatSubmittedAt(val) {
+    if (!val) return '-';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val); // 파싱 실패 시 원본 그대로
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}년${m}월${day}일 ${hh}시${mm}분`;
+  }
+
   // ── 상세 렌더링 ──
   function renderRsvDetail(r) {
     const rows = [
       ['접수번호', r.receiptNo||'-'],
-      ['접수일시', r.submittedAt||'-'],
+      ['접수일시', formatSubmittedAt(r.submittedAt)],
       ['상담날짜', r.date||'-'],
       ['상담시간', r.time||'-'],
       ['예약자유형', r.visitorType||'-'],
