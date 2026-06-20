@@ -361,6 +361,7 @@
   <button type="button" class="tab-btn" data-tab="cardScanTab">📷 명함스캐닝</button>
   <button type="button" class="tab-btn" data-tab="contactsTab">📋 연락처</button>
   <button type="button" class="tab-btn" data-tab="reservationTab">📅 예약관리</button>
+  <button type="button" class="tab-btn" data-tab="consultTab">💬 쇼룸상담</button>
 </div>
 
   <section id="pricingTab" class="tab-panel active">
@@ -1543,6 +1544,263 @@
 </script>
 </section>
 
+<!-- ========================================================== -->
+<!-- 💬 쇼룸상담 탭 -->
+<!-- ========================================================== -->
+<section id="consultTab" class="tab-panel" style="display:none;">
+<style>
+  .cs-wrap { max-width: 1000px; margin: 0 auto; }
+  .cs-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
+  .cs-card-title { font-size:15px; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+  .cs-search-row { display:flex; gap:8px; margin-bottom:14px; }
+  .cs-search-row input { flex:1; padding:10px 14px; border:1px solid #ddd; border-radius:10px; font-size:13px; font-family:inherit; }
+  .cs-search-row button { padding:0 16px; border-radius:10px; background:#111; color:#fff; border:none; cursor:pointer; font-size:12px; font-weight:700; }
+
+  .cs-list { display:flex; flex-direction:column; gap:8px; }
+  .cs-item { border:1px solid #eee; border-radius:12px; padding:14px 16px; cursor:pointer; transition:all 0.15s; }
+  .cs-item:hover { border-color:#111; background:#fafafa; }
+  .cs-item-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .cs-item-name { font-size:14px; font-weight:800; }
+  .cs-item-info { font-size:12px; color:#777; display:flex; gap:12px; flex-wrap:wrap; }
+  .cs-status-badge { padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+  .cs-status-badge.done { background:#d1f0e0; color:#1a7a45; border:1px solid #28a745; }
+  .cs-status-badge.pending { background:#fff3cd; color:#856404; border:1px solid #ffc107; }
+  .cs-empty { text-align:center; color:#aaa; font-size:13px; padding:40px 0; }
+
+  /* 상세 화면 */
+  .cs-detail-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:500; align-items:center; justify-content:center; padding:20px; }
+  .cs-detail-overlay.open { display:flex; }
+  .cs-detail-box { background:#fff; border-radius:18px; padding:24px; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; }
+  .cs-detail-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .cs-detail-header h3 { font-size:16px; font-weight:800; }
+  .cs-detail-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; }
+
+  .cs-readonly-box { background:#f9f9f9; border-radius:12px; padding:14px; margin-bottom:18px; font-size:13px; line-height:2; }
+  .cs-readonly-row { display:grid; grid-template-columns:80px 1fr; }
+  .cs-readonly-label { color:#888; font-weight:700; }
+  .cs-readonly-val { color:#111; font-weight:500; }
+
+  .cs-form-group { margin-bottom:14px; }
+  .cs-form-group label { display:block; font-size:12px; font-weight:700; color:#555; margin-bottom:6px; }
+  .cs-form-group input[type=text], .cs-form-group textarea {
+    width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:10px; font-size:13px; font-family:inherit;
+  }
+  .cs-form-group textarea { min-height:80px; resize:vertical; }
+  .cs-yn-group { display:flex; gap:8px; }
+  .cs-yn-btn { flex:1; padding:9px; text-align:center; border:1px solid #ddd; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; color:#555; }
+  .cs-yn-btn.active { background:#111; color:#fff; border-color:#111; }
+
+  .cs-save-btn { width:100%; padding:13px; background:#111; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; margin-top:6px; }
+  .cs-save-msg { text-align:center; font-size:12px; color:#555; margin-top:8px; }
+</style>
+
+<div class="cs-wrap">
+  <div class="cs-card">
+    <div class="cs-card-title">💬 쇼룸 상담 기록
+      <button onclick="loadConsults()" style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;">🔄 새로고침</button>
+    </div>
+
+    <div class="cs-search-row">
+      <input type="text" id="csSearch" placeholder="🔍 이름 / 연락처 / 날짜 검색" oninput="renderConsultList()">
+    </div>
+
+    <div id="csList" class="cs-list">
+      <div class="cs-empty">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 상세/수정 모달 -->
+<div class="cs-detail-overlay" id="csDetailOverlay">
+  <div class="cs-detail-box">
+    <div class="cs-detail-header">
+      <h3>상담 기록</h3>
+      <button class="cs-detail-close" onclick="closeConsultDetail()">✕</button>
+    </div>
+    <div id="csDetailBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CS_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
+
+  let allConsults = [];
+  let selectedConsult = null;
+  let formState = { sampleGiven:'', cardGiven:'', revisit:'', priceInfo:'' };
+
+  window.loadConsults = async function() {
+    document.getElementById('csList').innerHTML = '<div class="cs-empty">불러오는 중...</div>';
+    try {
+      const res = await fetch(`${CS_URL}?action=getConsults`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        allConsults = data.rows || [];
+        renderConsultList();
+      } else {
+        document.getElementById('csList').innerHTML = '<div class="cs-empty">불러오기 실패: ' + (data.message||'') + '</div>';
+      }
+    } catch(e) {
+      document.getElementById('csList').innerHTML = '<div class="cs-empty">오류: ' + e.message + '</div>';
+    }
+  };
+
+  window.renderConsultList = function() {
+    const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
+    let list = allConsults.filter(r => {
+      if (!q) return true;
+      const haystack = `${r.name} ${r.phone} ${r.date}`.toLowerCase();
+      return haystack.includes(q);
+    });
+
+    if (!list.length) {
+      document.getElementById('csList').innerHTML = '<div class="cs-empty">상담 기록이 없습니다.</div>';
+      return;
+    }
+
+    list.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+
+    document.getElementById('csList').innerHTML = list.map(r => {
+      const isDone = !!(r.counselor || r.content);
+      const idx = allConsults.indexOf(r);
+      return `
+        <div class="cs-item" onclick="openConsultDetail(${idx})">
+          <div class="cs-item-top">
+            <span class="cs-item-name">${r.name}</span>
+            <span class="cs-status-badge ${isDone?'done':'pending'}">${isDone?'작성완료':'미작성'}</span>
+          </div>
+          <div class="cs-item-info">
+            <span>📅 ${r.date} ${r.time}</span>
+            <span>📞 ${r.phone}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.openConsultDetail = function(idx) {
+    selectedConsult = allConsults[idx];
+    const r = selectedConsult;
+    formState = {
+      sampleGiven: r.sampleGiven || '',
+      cardGiven:   r.cardGiven   || '',
+      revisit:     r.revisit     || '',
+      priceInfo:   r.priceInfo   || '',
+    };
+
+    document.getElementById('csDetailBody').innerHTML = `
+      <div class="cs-readonly-box">
+        <div class="cs-readonly-row"><span class="cs-readonly-label">접수번호</span><span class="cs-readonly-val">${r.receiptNo}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">상담날짜</span><span class="cs-readonly-val">${r.date} ${r.time}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">성함</span><span class="cs-readonly-val">${r.name}</span></div>
+        <div class="cs-readonly-row"><span class="cs-readonly-label">연락처</span><span class="cs-readonly-val">${r.phone}</span></div>
+      </div>
+
+      <div class="cs-form-group">
+        <label>상담자</label>
+        <input type="text" id="csCounselor" value="${r.counselor||''}" placeholder="상담 진행한 직원명">
+      </div>
+
+      <div class="cs-form-group">
+        <label>상담 내용</label>
+        <textarea id="csContent" placeholder="상담 내용을 입력해주세요.">${r.content||''}</textarea>
+      </div>
+
+      <div class="cs-form-group">
+        <label>쪽샘플 제공 여부</label>
+        <div class="cs-yn-group" id="csSampleGroup">
+          <div class="cs-yn-btn ${formState.sampleGiven==='제공'?'active':''}" data-val="제공" onclick="setYn('sampleGiven','제공')">제공</div>
+          <div class="cs-yn-btn ${formState.sampleGiven==='미제공'?'active':''}" data-val="미제공" onclick="setYn('sampleGiven','미제공')">미제공</div>
+        </div>
+      </div>
+
+      <div class="cs-form-group">
+        <label>명함 전달 여부</label>
+        <div class="cs-yn-group" id="csCardGroup">
+          <div class="cs-yn-btn ${formState.cardGiven==='전달'?'active':''}" data-val="전달" onclick="setYn('cardGiven','전달')">전달</div>
+          <div class="cs-yn-btn ${formState.cardGiven==='미전달'?'active':''}" data-val="미전달" onclick="setYn('cardGiven','미전달')">미전달</div>
+        </div>
+      </div>
+
+      <div class="cs-form-group">
+        <label>재방문 여부</label>
+        <div class="cs-yn-group" id="csRevisitGroup">
+          <div class="cs-yn-btn ${formState.revisit==='재방문 예상'?'active':''}" data-val="재방문 예상" onclick="setYn('revisit','재방문 예상')">재방문 예상</div>
+          <div class="cs-yn-btn ${formState.revisit==='재방문 어려움'?'active':''}" data-val="재방문 어려움" onclick="setYn('revisit','재방문 어려움')">재방문 어려움</div>
+        </div>
+      </div>
+
+      <div class="cs-form-group">
+        <label>금액 안내 유무</label>
+        <div class="cs-yn-group" id="csPriceGroup">
+          <div class="cs-yn-btn ${formState.priceInfo==='안내함'?'active':''}" data-val="안내함" onclick="setYn('priceInfo','안내함')">안내함</div>
+          <div class="cs-yn-btn ${formState.priceInfo==='안내안함'?'active':''}" data-val="안내안함" onclick="setYn('priceInfo','안내안함')">안내안함</div>
+        </div>
+      </div>
+
+      <button class="cs-save-btn" onclick="saveConsultDetail()">💾 저장</button>
+      <div class="cs-save-msg" id="csSaveMsg"></div>
+    `;
+
+    document.getElementById('csDetailOverlay').classList.add('open');
+  };
+
+  window.setYn = function(field, val) {
+    formState[field] = formState[field] === val ? '' : val; // 토글
+    // 다시 렌더링하지 않고 클래스만 갱신
+    const groupMap = { sampleGiven:'csSampleGroup', cardGiven:'csCardGroup', revisit:'csRevisitGroup', priceInfo:'csPriceGroup' };
+    const group = document.getElementById(groupMap[field]);
+    if (group) {
+      group.querySelectorAll('.cs-yn-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === formState[field]);
+      });
+    }
+  };
+
+  window.closeConsultDetail = function() {
+    document.getElementById('csDetailOverlay').classList.remove('open');
+    selectedConsult = null;
+  };
+
+  window.saveConsultDetail = async function() {
+    if (!selectedConsult) return;
+    const counselor = document.getElementById('csCounselor').value.trim();
+    const content   = document.getElementById('csContent').value.trim();
+
+    document.getElementById('csSaveMsg').textContent = '저장 중...';
+    try {
+      const params = new URLSearchParams({
+        action: 'saveConsult',
+        receiptNo: selectedConsult.receiptNo,
+        counselor, content,
+        sampleGiven: formState.sampleGiven,
+        cardGiven:   formState.cardGiven,
+        revisit:     formState.revisit,
+        priceInfo:   formState.priceInfo,
+      });
+      const res = await fetch(`${CS_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        document.getElementById('csSaveMsg').textContent = '✅ 저장 완료!';
+        // 로컬 데이터 갱신
+        const idx = allConsults.findIndex(r => r.receiptNo === selectedConsult.receiptNo);
+        if (idx !== -1) {
+          allConsults[idx] = { ...allConsults[idx], counselor, content, ...formState };
+        }
+        renderConsultList();
+        setTimeout(() => closeConsultDetail(), 800);
+      } else {
+        document.getElementById('csSaveMsg').textContent = '❌ ' + (data.message||'저장 실패');
+      }
+    } catch(e) {
+      document.getElementById('csSaveMsg').textContent = '❌ 오류: ' + e.message;
+    }
+  };
+})();
+</script>
+</section>
+
 <script>
 (function() {
     // --- DOM 요소 ---
@@ -2122,6 +2380,10 @@ function setTab(tabId) {
   // 예약관리 탭 진입 시 자동 로드
   if (tabId === 'reservationTab' && typeof loadReservations === 'function') {
     loadReservations();
+  }
+  // 쇼룸상담 탭 진입 시 자동 로드
+  if (tabId === 'consultTab' && typeof loadConsults === 'function') {
+    loadConsults();
   }
   // 탭 전환 시 모바일 줌 상태 초기화
   resetViewportZoom();
