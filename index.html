@@ -1545,145 +1545,189 @@
 </section>
 
 <!-- ========================================================== -->
-<!-- 💬 쇼룸상담 탭 (다우오피스 스타일) -->
+<!-- 💬 쇼룸상담 탭 (다우오피스 동일 스타일) -->
 <!-- ========================================================== -->
 <section id="consultTab" class="tab-panel" style="display:none;">
 <style>
-  .daou-wrap { max-width: 1320px; margin: 0 auto; }
+  .dw-wrap { max-width: 100%; font-size:13px; color:#333; }
 
   /* 헤더 */
-  .daou-header { display:flex; align-items:center; gap:8px; margin-bottom:18px; }
-  .daou-header-icon { width:34px; height:34px; border-radius:8px; background:#7b5fd9; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; }
-  .daou-header h2 { font-size:19px; font-weight:800; color:#222; }
-  .daou-refresh-btn { margin-left:auto; padding:6px 14px; font-size:12px; font-weight:700; border-radius:8px; background:#111; color:#fff; border:none; cursor:pointer; }
+  .dw-header { display:flex; align-items:center; gap:7px; margin-bottom:18px; }
+  .dw-header-icon { width:22px; height:22px; border-radius:5px; background:#7b5fd9; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; flex-shrink:0; }
+  .dw-header h2 { font-size:17px; font-weight:700; color:#222; text-decoration:underline; text-underline-offset:4px; }
+  .dw-header .dw-icon-btn { color:#aaa; font-size:13px; cursor:pointer; }
+  .dw-header-spacer { flex:1; }
+  .dw-refresh-btn { padding:6px 13px; font-size:12px; font-weight:700; border-radius:6px; background:#111; color:#fff; border:none; cursor:pointer; }
 
-  /* 탭(서브) */
-  .daou-subtab { display:flex; gap:22px; border-bottom:2px solid #eee; margin-bottom:16px; }
-  .daou-subtab span { font-size:14px; font-weight:700; color:#7b5fd9; padding-bottom:10px; border-bottom:2px solid #7b5fd9; margin-bottom:-2px; }
+  /* 서브탭 */
+  .dw-subtab-row { display:flex; align-items:flex-end; gap:6px; border-bottom:1px solid #e3e3e3; margin-bottom:16px; padding-bottom:0; }
+  .dw-subtab-row .dw-subtab-active { font-size:13.5px; font-weight:700; color:#7b5fd9; padding-bottom:10px; border-bottom:2px solid #7b5fd9; margin-bottom:-1px; }
+  .dw-subtab-row .dw-subtab-badge { font-size:10px; color:#999; background:#f1f1f3; border-radius:4px; padding:2px 6px; margin-bottom:9px; }
 
-  /* 검색 영역 */
-  .daou-search-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .daou-search-row label { font-size:13px; font-weight:700; color:#555; }
-  .daou-search-box { flex:1; max-width:420px; display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; padding:0 12px; height:36px; }
-  .daou-search-box input { border:none; outline:none; flex:1; font-size:13px; font-family:inherit; }
-  .daou-search-box .icon { color:#999; font-size:13px; }
+  /* 검색줄 */
+  .dw-search-line { display:flex; align-items:center; margin-bottom:10px; }
+  .dw-search-line .dw-search-label { font-size:13px; font-weight:700; color:#333; margin-right:10px; }
+  .dw-search-line .dw-save-filter { font-size:12px; color:#999; cursor:pointer; }
+  .dw-search-line .dw-search-right { margin-left:auto; display:flex; align-items:center; gap:14px; font-size:12px; color:#999; }
+  .dw-search-line .dw-search-right span { cursor:pointer; }
+  .dw-search-line .dw-dropdown { border:1px solid #ddd; border-radius:5px; padding:4px 9px; font-size:12px; color:#666; }
 
-  .daou-count-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-  .daou-count { font-size:13px; color:#555; }
-  .daou-count strong { color:#7b5fd9; font-weight:800; }
+  .dw-search-controls { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .dw-search-box { display:flex; align-items:center; border:1px solid #ddd; border-radius:6px; padding:0 10px; height:32px; width:240px; }
+  .dw-search-box input { border:none; outline:none; flex:1; font-size:12.5px; font-family:inherit; color:#333; }
+  .dw-search-box input::placeholder { color:#bbb; }
+  .dw-search-box .icon { color:#aaa; font-size:12px; margin-left:4px; order:2; }
+  .dw-cond-btn { border:1px solid #ddd; border-radius:6px; padding:0 12px; height:32px; font-size:12.5px; font-weight:700; color:#555; background:#fff; cursor:pointer; }
 
-  .daou-filter-chips { display:flex; gap:6px; }
-  .daou-chip { padding:5px 13px; border-radius:999px; border:1px solid #ddd; background:#fff; font-size:12px; font-weight:700; color:#666; cursor:pointer; }
-  .daou-chip.on { background:#222; color:#fff; border-color:#222; }
+  .dw-count-line { font-size:13px; color:#222; margin-bottom:12px; font-weight:500; }
+  .dw-count-line strong { font-weight:700; }
+
+  /* 필터 칩 (요청에 의해 추가 유지, 우측 정렬) */
+  .dw-filter-chips { display:flex; gap:6px; margin-left:auto; }
+  .dw-chip { padding:4px 12px; border-radius:999px; border:1px solid #ddd; background:#fff; font-size:11.5px; font-weight:700; color:#666; cursor:pointer; }
+  .dw-chip.on { background:#222; color:#fff; border-color:#222; }
+  .dw-count-toolbar-row { display:flex; align-items:center; margin-bottom:8px; }
+
+  /* 툴바 */
+  .dw-toolbar { display:flex; align-items:center; gap:16px; padding:9px 2px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; margin-bottom:0; }
+  .dw-toolbar-item { display:flex; align-items:center; gap:4px; font-size:12.5px; color:#555; font-weight:600; cursor:pointer; }
+  .dw-toolbar-item .ic { font-size:13px; }
+  .dw-toolbar-spacer { flex:1; }
+  .dw-toolbar-select { border:1px solid #ddd; border-radius:5px; padding:4px 8px; font-size:12px; color:#555; }
 
   /* 테이블 */
-  .daou-table-wrap { border:1px solid #e5e5e5; border-radius:10px; overflow:hidden; }
-  table.daou-table { width:100%; border-collapse:collapse; font-size:13px; }
-  table.daou-table thead { background:#f7f7f9; }
-  table.daou-table th { padding:11px 10px; text-align:center; font-weight:700; color:#555; border-bottom:1px solid #e5e5e5; white-space:nowrap; }
-  table.daou-table td { padding:11px 10px; text-align:center; border-bottom:1px solid #f0f0f0; color:#333; }
-  table.daou-table tbody tr { cursor:pointer; transition:background 0.1s; }
-  table.daou-table tbody tr:hover { background:#f9f8ff; }
-  table.daou-table tbody tr:last-child td { border-bottom:none; }
+  table.dw-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.dw-table thead th { padding:10px 8px; text-align:center; font-weight:700; color:#555; background:#fafafa; border-bottom:1px solid #e5e5e5; white-space:nowrap; }
+  table.dw-table tbody td { padding:11px 8px; text-align:center; border-bottom:1px solid #f0f0f0; color:#333; }
+  table.dw-table tbody tr { cursor:pointer; }
+  table.dw-table tbody tr:hover { background:#f8f7fc; }
 
-  .daou-td-name { text-align:left !important; font-weight:700; padding-left:16px !important; }
-  .daou-td-name .nbadge { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#e74c3c; color:#fff; font-size:9px; font-weight:800; margin-left:4px; vertical-align:middle; }
+  .dw-td-name { font-weight:500; }
+  .dw-td-name .dw-link-ic { color:#aaa; font-size:11px; margin-left:3px; }
+  .dw-td-name .nbadge { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:#e74c3c; color:#fff; font-size:8.5px; font-weight:800; margin-left:3px; vertical-align:middle; }
 
-  .daou-status { display:inline-block; padding:4px 11px; border-radius:6px; font-size:12px; font-weight:700; }
-  .daou-status.예약 { background:#fff4d6; color:#a87900; }
-  .daou-status.상담완료 { background:#eceff5; color:#5b6472; }
+  .dw-status-pill { display:inline-block; padding:3px 10px; border-radius:5px; font-size:12px; font-weight:700; }
+  .dw-status-pill.예약 { background:#fdf1d0; color:#a87900; }
+  .dw-status-pill.상담완료 { background:#eceff5; color:#5b6472; }
 
-  .daou-empty-row td { padding:60px 0; color:#aaa; font-size:13px; }
+  .dw-empty-row td { padding:60px 0; color:#aaa; font-size:13px; }
+  .dw-checkbox { width:14px; height:14px; }
 
   /* 상세 모달 */
-  .daou-detail-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:600; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; }
-  .daou-detail-overlay.open { display:flex; }
-  .daou-detail-box { background:#fff; border-radius:14px; max-width:640px; width:100%; overflow:hidden; }
-  .daou-detail-top { background:#f7f7f9; padding:18px 24px; display:flex; align-items:center; justify-content:between; border-bottom:1px solid #eee; }
-  .daou-detail-top h3 { font-size:16px; font-weight:800; flex:1; }
-  .daou-detail-top .daou-status { margin-right:10px; }
-  .daou-detail-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; }
-  .daou-detail-body { padding:22px 24px; max-height:75vh; overflow-y:auto; }
+  .dw-detail-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:600; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; }
+  .dw-detail-overlay.open { display:flex; }
+  .dw-detail-box { background:#fff; border-radius:14px; max-width:640px; width:100%; overflow:hidden; }
+  .dw-detail-top { background:#f7f7f9; padding:18px 24px; display:flex; align-items:center; gap:10px; border-bottom:1px solid #eee; }
+  .dw-detail-top h3 { font-size:16px; font-weight:800; flex:1; }
+  .dw-detail-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; }
+  .dw-detail-body { padding:22px 24px; max-height:75vh; overflow-y:auto; }
 
-  .daou-section-title { font-size:12px; font-weight:800; color:#7b5fd9; letter-spacing:0.05em; margin:18px 0 10px; text-transform:uppercase; }
-  .daou-section-title:first-child { margin-top:0; }
+  .dw-section-title { font-size:12px; font-weight:800; color:#7b5fd9; letter-spacing:0.05em; margin:18px 0 10px; text-transform:uppercase; }
+  .dw-section-title:first-child { margin-top:0; }
 
-  .daou-info-grid { display:grid; grid-template-columns:100px 1fr; row-gap:9px; font-size:13px; background:#fafafa; border-radius:10px; padding:14px 16px; }
-  .daou-info-label { color:#888; font-weight:700; }
-  .daou-info-val { color:#222; }
+  .dw-info-grid { display:grid; grid-template-columns:100px 1fr; row-gap:9px; font-size:13px; background:#fafafa; border-radius:10px; padding:14px 16px; }
+  .dw-info-label { color:#888; font-weight:700; }
+  .dw-info-val { color:#222; }
 
-  .daou-form-group { margin-bottom:14px; }
-  .daou-form-group label { display:block; font-size:12px; font-weight:700; color:#555; margin-bottom:6px; }
-  .daou-form-group input[type=text], .daou-form-group textarea {
+  .dw-form-group { margin-bottom:14px; }
+  .dw-form-group label { display:block; font-size:12px; font-weight:700; color:#555; margin-bottom:6px; }
+  .dw-form-group input[type=text], .dw-form-group textarea {
     width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit;
   }
-  .daou-form-group textarea { min-height:80px; resize:vertical; }
-  .daou-yn-group { display:flex; gap:8px; }
-  .daou-yn-btn { flex:1; padding:9px; text-align:center; border:1px solid #ddd; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#555; }
-  .daou-yn-btn.active { background:#7b5fd9; color:#fff; border-color:#7b5fd9; }
+  .dw-form-group textarea { min-height:80px; resize:vertical; }
+  .dw-yn-group { display:flex; gap:8px; }
+  .dw-yn-btn { flex:1; padding:9px; text-align:center; border:1px solid #ddd; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#555; }
+  .dw-yn-btn.active { background:#7b5fd9; color:#fff; border-color:#7b5fd9; }
 
-  .daou-save-btn { width:100%; padding:13px; background:#7b5fd9; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-top:8px; }
-  .daou-save-btn:hover { background:#6a4fc4; }
-  .daou-save-msg { text-align:center; font-size:12px; color:#555; margin-top:8px; }
+  .dw-save-btn { width:100%; padding:13px; background:#7b5fd9; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-top:8px; }
+  .dw-save-btn:hover { background:#6a4fc4; }
+  .dw-save-msg { text-align:center; font-size:12px; color:#555; margin-top:8px; }
 </style>
 
-<div class="daou-wrap">
+<div class="dw-wrap">
 
-  <div class="daou-header">
-    <div class="daou-header-icon">📋</div>
+  <div class="dw-header">
+    <div class="dw-header-icon">📋</div>
     <h2>쇼룸 상담</h2>
-    <button class="daou-refresh-btn" onclick="loadConsults()">🔄 새로고침</button>
+    <span class="dw-icon-btn">ⓘ</span>
+    <span class="dw-icon-btn">⚙</span>
+    <div class="dw-header-spacer"></div>
+    <button class="dw-refresh-btn" onclick="loadConsults()">🔄 새로고침</button>
   </div>
 
-  <div class="daou-subtab"><span>상담일지</span></div>
+  <div class="dw-subtab-row">
+    <span class="dw-subtab-active">상담일지</span>
+    <span class="dw-subtab-badge">main</span>
+  </div>
 
-  <div class="daou-search-row">
-    <label>검색</label>
-    <div class="daou-search-box">
+  <div class="dw-search-line">
+    <span class="dw-search-label">검색</span>
+    <span class="dw-save-filter">새 필터 저장</span>
+    <div class="dw-search-right">
+      <span>⚙ 목록 관리</span>
+      <span class="dw-dropdown">기본형 ▾</span>
+    </div>
+  </div>
+
+  <div class="dw-search-controls">
+    <div class="dw-search-box">
+      <input type="text" id="csSearch" placeholder="텍스트 검색" oninput="renderConsultList()">
       <span class="icon">🔍</span>
-      <input type="text" id="csSearch" placeholder="이름 / 연락처 / 업체명 / 날짜 검색" oninput="renderConsultList()">
+    </div>
+    <button class="dw-cond-btn">+ 조건추가</button>
+  </div>
+
+  <div class="dw-count-toolbar-row">
+    <div class="dw-count-line"><strong id="csCount">0</strong> 개의 데이터가 있습니다</div>
+    <div class="dw-filter-chips">
+      <div class="dw-chip on" data-filter="전체" onclick="setCsFilter(this)">전체</div>
+      <div class="dw-chip" data-filter="예약" onclick="setCsFilter(this)">예약</div>
+      <div class="dw-chip" data-filter="상담완료" onclick="setCsFilter(this)">상담완료</div>
     </div>
   </div>
 
-  <div class="daou-count-row">
-    <div class="daou-count"><strong id="csCount">0</strong>개의 데이터가 있습니다</div>
-    <div class="daou-filter-chips">
-      <div class="daou-chip on" data-filter="전체" onclick="setCsFilter(this)">전체</div>
-      <div class="daou-chip" data-filter="예약" onclick="setCsFilter(this)">예약</div>
-      <div class="daou-chip" data-filter="상담완료" onclick="setCsFilter(this)">상담완료</div>
-    </div>
+  <div class="dw-toolbar">
+    <div class="dw-toolbar-item"><span class="ic">✏️</span> 등록</div>
+    <div class="dw-toolbar-item"><span class="ic">🗑️</span> 삭제</div>
+    <div class="dw-toolbar-item"><span class="ic">⬆️</span> 일괄 등록</div>
+    <div class="dw-toolbar-item"><span class="ic">⬇️</span> 목록 다운로드 ▾</div>
+    <div class="dw-toolbar-spacer"></div>
+    <select class="dw-toolbar-select" id="csPageSize">
+      <option value="20">20</option>
+      <option value="50">50</option>
+      <option value="100">100</option>
+    </select>
   </div>
 
-  <div class="daou-table-wrap">
-    <table class="daou-table">
-      <thead>
-        <tr>
-          <th style="width:50px;">No.</th>
-          <th style="width:90px;">상태</th>
-          <th style="width:90px;">상담자</th>
-          <th>성함</th>
-          <th>업체명</th>
-          <th style="width:150px;">일정</th>
-          <th style="width:130px;">연락처</th>
-          <th style="width:100px;">유형</th>
-        </tr>
-      </thead>
-      <tbody id="csTableBody">
-        <tr class="daou-empty-row"><td colspan="8">불러오는 중...</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <table class="dw-table">
+    <thead>
+      <tr>
+        <th style="width:46px;">No.</th>
+        <th style="width:34px;"><input type="checkbox" class="dw-checkbox" disabled></th>
+        <th style="width:90px;">상태</th>
+        <th style="width:100px;">상담자</th>
+        <th>성함</th>
+        <th>업체명</th>
+        <th style="width:150px;">일정</th>
+        <th style="width:130px;">연락처</th>
+        <th style="width:100px;">유형</th>
+      </tr>
+    </thead>
+    <tbody id="csTableBody">
+      <tr class="dw-empty-row"><td colspan="9">불러오는 중...</td></tr>
+    </tbody>
+  </table>
 </div>
 
 <!-- 상세 모달 -->
-<div class="daou-detail-overlay" id="csDetailOverlay">
-  <div class="daou-detail-box">
-    <div class="daou-detail-top">
-      <span class="daou-status" id="csDetailStatusBadge"></span>
+<div class="dw-detail-overlay" id="csDetailOverlay">
+  <div class="dw-detail-box">
+    <div class="dw-detail-top">
+      <span class="dw-status-pill" id="csDetailStatusBadge"></span>
       <h3>쇼룸 상담 상세</h3>
-      <button class="daou-detail-close" onclick="closeConsultDetail()">✕</button>
+      <button class="dw-detail-close" onclick="closeConsultDetail()">✕</button>
     </div>
-    <div class="daou-detail-body" id="csDetailBody"></div>
+    <div class="dw-detail-body" id="csDetailBody"></div>
   </div>
 </div>
 
@@ -1696,18 +1740,16 @@
   let csCurrentFilter = '전체';
   let formState = { sampleGiven:'', cardGiven:'', revisit:'', priceInfo:'' };
 
-  // ── 상담완료 여부 판단: 상담자 또는 상담내용이 채워져 있으면 완료 ──
   function isConsultDone(r) {
     return !!((r.counselor && r.counselor.trim()) || (r.content && r.content.trim()));
   }
 
-  // ── 화면 표시용 상태 ──
   function getDisplayStatus(r) {
     return isConsultDone(r) ? '상담완료' : '예약';
   }
 
   window.loadConsults = async function() {
-    document.getElementById('csTableBody').innerHTML = '<tr class="daou-empty-row"><td colspan="8">불러오는 중...</td></tr>';
+    document.getElementById('csTableBody').innerHTML = '<tr class="dw-empty-row"><td colspan="9">불러오는 중...</td></tr>';
     try {
       const res = await fetch(`${CS_URL}?action=getConsults`);
       const data = await res.json();
@@ -1715,15 +1757,15 @@
         allConsults = data.rows || [];
         renderConsultList();
       } else {
-        document.getElementById('csTableBody').innerHTML = `<tr class="daou-empty-row"><td colspan="8">불러오기 실패: ${data.message||''}</td></tr>`;
+        document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="9">불러오기 실패: ${data.message||''}</td></tr>`;
       }
     } catch(e) {
-      document.getElementById('csTableBody').innerHTML = `<tr class="daou-empty-row"><td colspan="8">오류: ${e.message}</td></tr>`;
+      document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="9">오류: ${e.message}</td></tr>`;
     }
   };
 
   window.setCsFilter = function(el) {
-    document.querySelectorAll('.daou-chip').forEach(c => c.classList.remove('on'));
+    document.querySelectorAll('.dw-chip').forEach(c => c.classList.remove('on'));
     el.classList.add('on');
     csCurrentFilter = el.dataset.filter;
     renderConsultList();
@@ -1744,37 +1786,32 @@
     document.getElementById('csCount').textContent = list.length;
 
     if (!list.length) {
-      document.getElementById('csTableBody').innerHTML = '<tr class="daou-empty-row"><td colspan="8">데이터가 없습니다.</td></tr>';
+      document.getElementById('csTableBody').innerHTML = '<tr class="dw-empty-row"><td colspan="9">데이터가 없습니다.</td></tr>';
       return;
     }
 
-    // 날짜 최신순 정렬
     list.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
 
     document.getElementById('csTableBody').innerHTML = list.map((r, i) => {
       const status = getDisplayStatus(r);
       const idx = allConsults.indexOf(r);
-      const showN = !isConsultDone(r); // 미확인(상담기록 미작성) 표시
+      const showN = !isConsultDone(r);
       return `
         <tr onclick="openConsultDetail(${idx})">
           <td>${list.length - i}</td>
-          <td><span class="daou-status ${status}">${status}</span></td>
+          <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
+          <td><span class="dw-status-pill ${status}">${status}</span></td>
           <td>${r.counselor || ''}</td>
-          <td class="daou-td-name">${r.name||'-'}${showN ? '<span class="nbadge">N</span>' : ''}</td>
+          <td class="dw-td-name">${r.name||''}${r.name?'<span class="dw-link-ic">⧉</span>':''}${showN ? '<span class="nbadge">N</span>' : ''}</td>
           <td>${r.company || ''}</td>
           <td>${r.date} ${r.time}</td>
-          <td>${formatPhoneDisplay(r.phone)}</td>
-          <td>${r.visitorType || '-'}</td>
+          <td>${r.phone || ''}</td>
+          <td>${r.visitorType || ''}</td>
         </tr>
       `;
     }).join('');
   };
 
-  function formatPhoneDisplay(phone) {
-    return phone || '-';
-  }
-
-  // ── 접수일시 포맷 ──
   function csFormatSubmittedAt(val) {
     if (!val) return '-';
     const d = new Date(val);
@@ -1796,78 +1833,78 @@
     };
 
     const status = getDisplayStatus(r);
-    document.getElementById('csDetailStatusBadge').className = `daou-status ${status}`;
+    document.getElementById('csDetailStatusBadge').className = `dw-status-pill ${status}`;
     document.getElementById('csDetailStatusBadge').textContent = status;
 
     document.getElementById('csDetailBody').innerHTML = `
-      <div class="daou-section-title">예약 정보</div>
-      <div class="daou-info-grid">
-        <span class="daou-info-label">접수번호</span><span class="daou-info-val">${r.receiptNo||'-'}</span>
-        <span class="daou-info-label">접수일시</span><span class="daou-info-val">${csFormatSubmittedAt(r.submittedAt)}</span>
-        <span class="daou-info-label">상담날짜</span><span class="daou-info-val">${r.date||'-'} ${r.time||''}</span>
-        <span class="daou-info-label">예약자유형</span><span class="daou-info-val">${r.visitorType||'-'}</span>
-        <span class="daou-info-label">방문인원</span><span class="daou-info-val">${r.visitCount||'-'}</span>
-        <span class="daou-info-label">재방문(예약시)</span><span class="daou-info-val">${r.revisit||'-'}</span>
-        <span class="daou-info-label">성함</span><span class="daou-info-val">${r.name||'-'}</span>
-        <span class="daou-info-label">연락처</span><span class="daou-info-val">${r.phone||'-'}</span>
-        <span class="daou-info-label">업체명</span><span class="daou-info-val">${r.company||'-'}</span>
-        <span class="daou-info-label">현장주소</span><span class="daou-info-val">${r.address||'-'}</span>
-        <span class="daou-info-label">공간유형</span><span class="daou-info-val">${r.spaceType||'-'}</span>
-        <span class="daou-info-label">평수</span><span class="daou-info-val">${r.size||'-'}</span>
-        <span class="daou-info-label">층수</span><span class="daou-info-val">${r.floor||'-'}</span>
-        <span class="daou-info-label">엘리베이터</span><span class="daou-info-val">${r.elevator||'-'}</span>
-        <span class="daou-info-label">시공예정일</span><span class="daou-info-val">${r.workDate||'-'}</span>
-        <span class="daou-info-label">선호제품</span><span class="daou-info-val">${r.products||'-'}</span>
-        <span class="daou-info-label">전달사항</span><span class="daou-info-val">${r.memo||'-'}</span>
-        <span class="daou-info-label">처리상태</span><span class="daou-info-val">${r.status||'-'}</span>
+      <div class="dw-section-title">예약 정보</div>
+      <div class="dw-info-grid">
+        <span class="dw-info-label">접수번호</span><span class="dw-info-val">${r.receiptNo||'-'}</span>
+        <span class="dw-info-label">접수일시</span><span class="dw-info-val">${csFormatSubmittedAt(r.submittedAt)}</span>
+        <span class="dw-info-label">상담날짜</span><span class="dw-info-val">${r.date||'-'} ${r.time||''}</span>
+        <span class="dw-info-label">예약자유형</span><span class="dw-info-val">${r.visitorType||'-'}</span>
+        <span class="dw-info-label">방문인원</span><span class="dw-info-val">${r.visitCount||'-'}</span>
+        <span class="dw-info-label">재방문(예약시)</span><span class="dw-info-val">${r.revisit||'-'}</span>
+        <span class="dw-info-label">성함</span><span class="dw-info-val">${r.name||'-'}</span>
+        <span class="dw-info-label">연락처</span><span class="dw-info-val">${r.phone||'-'}</span>
+        <span class="dw-info-label">업체명</span><span class="dw-info-val">${r.company||'-'}</span>
+        <span class="dw-info-label">현장주소</span><span class="dw-info-val">${r.address||'-'}</span>
+        <span class="dw-info-label">공간유형</span><span class="dw-info-val">${r.spaceType||'-'}</span>
+        <span class="dw-info-label">평수</span><span class="dw-info-val">${r.size||'-'}</span>
+        <span class="dw-info-label">층수</span><span class="dw-info-val">${r.floor||'-'}</span>
+        <span class="dw-info-label">엘리베이터</span><span class="dw-info-val">${r.elevator||'-'}</span>
+        <span class="dw-info-label">시공예정일</span><span class="dw-info-val">${r.workDate||'-'}</span>
+        <span class="dw-info-label">선호제품</span><span class="dw-info-val">${r.products||'-'}</span>
+        <span class="dw-info-label">전달사항</span><span class="dw-info-val">${r.memo||'-'}</span>
+        <span class="dw-info-label">처리상태</span><span class="dw-info-val">${r.status||'-'}</span>
       </div>
 
-      <div class="daou-section-title">상담 기록</div>
+      <div class="dw-section-title">상담 기록</div>
 
-      <div class="daou-form-group">
+      <div class="dw-form-group">
         <label>상담자</label>
         <input type="text" id="csCounselor" value="${r.counselor||''}" placeholder="상담 진행한 직원명">
       </div>
 
-      <div class="daou-form-group">
+      <div class="dw-form-group">
         <label>상담 내용</label>
         <textarea id="csContent" placeholder="상담 내용을 입력해주세요.">${r.content||''}</textarea>
       </div>
 
-      <div class="daou-form-group">
+      <div class="dw-form-group">
         <label>쪽샘플 제공 여부</label>
-        <div class="daou-yn-group" id="csSampleGroup">
-          <div class="daou-yn-btn ${formState.sampleGiven==='제공'?'active':''}" data-val="제공" onclick="setYn('sampleGiven','제공')">제공</div>
-          <div class="daou-yn-btn ${formState.sampleGiven==='미제공'?'active':''}" data-val="미제공" onclick="setYn('sampleGiven','미제공')">미제공</div>
+        <div class="dw-yn-group" id="csSampleGroup">
+          <div class="dw-yn-btn ${formState.sampleGiven==='제공'?'active':''}" data-val="제공" onclick="setYn('sampleGiven','제공')">제공</div>
+          <div class="dw-yn-btn ${formState.sampleGiven==='미제공'?'active':''}" data-val="미제공" onclick="setYn('sampleGiven','미제공')">미제공</div>
         </div>
       </div>
 
-      <div class="daou-form-group">
+      <div class="dw-form-group">
         <label>명함 전달 여부</label>
-        <div class="daou-yn-group" id="csCardGroup">
-          <div class="daou-yn-btn ${formState.cardGiven==='전달'?'active':''}" data-val="전달" onclick="setYn('cardGiven','전달')">전달</div>
-          <div class="daou-yn-btn ${formState.cardGiven==='미전달'?'active':''}" data-val="미전달" onclick="setYn('cardGiven','미전달')">미전달</div>
+        <div class="dw-yn-group" id="csCardGroup">
+          <div class="dw-yn-btn ${formState.cardGiven==='전달'?'active':''}" data-val="전달" onclick="setYn('cardGiven','전달')">전달</div>
+          <div class="dw-yn-btn ${formState.cardGiven==='미전달'?'active':''}" data-val="미전달" onclick="setYn('cardGiven','미전달')">미전달</div>
         </div>
       </div>
 
-      <div class="daou-form-group">
+      <div class="dw-form-group">
         <label>재방문 여부 (상담 후 예상)</label>
-        <div class="daou-yn-group" id="csRevisitGroup">
-          <div class="daou-yn-btn ${formState.revisit==='재방문 예상'?'active':''}" data-val="재방문 예상" onclick="setYn('revisit','재방문 예상')">재방문 예상</div>
-          <div class="daou-yn-btn ${formState.revisit==='재방문 어려움'?'active':''}" data-val="재방문 어려움" onclick="setYn('revisit','재방문 어려움')">재방문 어려움</div>
+        <div class="dw-yn-group" id="csRevisitGroup">
+          <div class="dw-yn-btn ${formState.revisit==='재방문 예상'?'active':''}" data-val="재방문 예상" onclick="setYn('revisit','재방문 예상')">재방문 예상</div>
+          <div class="dw-yn-btn ${formState.revisit==='재방문 어려움'?'active':''}" data-val="재방문 어려움" onclick="setYn('revisit','재방문 어려움')">재방문 어려움</div>
         </div>
       </div>
 
-      <div class="daou-form-group">
+      <div class="dw-form-group">
         <label>금액 안내 유무</label>
-        <div class="daou-yn-group" id="csPriceGroup">
-          <div class="daou-yn-btn ${formState.priceInfo==='안내함'?'active':''}" data-val="안내함" onclick="setYn('priceInfo','안내함')">안내함</div>
-          <div class="daou-yn-btn ${formState.priceInfo==='안내안함'?'active':''}" data-val="안내안함" onclick="setYn('priceInfo','안내안함')">안내안함</div>
+        <div class="dw-yn-group" id="csPriceGroup">
+          <div class="dw-yn-btn ${formState.priceInfo==='안내함'?'active':''}" data-val="안내함" onclick="setYn('priceInfo','안내함')">안내함</div>
+          <div class="dw-yn-btn ${formState.priceInfo==='안내안함'?'active':''}" data-val="안내안함" onclick="setYn('priceInfo','안내안함')">안내안함</div>
         </div>
       </div>
 
-      <button class="daou-save-btn" onclick="saveConsultDetail()">💾 저장</button>
-      <div class="daou-save-msg" id="csSaveMsg"></div>
+      <button class="dw-save-btn" onclick="saveConsultDetail()">💾 저장</button>
+      <div class="dw-save-msg" id="csSaveMsg"></div>
     `;
 
     document.getElementById('csDetailOverlay').classList.add('open');
@@ -1878,7 +1915,7 @@
     const groupMap = { sampleGiven:'csSampleGroup', cardGiven:'csCardGroup', revisit:'csRevisitGroup', priceInfo:'csPriceGroup' };
     const group = document.getElementById(groupMap[field]);
     if (group) {
-      group.querySelectorAll('.daou-yn-btn').forEach(btn => {
+      group.querySelectorAll('.dw-yn-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.val === formState[field]);
       });
     }
