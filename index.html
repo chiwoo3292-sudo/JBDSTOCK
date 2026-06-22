@@ -5192,7 +5192,7 @@ if ('serviceWorker' in navigator) {
   window.importCsvData = async function() {
     if (!parsedCsvRows.length) return;
     const total = parsedCsvRows.length;
-    const CHUNK_SIZE = 50;
+    const CHUNK_SIZE = 5;
     const chunks = [];
     for (let i = 0; i < total; i += CHUNK_SIZE) {
       chunks.push(parsedCsvRows.slice(i, i + CHUNK_SIZE));
