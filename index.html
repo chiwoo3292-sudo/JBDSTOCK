@@ -354,14 +354,14 @@
   <div class="tabs no-capture">
   <button type="button" class="tab-btn active" data-tab="pricingTab">단가표</button>
   <button type="button" class="tab-btn" data-tab="calculatorTab">계산기</button>
-  <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
   <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
   <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
-  <button type="button" class="tab-btn" data-tab="floorplanTab">📐 면적분석</button>
+  <button type="button" class="tab-btn" data-tab="consultTab">💬 쇼룸상담</button>
+  <button type="button" class="tab-btn" data-tab="reservationTab">📅 예약관리</button>
   <button type="button" class="tab-btn" data-tab="cardScanTab">📷 명함스캐닝</button>
   <button type="button" class="tab-btn" data-tab="contactsTab">📋 연락처</button>
-  <button type="button" class="tab-btn" data-tab="reservationTab">📅 예약관리</button>
-  <button type="button" class="tab-btn" data-tab="consultTab">💬 쇼룸상담</button>
+  <button type="button" class="tab-btn" data-tab="floorplanTab">📐 면적분석</button>
+  <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
 </div>
 
   <section id="pricingTab" class="tab-panel active">
@@ -1573,6 +1573,10 @@
   .dw-col-resizer { position:absolute; right:-3px; top:0; width:6px; height:100%; cursor:col-resize; z-index:2; }
   .dw-col-resizer:hover { background:#7b5fd9; opacity:0.4; }
 
+  /* 인라인 편집 */
+  .cs-inline-input { border:none; background:transparent; font-size:13px; font-family:inherit; color:#333; width:100%; outline:none; cursor:text; }
+  .cs-inline-input:focus { background:#f3f1fb; border-radius:4px; padding:2px 4px; }
+
   .dw-td-name { font-weight:500; }
   .dw-td-name .nbadge { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:#e74c3c; color:#fff; font-size:8.5px; font-weight:800; margin-left:3px; vertical-align:middle; }
 
@@ -1582,6 +1586,21 @@
 
   .dw-empty-row td { padding:60px 0; color:#aaa; font-size:13px; }
   .dw-checkbox { width:14px; height:14px; }
+
+  /* 모바일 대응 */
+  @media (max-width: 768px) {
+    .dw-wrap { padding:0 4px; }
+    .dw-header h2 { font-size:15px; }
+    .dw-toolbar { gap:10px; flex-wrap:wrap; }
+    .dw-toolbar-item { font-size:11.5px; }
+    .dw-search-box { width:100%; max-width:100%; }
+    .dw-search-controls { flex-wrap:wrap; }
+    .dw-count-toolbar-row { flex-direction:column; align-items:flex-start; gap:8px; }
+    .dw-filter-chips { margin-left:0; }
+    table.dw-table { font-size:11.5px; }
+    table.dw-table thead th, table.dw-table tbody td { padding:8px 5px; }
+    .cs-inline-input { font-size:11.5px; }
+  }
 
   /* ===== 등록/상세 폼 (전체화면 페이지형) ===== */
   .dw-form-overlay { display:none; position:fixed; inset:0; background:#fff; z-index:700; overflow-y:auto; }
@@ -1696,8 +1715,8 @@
     <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')">↓ 목록 다운로드 ▾</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize" onchange="currentPage=1;renderConsultList()">
-      <option value="10">10</option>
-      <option value="20" selected>20</option>
+      <option value="10" selected>10</option>
+      <option value="20">20</option>
       <option value="30">30</option>
     </select>
   </div>
@@ -2031,7 +2050,6 @@
     document.getElementById('csTableBody').innerHTML = pageList.map((r, i) => {
       const status = getDisplayStatus(r);
       const showN = !isConsultDone(r);
-      // 일정: "2026년6월20일 13:30" 형식
       const dateStr = r.date || '';
       const timeStart = r.time ? String(r.time).split('~')[0].trim() : '';
       let scheduleDisplay = '';
@@ -2039,19 +2057,20 @@
         const parts = dateStr.split('-');
         if (parts.length === 3) {
           scheduleDisplay = `${parts[0]}년${parseInt(parts[1])}월${parseInt(parts[2])}일`;
-        } else {
-          scheduleDisplay = dateStr;
-        }
+        } else { scheduleDisplay = dateStr; }
         if (timeStart) scheduleDisplay += ` ${timeStart}`;
       }
       return `
-        <tr onclick="openConsultDetail(${r._origIdx})">
+        <tr>
           <td>${i + 1 + start}</td>
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
           <td><span class="dw-status-pill ${status}">${status}</span>${showN ? '<span class="nbadge" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#e74c3c;color:#fff;font-size:8.5px;font-weight:800;margin-left:3px;vertical-align:middle;">N</span>' : ''}</td>
-          <td>${r.counselor || ''}</td>
-          <td class="dw-td-name">${r.name||''}</td>
-          <td>${r.company || ''}</td>
+          <td><input class="cs-inline-input" data-field="counselor" data-idx="${r._origIdx}" value="${r.counselor||''}" placeholder="상담자" onblur="autoSaveField(this)"></td>
+          <td class="dw-td-name">
+            ${r.name||''}
+            <span onclick="event.stopPropagation();openConsultNewTab(${r._origIdx})" title="상세보기" style="cursor:pointer;margin-left:4px;font-size:13px;opacity:0.6;">📄</span>
+          </td>
+          <td><input class="cs-inline-input" data-field="company" data-idx="${r._origIdx}" value="${r.company||''}" placeholder="업체명" onblur="autoSaveField(this)"></td>
           <td>${scheduleDisplay}</td>
           <td>${r.phone || ''}</td>
         </tr>
@@ -5069,24 +5088,38 @@ if ('serviceWorker' in navigator) {
   const RSV_POLL_URL = document.querySelector('[id^="reservationTab"]') ?
     (function(){ const s = document.querySelector('script[src*="AKfyc"]'); return null; })() : null;
 
-  // ── 5. 예약 알림 배너 (1분 polling) ──
+  // ── 5. 예약 알림 배너 + Web Push (1분 polling) ──
   let lastKnownRsvCount = -1;
   const POLL_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
+
+  // Web Push 권한 요청
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  function sendWebPush(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '' });
+    }
+  }
 
   async function checkNewReservations() {
     try {
       const res = await fetch(`${POLL_URL}?action=getReservations`);
       const data = await res.json();
       if (data.status !== 'ok') return;
-
       const pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
+
       if (lastKnownRsvCount === -1) {
         lastKnownRsvCount = pending.length;
         return;
       }
-      if (pending.length > lastKnownRsvCount) {
+
+      // 대기 건이 있으면 매번 알림 (신규 여부 무관)
+      if (pending.length > 0) {
         const newest = pending.sort((a,b) => (b.receiptNo||'').localeCompare(a.receiptNo||''))[0];
-        showRsvAlert(newest, pending.length - lastKnownRsvCount);
+        showRsvAlert(newest, pending.length);
+        sendWebPush('📅 예약 대기', `${newest.name||'고객'}님 외 ${pending.length}건 대기 중`);
       }
       lastKnownRsvCount = pending.length;
     } catch(e) { /* 네트워크 오류 무시 */ }
@@ -5150,6 +5183,73 @@ if ('serviceWorker' in navigator) {
   };
 
   // ── 다우 시트 변환 (구글시트 '다우import' 탭 → 쇼룸상담) ──
+  // ── 인라인 자동저장 ──
+  window.autoSaveField = async function(el) {
+    const idx = parseInt(el.dataset.idx, 10);
+    const field = el.dataset.field;
+    const value = el.value.trim();
+    const r = allConsults[idx];
+    if (!r || !r._rowIndex) return;
+    if (String(r[field]||'') === value) return;
+    allConsults[idx][field] = value;
+    try {
+      const params = new URLSearchParams({
+        action: 'saveConsult',
+        rowIndex: r._rowIndex,
+        counselor: field === 'counselor' ? value : (r.counselor||''),
+        company:   field === 'company'   ? value : (r.company||''),
+        content: r.content||'', date: r.date||'', time: r.time||'',
+        visitorType: r.visitorType||'', visitCount: r.visitCount||'',
+        visitStatus: r.revisit||'', name: r.name||'',
+        phone: r.phone||'', address: r.address||'',
+        spaceType: r.spaceType||'', size: r.size||'',
+        elevator: r.elevator||'', workDate: r.workDate||'',
+        products: r.products||'', priceInfo: r.priceInfo||'',
+        reqSample: r.sampleGiven||'', reqCard: r.cardGiven||'',
+        reqRevisit: r.revisitConsult||'', reqQuote: r.reqQuote||'',
+        workTiming: r.workTiming||'', workPeriod: r.workPeriod||'',
+      });
+      await fetch(`${POLL_URL}?${params}`);
+    } catch(e) { console.error('자동저장 실패:', e); }
+  };
+
+  // ── 새 탭에서 상세 열기 ──
+  window.openConsultNewTab = function(idx) {
+    const r = allConsults[idx];
+    if (!r) return;
+    const fields = [
+      ['접수일시', r.submittedAt ? String(r.submittedAt).slice(0,16) : '-'],
+      ['상담날짜', r.date||'-'], ['상담시간', r.time||'-'],
+      ['예약자유형', r.visitorType||'-'], ['방문인원', r.visitCount||'-'],
+      ['재방문여부', r.revisit||'-'], ['성함', r.name||'-'],
+      ['연락처', r.phone||'-'], ['업체명', r.company||'-'],
+      ['현장주소', r.address||'-'], ['공간유형', r.spaceType||'-'],
+      ['평수', r.size||'-'], ['엘리베이터', r.elevator||'-'],
+      ['시공예정일', r.workDate||'-'], ['선호제품', r.products||'-'],
+      ['전달사항', r.memo||r.content||'-'], ['처리상태', r.status||'-'],
+      ['상담자', r.counselor||'-'], ['상담내용', r.content||'-'],
+      ['쪽샘플제공', r.sampleGiven||'-'], ['명함전달', r.cardGiven||'-'],
+      ['재방문여부(상담)', r.revisitConsult||'-'], ['금액안내', r.priceInfo||'-'],
+      ['시공예정시기', r.workTiming||'-'], ['공사기간', r.workPeriod||'-'],
+    ];
+    const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+    <title>${r.name||'상담'} - 쇼룸 상담 상세</title>
+    <style>
+      body{font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;max-width:900px;margin:40px auto;padding:24px;color:#333;}
+      h2{font-size:22px;font-weight:800;color:#7b5fd9;margin-bottom:24px;}
+      .grid{display:grid;grid-template-columns:140px 1fr;gap:12px;background:#fafafa;border-radius:12px;padding:20px;}
+      .label{font-weight:700;color:#888;font-size:13px;padding:4px 0;}
+      .val{font-size:13px;color:#222;padding:4px 0;border-bottom:1px solid #f0f0f0;}
+    </style></head><body>
+    <h2>📋 쇼룸 상담 상세 — ${r.name||''}</h2>
+    <div class="grid">
+      ${fields.map(([k,v]) => `<span class="label">${k}</span><span class="val">${v}</span>`).join('')}
+    </div></body></html>`;
+    const w = window.open('', '_blank', 'width=960,height=800');
+    w.document.write(html);
+    w.document.close();
+  };
+
   window.importFromDaouSheet = async function() {
     if (!confirm('구글시트 [다우import] 탭의 데이터를 쇼룸상담으로 변환 등록하시겠습니까?')) return;
 
