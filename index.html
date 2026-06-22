@@ -5195,11 +5195,11 @@ if ('serviceWorker' in navigator) {
     document.getElementById('csvImportBtn').disabled = true;
 
     try {
-      const params = new URLSearchParams({
-        action: 'bulkImportConsults',
-        data: JSON.stringify(parsedCsvRows),
+      const res = await fetch(POLL_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bulkImportConsults', data: parsedCsvRows }),
       });
-      const res = await fetch(`${POLL_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('csvMsg').textContent = `✅ ${data.count||parsedCsvRows.length}건 등록 완료!`;
