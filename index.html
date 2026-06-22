@@ -2008,11 +2008,11 @@
       return;
     }
 
-    // 날짜 내림차순 정렬 (미래 위, 과거 아래)
+    // 날짜 오름차순 정렬 (미래 날짜가 위, No.1 = 가장 먼 미래)
     list.sort((a,b) => {
       const da = (a.date||'') + (a.time||'');
       const db = (b.date||'') + (b.time||'');
-      return db.localeCompare(da);
+      return db.localeCompare(da); // 내림차순: 먼 미래가 위
     });
 
     const pageSize = parseInt(document.getElementById('csPageSize').value || '20', 10);
@@ -2040,7 +2040,7 @@
       }
       return `
         <tr onclick="openConsultDetail(${r._origIdx})">
-          <td>${list.length - (start + i)}</td>
+          <td>${i + 1 + start}</td>
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
           <td><span class="dw-status-pill ${status}">${status}</span>${showN ? '<span class="nbadge" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#e74c3c;color:#fff;font-size:8.5px;font-weight:800;margin-left:3px;vertical-align:middle;">N</span>' : ''}</td>
           <td>${r.counselor || ''}</td>
