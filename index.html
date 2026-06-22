@@ -1690,8 +1690,8 @@
 
   <div class="dw-toolbar">
     <button class="dw-toolbar-item" onclick="openManualRegister()">✏ 등록</button>
-    <button class="dw-toolbar-item" onclick="alert('삭제할 항목을 선택해주세요.')">🗑 삭제</button>
-    <button class="dw-toolbar-item" onclick="alert('일괄등록 기능은 추후 작업 예정입니다.')">↑ 일괄 등록</button>
+    <button class="dw-toolbar-item" onclick="deleteCheckedConsults()">🗑 삭제</button>
+    <button class="dw-toolbar-item" onclick="openCsvModal()">↑ 일괄 등록</button>
     <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')">↓ 목록 다운로드 ▾</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize">
@@ -1740,7 +1740,9 @@
       <div class="dw-field">
         <label>상담자</label>
         <div class="dw-counselor-list" id="csCounselorList"></div>
-        <button type="button" class="dw-add-counselor-btn" onclick="openCounselorPicker()">＋ 추가</button>
+        <select id="cfCounselorSelect" onchange="addCounselorFromSelect()" style="margin-top:6px;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;">
+          <option value="">＋ 상담자 추가</option>
+        </select>
       </div>
     </div>
 
@@ -1749,7 +1751,7 @@
         <label>일정</label>
         <div class="dw-inline-2">
           <input type="date" id="cfDate">
-          <input type="time" id="cfTime">
+          <input type="text" id="cfTime" placeholder="HH:MM" maxlength="5" style="width:80px;">
         </div>
       </div>
       <div class="dw-field">
@@ -1962,6 +1964,7 @@
       const data = await res.json();
       if (data.status === 'ok') {
         allConsults = data.rows || [];
+        window._allConsultsRef = allConsults;
         renderConsultList();
       } else {
         document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="8">불러오기 실패: ${data.message||''}</td></tr>`;
@@ -2067,7 +2070,6 @@
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     }
-    }
   }
   initColumnResize();
 
@@ -2078,18 +2080,20 @@
     box.classList.toggle('show', checked);
   };
 
-  // ── 상담자 선택 (간단 prompt 방식, 추후 모달로 고도화 가능) ──
-  window.openCounselorPicker = function() {
-    const options = STAFF_LIST.map((s,i) => `${i+1}. ${s.name} ${s.title}`).join('\n');
-    const input = prompt(`상담자를 선택해주세요 (번호 입력):\n${options}`);
-    const idx = parseInt(input, 10) - 1;
-    if (STAFF_LIST[idx]) {
-      const label = `${STAFF_LIST[idx].name} ${STAFF_LIST[idx].title}`;
-      if (!selectedCounselors.includes(label)) {
-        selectedCounselors.push(label);
-        renderCounselorList();
-      }
+  // ── 상담자 드롭박스에서 선택 추가 ──
+  function fillCounselorSelect() {
+    const sel = document.getElementById('cfCounselorSelect');
+    sel.innerHTML = '<option value="">＋ 상담자 추가</option>' +
+      STAFF_LIST.map(s => `<option value="${s.name} ${s.title}">${s.name} ${s.title}</option>`).join('');
+  }
+  window.addCounselorFromSelect = function() {
+    const sel = document.getElementById('cfCounselorSelect');
+    const val = sel.value;
+    if (val && !selectedCounselors.includes(val)) {
+      selectedCounselors.push(val);
+      renderCounselorList();
     }
+    sel.value = ''; // 선택 초기화
   };
   function renderCounselorList() {
     document.getElementById('csCounselorList').innerHTML = selectedCounselors.map((c, i) => `
@@ -2114,6 +2118,7 @@
     selectedCounselors = [];
     renderCounselorList();
     fillCardStaffSelect();
+    fillCounselorSelect();
     document.getElementById('csFormTitle').textContent = '쇼룸 상담';
     resetConsultForm();
     document.getElementById('cfAuthor').textContent = '자동입력';
@@ -2169,6 +2174,7 @@
     selectedConsult = allConsults[idx];
     const r = selectedConsult;
     fillCardStaffSelect();
+    fillCounselorSelect();
 
     selectedCounselors = r.counselor ? String(r.counselor).split(',').map(s=>s.trim()).filter(Boolean) : [];
     renderCounselorList();
@@ -4935,6 +4941,280 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('[PWA] Service Worker 등록 실패:', err));
   });
 }
+</script>
+
+<!-- 예약 알림 배너 -->
+<style>
+  .rsv-alert-banner {
+    position:fixed; bottom:24px; right:24px; z-index:9999;
+    background:#fff; border:1px solid #e0e0e0; border-left:4px solid #7b5fd9;
+    border-radius:10px; padding:16px 20px; box-shadow:0 4px 20px rgba(0,0,0,0.12);
+    max-width:340px; transform:translateY(120%); transition:transform 0.35s ease;
+    cursor:pointer;
+  }
+  .rsv-alert-banner.show { transform:translateY(0); }
+  .rsv-alert-title { font-size:13px; font-weight:800; color:#7b5fd9; margin-bottom:6px; }
+  .rsv-alert-body { font-size:12.5px; color:#333; line-height:1.6; }
+  .rsv-alert-close { position:absolute; top:10px; right:12px; background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; }
+  .rsv-alert-time { font-size:11px; color:#999; margin-top:6px; }
+</style>
+<div class="rsv-alert-banner" id="rsvAlertBanner" onclick="setTab('reservationTab');">
+  <button class="rsv-alert-close" onclick="event.stopPropagation();document.getElementById('rsvAlertBanner').classList.remove('show');">✕</button>
+  <div class="rsv-alert-title">📅 새 예약 접수</div>
+  <div class="rsv-alert-body" id="rsvAlertBody"></div>
+  <div class="rsv-alert-time" id="rsvAlertTime"></div>
+</div>
+
+<!-- CSV 일괄 등록 모달 -->
+<style>
+  .csv-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:800; align-items:center; justify-content:center; }
+  .csv-modal-overlay.open { display:flex; }
+  .csv-modal { background:#fff; border-radius:14px; padding:24px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; }
+  .csv-modal h3 { font-size:16px; font-weight:800; margin-bottom:16px; }
+  .csv-modal-info { font-size:13px; color:#555; margin-bottom:14px; line-height:1.7; }
+  .csv-file-input { margin-bottom:14px; }
+  .csv-preview { border:1px solid #eee; border-radius:8px; padding:12px; max-height:200px; overflow-y:auto; font-size:12px; margin-bottom:14px; background:#fafafa; }
+  .csv-preview table { width:100%; border-collapse:collapse; }
+  .csv-preview th, .csv-preview td { padding:4px 8px; border:1px solid #ddd; font-size:11px; text-align:left; }
+  .csv-preview th { background:#f0f0f0; font-weight:700; }
+  .csv-modal-footer { display:flex; gap:8px; justify-content:center; }
+  .csv-btn-import { background:#7b5fd9; color:#fff; border:none; border-radius:8px; padding:10px 28px; font-size:13px; font-weight:700; cursor:pointer; }
+  .csv-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; }
+  .csv-msg { text-align:center; font-size:12px; margin-top:10px; color:#555; }
+</style>
+<div class="csv-modal-overlay" id="csvModalOverlay">
+  <div class="csv-modal">
+    <h3>📂 다우오피스 CSV 일괄 등록</h3>
+    <div class="csv-modal-info">다우오피스에서 다운로드한 CSV 파일을 선택해주세요.<br>자동으로 컬럼을 매핑하여 쇼룸상담 시트에 등록합니다.</div>
+    <div class="csv-file-input">
+      <input type="file" id="csvFileInput" accept=".csv">
+    </div>
+    <div class="csv-preview" id="csvPreview" style="display:none;"></div>
+    <div class="csv-modal-footer">
+      <button class="csv-btn-import" id="csvImportBtn" onclick="importCsvData()" disabled>등록하기</button>
+      <button class="csv-btn-cancel" onclick="closeCsvModal()">취소</button>
+    </div>
+    <div class="csv-msg" id="csvMsg"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const RSV_POLL_URL = document.querySelector('[id^="reservationTab"]') ?
+    (function(){ const s = document.querySelector('script[src*="AKfyc"]'); return null; })() : null;
+
+  // ── 5. 예약 알림 배너 (1분 polling) ──
+  let lastKnownRsvCount = -1;
+  const POLL_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
+
+  async function checkNewReservations() {
+    try {
+      const res = await fetch(`${POLL_URL}?action=getReservations`);
+      const data = await res.json();
+      if (data.status !== 'ok') return;
+
+      const pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
+      if (lastKnownRsvCount === -1) {
+        lastKnownRsvCount = pending.length;
+        return;
+      }
+      if (pending.length > lastKnownRsvCount) {
+        const newest = pending.sort((a,b) => (b.receiptNo||'').localeCompare(a.receiptNo||''))[0];
+        showRsvAlert(newest, pending.length - lastKnownRsvCount);
+      }
+      lastKnownRsvCount = pending.length;
+    } catch(e) { /* 네트워크 오류 무시 */ }
+  }
+
+  function showRsvAlert(rsv, newCount) {
+    const banner = document.getElementById('rsvAlertBanner');
+    document.getElementById('rsvAlertBody').innerHTML = `
+      <strong>${rsv.name||'고객'}</strong>님 외 ${newCount > 1 ? newCount + '건' : ''}<br>
+      ${rsv.date||''} ${rsv.time ? rsv.time.split('~')[0] : ''} · ${rsv.phone||''}
+    `;
+    const now = new Date();
+    document.getElementById('rsvAlertTime').textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 8000);
+  }
+
+  // 1분마다 체크
+  setInterval(checkNewReservations, 60000);
+  // 초기 1회 (5초 후)
+  setTimeout(checkNewReservations, 5000);
+
+  // ── 6. 삭제 기능 ──
+  window.deleteCheckedConsults = async function() {
+    const checkboxes = document.querySelectorAll('#csTableBody .dw-checkbox:checked');
+    if (!checkboxes.length) {
+      alert('삭제할 항목을 선택해주세요.');
+      return;
+    }
+
+    const rows = [];
+    checkboxes.forEach(cb => {
+      const tr = cb.closest('tr');
+      if (tr) {
+        const onclick = tr.getAttribute('onclick');
+        const match = onclick && onclick.match(/openConsultDetail\((\d+)\)/);
+        if (match) rows.push(parseInt(match[1]));
+      }
+    });
+
+    if (!rows.length) return;
+    const receiptNos = rows.map(i => window._allConsultsRef ? window._allConsultsRef[i]?.receiptNo : null).filter(Boolean);
+    if (!receiptNos.length) return;
+
+    if (!confirm(`${receiptNos.length}건을 삭제하시겠습니까?`)) return;
+
+    try {
+      const params = new URLSearchParams({ action: 'deleteConsults', receiptNos: receiptNos.join(',') });
+      const res = await fetch(`${POLL_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        alert('삭제 완료!');
+        if (typeof loadConsults === 'function') loadConsults();
+      } else {
+        alert('삭제 실패: ' + (data.message||''));
+      }
+    } catch(e) {
+      alert('삭제 오류: ' + e.message);
+    }
+  };
+
+  // ── 7. CSV 일괄 등록 ──
+  window.openCsvModal = function() {
+    document.getElementById('csvModalOverlay').classList.add('open');
+    document.getElementById('csvFileInput').value = '';
+    document.getElementById('csvPreview').style.display = 'none';
+    document.getElementById('csvImportBtn').disabled = true;
+    document.getElementById('csvMsg').textContent = '';
+  };
+  window.closeCsvModal = function() {
+    document.getElementById('csvModalOverlay').classList.remove('open');
+  };
+
+  let parsedCsvRows = [];
+
+  document.getElementById('csvFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const text = ev.target.result;
+      parsedCsvRows = parseDaouCsv(text);
+      renderCsvPreview(parsedCsvRows);
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+
+  function parseDaouCsv(text) {
+    const lines = text.split('\n').map(l => l.replace(/\r$/, ''));
+    if (lines.length < 2) return [];
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const cols = parseCSVLine(lines[i]);
+      if (cols.length < 8) continue;
+
+      // 다우 CSV → 우리 시트 매핑
+      const rawId = cols[0].replace(/"/g, '').trim();
+      const rawCounselor = cols[1].replace(/"/g, '').trim();
+      const rawSchedule = cols[2].replace(/"/g, '').trim();
+      const rawStatus = cols[3].replace(/"/g, '').trim();
+      const rawType = cols[4].replace(/"/g, '').trim();
+      const rawName = cols[5].replace(/"/g, '').trim();
+      const rawPhone = cols[6].replace(/"/g, '').trim();
+      const rawCompany = cols[7].replace(/"/g, '').trim();
+
+      // 상담자: 이메일 제거, 이름+직함만
+      const counselor = rawCounselor.split(',').map(s => s.replace(/\(.*?\)/g, '').trim()).filter(Boolean).join(', ');
+      // 일정: 날짜/시간 분리
+      const [datePart, timePart] = rawSchedule.split(' ');
+      const timeShort = timePart ? timePart.slice(0, 5) : '';
+      // 연락처: 공백 → 하이픈
+      const phone = rawPhone.replace(/\s+/g, '-');
+      // 상태: "상담 완료" → "상담완료"
+      const status = rawStatus.replace(/\s/g, '');
+
+      rows.push({
+        date: datePart || '',
+        time: timeShort,
+        visitorType: rawType,
+        name: rawName,
+        phone: phone,
+        company: rawCompany,
+        status: status === '상담완료' ? '상담완료' : '예약',
+        counselor: counselor,
+      });
+    }
+    return rows;
+  }
+
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current); current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  function renderCsvPreview(rows) {
+    const preview = document.getElementById('csvPreview');
+    if (!rows.length) {
+      preview.style.display = 'block';
+      preview.innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
+      return;
+    }
+    let html = `<p style="margin-bottom:8px;"><strong>${rows.length}건</strong> 감지됨</p>`;
+    html += '<table><thead><tr><th>날짜</th><th>시간</th><th>성함</th><th>업체명</th><th>상태</th><th>상담자</th></tr></thead><tbody>';
+    rows.slice(0, 10).forEach(r => {
+      html += `<tr><td>${r.date}</td><td>${r.time}</td><td>${r.name}</td><td>${r.company}</td><td>${r.status}</td><td>${r.counselor}</td></tr>`;
+    });
+    if (rows.length > 10) html += `<tr><td colspan="6" style="text-align:center;color:#999;">... 외 ${rows.length - 10}건</td></tr>`;
+    html += '</tbody></table>';
+    preview.style.display = 'block';
+    preview.innerHTML = html;
+    document.getElementById('csvImportBtn').disabled = false;
+  }
+
+  window.importCsvData = async function() {
+    if (!parsedCsvRows.length) return;
+    document.getElementById('csvMsg').textContent = `${parsedCsvRows.length}건 등록 중...`;
+    document.getElementById('csvImportBtn').disabled = true;
+
+    try {
+      const params = new URLSearchParams({
+        action: 'bulkImportConsults',
+        data: JSON.stringify(parsedCsvRows),
+      });
+      const res = await fetch(`${POLL_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        document.getElementById('csvMsg').textContent = `✅ ${data.count||parsedCsvRows.length}건 등록 완료!`;
+        if (typeof loadConsults === 'function') loadConsults();
+        setTimeout(() => closeCsvModal(), 1500);
+      } else {
+        document.getElementById('csvMsg').textContent = '❌ ' + (data.message||'등록 실패');
+        document.getElementById('csvImportBtn').disabled = false;
+      }
+    } catch(e) {
+      document.getElementById('csvMsg').textContent = '❌ 오류: ' + e.message;
+      document.getElementById('csvImportBtn').disabled = false;
+    }
+  };
+})();
 </script>
 
 </body>
