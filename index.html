@@ -1207,11 +1207,6 @@
   .rsv-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
   .rsv-card-title { font-size:15px; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
 
-  /* 예약 목록 */
-  .rsv-filter-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-  .rsv-filter-btn { padding:6px 14px; border:1px solid #ddd; border-radius:999px; background:#fff; font-size:12px; font-weight:700; cursor:pointer; color:#555; }
-  .rsv-filter-btn.on { background:#111; color:#fff; border-color:#111; }
-
   .rsv-list { display:flex; flex-direction:column; gap:8px; max-height:600px; overflow-y:auto; }
   .rsv-item { border:1px solid #eee; border-radius:12px; padding:14px 16px; cursor:pointer; transition:all 0.15s; }
   .rsv-item:hover { border-color:#111; background:#fafafa; }
@@ -1257,23 +1252,12 @@
 
   <!-- 좌: 예약 목록 -->
   <div class="rsv-card">
-    <div class="rsv-card-title">📋 예약 목록
+    <div class="rsv-card-title">📋 예약 대기 목록
       <button onclick="loadReservations()" style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;">🔄 새로고침</button>
     </div>
 
-    <div class="rsv-filter-row">
-      <button class="rsv-filter-btn on" data-filter="전체" onclick="setRsvFilter(this)">전체</button>
-      <button class="rsv-filter-btn" data-filter="대기" onclick="setRsvFilter(this)">대기</button>
-      <button class="rsv-filter-btn" data-filter="확정" onclick="setRsvFilter(this)">확정</button>
-      <button class="rsv-filter-btn" data-filter="취소" onclick="setRsvFilter(this)">취소</button>
-    </div>
-
-    <input type="text" id="rsvSearch" placeholder="🔍 이름 / 연락처 / 날짜 검색"
-      style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:10px;font-size:13px;margin-bottom:12px;font-family:inherit;"
-      oninput="renderRsvList()">
-
     <div id="rsvList" class="rsv-list">
-      <div class="rsv-empty">새로고침을 눌러 예약 목록을 불러오세요.</div>
+      <div class="rsv-empty">불러오는 중...</div>
     </div>
   </div>
 
@@ -1320,7 +1304,6 @@
   ];
 
   let allReservations = [];
-  let currentFilter = '전체';
   let selectedRsv = null;
   let slotState = {}; // { '10:00~10:30': 'open'|'closed', ... }
 
@@ -1346,28 +1329,12 @@
     }
   };
 
-  // ── 필터 ──
-  window.setRsvFilter = function(btn) {
-    document.querySelectorAll('.rsv-filter-btn').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on');
-    currentFilter = btn.dataset.filter;
-    renderRsvList();
-  };
-
-  // ── 목록 렌더링 ──
+  // ── 목록 렌더링 (대기만) ──
   window.renderRsvList = function() {
-    const q = document.getElementById('rsvSearch').value.trim().toLowerCase();
-    let list = allReservations.filter(r => {
-      if (currentFilter !== '전체' && r.status !== currentFilter) return false;
-      if (q) {
-        const haystack = `${r.name} ${r.phone} ${r.date} ${r.visitorType}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
-    });
+    let list = allReservations.filter(r => (r.status||'대기') === '대기');
 
     if (!list.length) {
-      document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">해당 예약이 없습니다.</div>';
+      document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">대기 중인 예약이 없습니다.</div>';
       return;
     }
 
@@ -1378,13 +1345,12 @@
       <div class="rsv-item${selectedRsv && selectedRsv.receiptNo === r.receiptNo ? ' selected':''}"
            onclick="selectRsv(${allReservations.indexOf(r)})">
         <div class="rsv-item-top">
-          <span class="rsv-item-name">${r.name} <span style="font-weight:400;color:#888;font-size:12px;">${r.visitorType||''}</span></span>
-          <span class="rsv-badge ${r.status||'대기'}">${r.status||'대기'}</span>
+          <span class="rsv-item-name">${r.date} ${r.time ? r.time.split('~')[0] : ''}</span>
+          <span class="rsv-badge 대기">대기</span>
         </div>
         <div class="rsv-item-info">
-          <span>📅 ${r.date} ${r.time}</span>
-          <span>📞 ${r.phone}</span>
-          ${r.company ? `<span>🏢 ${r.company}</span>` : ''}
+          <span>${r.name||''}</span>
+          <span>${r.phone||''}</span>
         </div>
       </div>
     `).join('');
@@ -1594,7 +1560,7 @@
   .dw-toolbar-item { display:flex; align-items:center; gap:4px; font-size:12.5px; color:#555; font-weight:600; cursor:pointer; background:none; border:none; padding:0; }
   .dw-toolbar-item .ic { font-size:13px; }
   .dw-toolbar-spacer { flex:1; }
-  .dw-toolbar-select { border:1px solid #ddd; border-radius:5px; padding:4px 8px; font-size:12px; color:#555; }
+  .dw-toolbar-select { border:1px solid #ddd; border-radius:5px; padding:4px 4px; font-size:12px; color:#555; width:50px; }
 
   /* 테이블 (리사이즈 가능 컬럼) */
   .dw-table-scroll { overflow-x:auto; }
@@ -1723,10 +1689,10 @@
   </div>
 
   <div class="dw-toolbar">
-    <button class="dw-toolbar-item" onclick="openManualRegister()"><span class="ic">✏️</span> 등록</button>
-    <button class="dw-toolbar-item" onclick="alert('삭제할 항목을 선택해주세요.')"><span class="ic">🗑️</span> 삭제</button>
-    <button class="dw-toolbar-item" onclick="alert('일괄등록 기능은 추후 작업 예정입니다.')"><span class="ic">⬆️</span> 일괄 등록</button>
-    <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')"><span class="ic">⬇️</span> 목록 다운로드 ▾</button>
+    <button class="dw-toolbar-item" onclick="openManualRegister()">✏ 등록</button>
+    <button class="dw-toolbar-item" onclick="alert('삭제할 항목을 선택해주세요.')">🗑 삭제</button>
+    <button class="dw-toolbar-item" onclick="alert('일괄등록 기능은 추후 작업 예정입니다.')">↑ 일괄 등록</button>
+    <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')">↓ 목록 다운로드 ▾</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize">
       <option value="20">20</option>
@@ -2037,15 +2003,24 @@
       const status = getDisplayStatus(r);
       const idx = allConsults.indexOf(r);
       const showN = !isConsultDone(r);
+      // 일정: "2026년6월20일 13:30" 형식
+      const dateStr = r.date || '';
+      const timeStart = r.time ? r.time.split('~')[0] : '';
+      let scheduleDisplay = '';
+      if (dateStr) {
+        const [y, m, d] = dateStr.split('-');
+        scheduleDisplay = `${y}년${parseInt(m)}월${parseInt(d)}일`;
+        if (timeStart) scheduleDisplay += ` ${timeStart}`;
+      }
       return `
         <tr onclick="openConsultDetail(${idx})">
           <td>${list.length - i}</td>
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
-          <td><span class="dw-status-pill ${status}">${status}</span></td>
+          <td><span class="dw-status-pill ${status}">${status}</span>${showN ? '<span class="nbadge" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#e74c3c;color:#fff;font-size:8.5px;font-weight:800;margin-left:3px;vertical-align:middle;">N</span>' : ''}</td>
           <td>${r.counselor || ''}</td>
-          <td class="dw-td-name">${r.name||''}${showN ? '<span class="nbadge">N</span>' : ''}</td>
+          <td class="dw-td-name">${r.name||''}</td>
           <td>${r.company || ''}</td>
-          <td>${r.date} ${r.time}</td>
+          <td>${scheduleDisplay}</td>
           <td>${r.phone || ''}</td>
         </tr>
       `;
@@ -2127,6 +2102,7 @@
     resetConsultForm();
     document.getElementById('cfAuthor').textContent = '자동입력';
     document.getElementById('csFormOverlay').classList.add('open');
+    history.pushState({ csFormOpen: true }, '');
   };
 
   function resetConsultForm() {
@@ -2212,11 +2188,24 @@
     document.getElementById('cfAuthor').textContent = r.counselor || '자동입력';
 
     document.getElementById('csFormOverlay').classList.add('open');
+    history.pushState({ csFormOpen: true }, '');
   };
 
   window.closeConsultForm = function() {
     document.getElementById('csFormOverlay').classList.remove('open');
+    // popstate로 닫힌 게 아니면 히스토리 back 처리
+    if (history.state && history.state.csFormOpen) {
+      history.back();
+    }
   };
+
+  // 뒤로가기 버튼 눌렀을 때 폼 오버레이만 닫기
+  window.addEventListener('popstate', function(e) {
+    const overlay = document.getElementById('csFormOverlay');
+    if (overlay && overlay.classList.contains('open')) {
+      overlay.classList.remove('open');
+    }
+  });
 
   // ── 저장 (신규 등록 + 기존 수정 겸용) ──
   window.saveConsultForm = async function() {
@@ -2532,6 +2521,7 @@ localStorage.removeItem('baram_auth');
 sessionStorage.removeItem('baram_auth');
     const PASS = '7736';
     const SESSION_KEY = 'baram_auth';
+    const AUTH_TIMEOUT = 8 * 60 * 60 * 1000; // 8시간 (밀리초)
     
     const lockSection = document.getElementById('lockSection');
     const mainSection = document.getElementById('mainSection');
@@ -2550,7 +2540,8 @@ sessionStorage.removeItem('baram_auth');
     function unlock() {
     if (lockSection) lockSection.style.display = 'none';
     if (mainSection) mainSection.style.display = 'block';
-    localStorage.setItem(SESSION_KEY, '1');
+    // 인증 시각 저장 (8시간 유효)
+    localStorage.setItem(SESSION_KEY, String(Date.now()));
     unlockBody();
     window.scrollTo(0, 0);
 }
@@ -2566,9 +2557,12 @@ sessionStorage.removeItem('baram_auth');
         }
     }
     
-    if (localStorage.getItem(SESSION_KEY) === '1') {
+    // 8시간 이내면 자동 잠금해제
+    const savedAuth = localStorage.getItem(SESSION_KEY);
+    if (savedAuth && (Date.now() - parseInt(savedAuth, 10)) < AUTH_TIMEOUT) {
         unlock();
     } else {
+        localStorage.removeItem(SESSION_KEY);
         lockBody();
     }
     
