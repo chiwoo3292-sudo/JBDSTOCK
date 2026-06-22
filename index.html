@@ -1995,7 +1995,13 @@
       const status = getDisplayStatus(r);
       if (csCurrentFilter !== '전체' && status !== csCurrentFilter) return false;
       if (q) {
-        const haystack = `${r.name} ${r.phone} ${r.date} ${r.company}`.toLowerCase();
+        const haystack = [
+          r.name, r.phone, r.date, r.company, r.counselor,
+          r.address, r.spaceType, r.size, r.visitorType,
+          r.products, r.memo, r.status, r.elevator,
+          r.workDate, r.workTiming, r.revisit, r.priceInfo,
+          r.sampleGiven, r.cardGiven, r.content, r.revisitConsult
+        ].map(v => String(v||'')).join(' ').toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
