@@ -1980,7 +1980,9 @@
 
   window.renderConsultList = function() {
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
-    let list = allConsults.filter(r => {
+
+    // 원본 인덱스를 함께 보관
+    let list = allConsults.map((r, origIdx) => ({ ...r, _origIdx: origIdx })).filter(r => {
       const status = getDisplayStatus(r);
       if (csCurrentFilter !== '전체' && status !== csCurrentFilter) return false;
       if (q) {
@@ -2001,19 +2003,22 @@
 
     document.getElementById('csTableBody').innerHTML = list.map((r, i) => {
       const status = getDisplayStatus(r);
-      const idx = allConsults.indexOf(r);
       const showN = !isConsultDone(r);
       // 일정: "2026년6월20일 13:30" 형식
       const dateStr = r.date || '';
-      const timeStart = r.time ? r.time.split('~')[0] : '';
+      const timeStart = r.time ? String(r.time).split('~')[0].trim() : '';
       let scheduleDisplay = '';
       if (dateStr) {
-        const [y, m, d] = dateStr.split('-');
-        scheduleDisplay = `${y}년${parseInt(m)}월${parseInt(d)}일`;
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          scheduleDisplay = `${parts[0]}년${parseInt(parts[1])}월${parseInt(parts[2])}일`;
+        } else {
+          scheduleDisplay = dateStr;
+        }
         if (timeStart) scheduleDisplay += ` ${timeStart}`;
       }
       return `
-        <tr onclick="openConsultDetail(${idx})">
+        <tr onclick="openConsultDetail(${r._origIdx})">
           <td>${list.length - i}</td>
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
           <td><span class="dw-status-pill ${status}">${status}</span>${showN ? '<span class="nbadge" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#e74c3c;color:#fff;font-size:8.5px;font-weight:800;margin-left:3px;vertical-align:middle;">N</span>' : ''}</td>
@@ -2149,42 +2154,76 @@
 
   // ── 기존 데이터 상세보기 (목록 클릭 시) ──
   window.openConsultDetail = function(idx) {
+    if (idx < 0 || idx >= allConsults.length) return; // 범위 체크
     selectedConsult = allConsults[idx];
     const r = selectedConsult;
     fillCardStaffSelect();
 
-    selectedCounselors = r.counselor ? r.counselor.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    selectedCounselors = r.counselor ? String(r.counselor).split(',').map(s=>s.trim()).filter(Boolean) : [];
     renderCounselorList();
 
     document.getElementById('csFormTitle').textContent = '쇼룸 상담';
     resetConsultForm();
 
+    // 일정: 날짜 + 시작시간 추출
     document.getElementById('cfDate').value = r.date || '';
-    document.getElementById('cfTime').value = r.time || '';
-    document.getElementById('cfVisitStatus').value = r.revisit === '재방문' ? '재방문' : '신규';
+    // time이 "13:30~14:00" 형식이면 "13:30"만 추출
+    const timeStart = r.time ? String(r.time).split('~')[0].trim() : '';
+    document.getElementById('cfTime').value = timeStart;
+
+    // 방문여부
+    const revisitVal = String(r.revisit||'').trim();
+    document.getElementById('cfVisitStatus').value = (revisitVal === '재방문') ? '재방문' : '신규';
+
+    // 고객정보
     document.getElementById('cfStatus').value = getDisplayStatus(r);
     document.getElementById('cfVisitorType').value = r.visitorType || '';
     document.getElementById('cfName').value = r.name || '';
     document.getElementById('cfCompany').value = r.company || '';
     document.getElementById('cfPhone').value = r.phone || '';
-    document.getElementById('cfVisitCount').value = (r.visitCount||'').replace(/[^0-9]/g,'');
+    document.getElementById('cfVisitCount').value = String(r.visitCount||'').replace(/[^0-9]/g,'');
     document.getElementById('cfAddress').value = r.address || '';
-    document.getElementById('cfSize').value = (r.size||'').replace(/[^0-9.]/g,'');
+    document.getElementById('cfSize').value = String(r.size||'').replace(/[^0-9.]/g,'');
     document.getElementById('cfSpaceType').value = r.spaceType || '';
     document.getElementById('cfWorkDate').value = r.workDate || '';
     document.getElementById('cfProducts').value = r.products || '';
+
+    // 시공예정시기, 공사기간 (쇼룸상담 추가 필드)
+    if (document.getElementById('cfWorkTiming')) {
+      document.getElementById('cfWorkTiming').value = r.workTiming || '';
+    }
+    if (document.getElementById('cfWorkPeriod')) {
+      document.getElementById('cfWorkPeriod').value = r.workPeriod || '';
+    }
+
+    // 엘리베이터
+    const elevVal = String(r.elevator||'있음').trim();
+    const elevRadio = document.querySelector(`input[name=cfElevator][value="${elevVal === '없음' ? '무' : '유'}"]`);
+    if (elevRadio) elevRadio.checked = true;
+
+    // 단가안내
     document.getElementById('cfPriceInfo').value = r.priceInfo || '';
+
+    // 전달사항/상담내용
     document.getElementById('cfMemo').value = r.content || r.memo || '';
 
     // 요청사항 체크 복원
-    const reqSample = !!(r.sampleGiven === '제공');
-    const reqCard   = !!(r.cardGiven === '전달');
+    const reqSample = String(r.sampleGiven||'') === '제공';
+    const reqCard   = String(r.cardGiven||'') === '전달';
+    const reqRevisit = String(r.revisitConsult||'') === '재방문 예상';
+    const reqQuote  = String(r.reqQuote||'') === 'Y';
     document.getElementById('cfReqSample').checked = reqSample;
     document.getElementById('cfReqCard').checked = reqCard;
-    document.getElementById('cfReqRevisit').checked = (r.revisitConsult === '재방문 예상');
-    if (reqSample) { document.getElementById('cfSampleBox').classList.add('show'); }
-    if (reqCard) { document.getElementById('cfCardBox').classList.add('show'); }
+    document.getElementById('cfReqRevisit').checked = reqRevisit;
+    if (document.getElementById('cfReqQuote')) document.getElementById('cfReqQuote').checked = reqQuote;
+    if (reqSample) document.getElementById('cfSampleBox').classList.add('show');
+    if (reqCard) document.getElementById('cfCardBox').classList.add('show');
 
+    // 샘플목록, 명함담당자 복원
+    if (document.getElementById('cfSampleList')) document.getElementById('cfSampleList').value = r.sampleList || '';
+    if (document.getElementById('cfCardStaff')) document.getElementById('cfCardStaff').value = r.cardStaff || '';
+
+    // 작성자
     document.getElementById('cfAuthor').textContent = r.counselor || '자동입력';
 
     document.getElementById('csFormOverlay').classList.add('open');
@@ -2517,10 +2556,8 @@
 
 <script>
 (function() {
-localStorage.removeItem('baram_auth');
-sessionStorage.removeItem('baram_auth');
     const PASS = '7736';
-    const SESSION_KEY = 'baram_auth';
+    const SESSION_KEY = 'baram_auth_ts';
     const AUTH_TIMEOUT = 8 * 60 * 60 * 1000; // 8시간 (밀리초)
     
     const lockSection = document.getElementById('lockSection');
