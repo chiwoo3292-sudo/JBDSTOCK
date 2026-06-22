@@ -1847,12 +1847,12 @@
     <div class="dw-field-row" style="grid-template-columns: 1fr 1.4fr 1fr;">
       <div class="dw-field">
         <label>시공 예정일</label>
-        <input type="date" id="cfWorkDate">
+        <input type="date" id="cfWorkDate" style="max-width:160px;">
         <div class="hint">* 예정일 확정이 아닌 경우 시기로 기재</div>
       </div>
       <div class="dw-field">
         <label>공사 기간</label>
-        <input type="text" id="cfWorkPeriod" placeholder="예: 2/4 ~ 3/13 (6주)">
+        <input type="text" id="cfWorkPeriod">
       </div>
       <div class="dw-field">
         <label>엘리베이터</label>
@@ -2282,7 +2282,7 @@
     const sampleData = String(r.sampleGiven||'').trim();
     const cardData = String(r.cardGiven||'').trim();
     const revisitData = String(r.revisitConsult||'').trim();
-    const reqQuote  = String(r.reqQuote||'') === 'Y';
+    const reqQuote = String(r.reqQuote||'').trim() === 'Y';
     document.getElementById('cfReqSample').checked = !!sampleData;
     document.getElementById('cfReqCard').checked = !!cardData;
     document.getElementById('cfReqRevisit').checked = (revisitData === '재방문예정');
