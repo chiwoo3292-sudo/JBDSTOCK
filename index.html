@@ -2207,21 +2207,21 @@
     // 전달사항/상담내용
     document.getElementById('cfMemo').value = r.content || r.memo || '';
 
-    // 요청사항 체크 복원
-    const reqSample = String(r.sampleGiven||'') === '제공';
-    const reqCard   = String(r.cardGiven||'') === '전달';
-    const reqRevisit = String(r.revisitConsult||'') === '재방문 예상';
+    // 요청사항 체크 복원 (22~24번 컬럼에 데이터가 있으면 체크)
+    const sampleData = String(r.sampleGiven||'').trim();
+    const cardData = String(r.cardGiven||'').trim();
+    const revisitData = String(r.revisitConsult||'').trim();
     const reqQuote  = String(r.reqQuote||'') === 'Y';
-    document.getElementById('cfReqSample').checked = reqSample;
-    document.getElementById('cfReqCard').checked = reqCard;
-    document.getElementById('cfReqRevisit').checked = reqRevisit;
+    document.getElementById('cfReqSample').checked = !!sampleData;
+    document.getElementById('cfReqCard').checked = !!cardData;
+    document.getElementById('cfReqRevisit').checked = (revisitData === '재방문예정');
     if (document.getElementById('cfReqQuote')) document.getElementById('cfReqQuote').checked = reqQuote;
-    if (reqSample) document.getElementById('cfSampleBox').classList.add('show');
-    if (reqCard) document.getElementById('cfCardBox').classList.add('show');
+    if (sampleData) document.getElementById('cfSampleBox').classList.add('show');
+    if (cardData) document.getElementById('cfCardBox').classList.add('show');
 
-    // 샘플목록, 명함담당자 복원
-    if (document.getElementById('cfSampleList')) document.getElementById('cfSampleList').value = r.sampleList || '';
-    if (document.getElementById('cfCardStaff')) document.getElementById('cfCardStaff').value = r.cardStaff || '';
+    // 샘플목록, 명함담당자 복원 (22, 23번 컬럼 데이터 그대로)
+    if (document.getElementById('cfSampleList')) document.getElementById('cfSampleList').value = sampleData;
+    if (document.getElementById('cfCardStaff')) document.getElementById('cfCardStaff').value = cardData;
 
     // 작성자
     document.getElementById('cfAuthor').textContent = r.counselor || '자동입력';
@@ -2272,10 +2272,10 @@
       workTiming: document.getElementById('cfWorkTiming').value.trim(),
       products: document.getElementById('cfProducts').value.trim(),
       priceInfo: document.getElementById('cfPriceInfo').value,
-      reqSample: document.getElementById('cfReqSample').checked ? '제공' : '미제공',
-      reqCard:   document.getElementById('cfReqCard').checked ? '전달' : '미전달',
+      reqSample: document.getElementById('cfReqSample').checked ? (document.getElementById('cfSampleList').value.trim() || '제공') : '',
+      reqCard:   document.getElementById('cfReqCard').checked ? (document.getElementById('cfCardStaff').value || '전달') : '',
       reqQuote:  document.getElementById('cfReqQuote').checked ? 'Y' : 'N',
-      reqRevisit: document.getElementById('cfReqRevisit').checked ? '재방문 예상' : '',
+      reqRevisit: document.getElementById('cfReqRevisit').checked ? '재방문예정' : '',
       sampleList: document.getElementById('cfSampleList').value.trim(),
       cardStaff:  document.getElementById('cfCardStaff').value,
       content:    document.getElementById('cfMemo').value.trim(),
@@ -2989,16 +2989,19 @@ function runCalculator() {
   const sqmPrice = getUnitValue(p, party, 'sqm', priceMode);
   const boxPrice = getUnitValue(p, party, 'box', priceMode);
 
-  // 4. 금액 계산: 입력 모드별로 입력값 기준 계산
+  // 4. 금액 계산
   let total;
   if (inputMode === 'box') {
     // BOX 모드: 박스 단가 × 박스수
     total = calcBoxes * boxPrice;
+  } else if (priceMode === 'material') {
+    // 자재별도: 박스 단위로 보내야 하므로 박스수 × 박스단가
+    total = calcBoxes * boxPrice;
   } else if (inputMode === 'sqm') {
-    // m² 모드: m² 단가 × 입력 m² (입력값 그대로)
+    // m² 모드 (시공비 포함): m² 단가 × 입력 m²
     total = Math.round(inputSqm * sqmPrice);
   } else {
-    // 평 모드: 평 단가 × 입력 평 (입력값 그대로)
+    // 평 모드 (시공비 포함): 평 단가 × 입력 평
     total = Math.round(inputPy * pyPrice);
   }
 
@@ -3021,7 +3024,9 @@ function runCalculator() {
   $('summaryArea').textContent = `박스 환산 면적 ${formatDecimal(finalCoveragePy, 3)}평 / ${formatDecimal(finalCoverageSqm, 3)}㎡`;
   $('summaryMode').textContent = priceLabel;
   $('summaryLoss').textContent = lossRate ? `${formatDecimal(lossRate)}%` : '0%';
-  $('calcNotice').textContent = `필요 수량 ${calcBoxes}박스에 맞춰 면적을 ${formatDecimal(finalCoverageSqm, 3)}㎡로 계산했습니다.`;
+  $('calcNotice').textContent = priceMode === 'material'
+    ? `자재별도: 필요 수량 ${calcBoxes}박스 × 박스단가 ${fmt(boxPrice)} = ${fmt(total)} (박스 기준 면적 ${formatDecimal(finalCoverageSqm, 3)}㎡)`
+    : `필요 수량 ${calcBoxes}박스에 맞춰 면적을 ${formatDecimal(finalCoverageSqm, 3)}㎡로 계산했습니다.`;
 }
 
 function resetCalculator() { $('calcAudienceSelect').value='consumer'; $('calcPriceModeSelect').value='included'; $('calcInputModeSelect').value='py'; $('calcAreaInput').value=''; if($('calcLossRateInput')) $('calcLossRateInput').value=''; syncCalcInputUi(); resetCalcResults(); runCalculator(); }
