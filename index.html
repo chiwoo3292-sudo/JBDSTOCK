@@ -5191,26 +5191,69 @@ if ('serviceWorker' in navigator) {
 
   window.importCsvData = async function() {
     if (!parsedCsvRows.length) return;
-    document.getElementById('csvMsg').textContent = `${parsedCsvRows.length}건 등록 중...`;
+    const total = parsedCsvRows.length;
+    const CHUNK_SIZE = 50;
+    const chunks = [];
+    for (let i = 0; i < total; i += CHUNK_SIZE) {
+      chunks.push(parsedCsvRows.slice(i, i + CHUNK_SIZE));
+    }
+
     document.getElementById('csvImportBtn').disabled = true;
 
-    try {
-      const res = await fetch(POLL_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'bulkImportConsults', data: parsedCsvRows }),
-      });
-      const data = await res.json();
-      if (data.status === 'ok') {
-        document.getElementById('csvMsg').textContent = `✅ ${data.count||parsedCsvRows.length}건 등록 완료!`;
-        if (typeof loadConsults === 'function') loadConsults();
-        setTimeout(() => closeCsvModal(), 1500);
-      } else {
-        document.getElementById('csvMsg').textContent = '❌ ' + (data.message||'등록 실패');
-        document.getElementById('csvImportBtn').disabled = false;
+    // 진행바 UI 삽입
+    const msgEl = document.getElementById('csvMsg');
+    msgEl.innerHTML = `
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">
+          <span id="csvProgressText">준비 중...</span>
+          <span id="csvProgressCount">0 / ${total}건</span>
+        </div>
+        <div style="background:#eee;border-radius:999px;height:8px;overflow:hidden;">
+          <div id="csvProgressBar" style="background:#7b5fd9;height:100%;width:0%;transition:width 0.3s;border-radius:999px;"></div>
+        </div>
+      </div>
+    `;
+
+    let imported = 0;
+    let failed = 0;
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const from = i * CHUNK_SIZE + 1;
+      const to = Math.min((i + 1) * CHUNK_SIZE, total);
+      document.getElementById('csvProgressText').textContent = `${from}~${to}건 등록 중...`;
+      document.getElementById('csvProgressCount').textContent = `${imported} / ${total}건`;
+      document.getElementById('csvProgressBar').style.width = `${Math.round(imported / total * 100)}%`;
+
+      try {
+        const params = new URLSearchParams({
+          action: 'bulkImportConsults',
+          data: JSON.stringify(chunk),
+        });
+        const res = await fetch(`${POLL_URL}?${params}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          imported += data.count || chunk.length;
+        } else {
+          failed += chunk.length;
+        }
+      } catch(e) {
+        failed += chunk.length;
       }
-    } catch(e) {
-      document.getElementById('csvMsg').textContent = '❌ 오류: ' + e.message;
+
+      // 청크 간 딜레이 (Apps Script 과부하 방지)
+      if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
+
+    // 완료
+    document.getElementById('csvProgressBar').style.width = '100%';
+    document.getElementById('csvProgressCount').textContent = `${imported} / ${total}건`;
+    if (failed === 0) {
+      document.getElementById('csvProgressText').textContent = `✅ ${imported}건 등록 완료!`;
+      if (typeof loadConsults === 'function') loadConsults();
+      setTimeout(() => closeCsvModal(), 2000);
+    } else {
+      document.getElementById('csvProgressText').textContent = `✅ ${imported}건 완료, ❌ ${failed}건 실패`;
       document.getElementById('csvImportBtn').disabled = false;
     }
   };
