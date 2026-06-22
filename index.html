@@ -1695,10 +1695,10 @@
     <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#7b5fd9;font-weight:700;">📥 다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')">↓ 목록 다운로드 ▾</button>
     <div class="dw-toolbar-spacer"></div>
-    <select class="dw-toolbar-select" id="csPageSize">
-      <option value="20">20</option>
-      <option value="50">50</option>
-      <option value="100">100</option>
+    <select class="dw-toolbar-select" id="csPageSize" onchange="currentPage=1;renderConsultList()">
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
+      <option value="30">30</option>
     </select>
   </div>
 
@@ -1721,6 +1721,10 @@
       </tbody>
     </table>
   </div>
+
+  <!-- 페이지네이션 -->
+  <div id="csPagination" style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:14px;font-size:13px;"></div>
+
 </div>
 
 <!-- ============================================================ -->
@@ -1941,7 +1945,8 @@
   let allConsults = [];
   let selectedConsult = null;
   let csCurrentFilter = '전체';
-  let selectedCounselors = []; // 상담자 목록 (이름+직함 문자열 배열)
+  let selectedCounselors = [];
+  let currentPage = 1; // 상담자 목록 (이름+직함 문자열 배열)
 
   // ── 직원 목록 (추후 별도 관리 화면에서 등록 예정, 임시 하드코딩) ──
   const STAFF_LIST = [
@@ -2010,7 +2015,14 @@
       return db.localeCompare(da);
     });
 
-    document.getElementById('csTableBody').innerHTML = list.map((r, i) => {
+    const pageSize = parseInt(document.getElementById('csPageSize').value || '20', 10);
+    const totalPages = Math.ceil(list.length / pageSize);
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    const start = (currentPage - 1) * pageSize;
+    const pageList = list.slice(start, start + pageSize);
+
+    document.getElementById('csTableBody').innerHTML = pageList.map((r, i) => {
       const status = getDisplayStatus(r);
       const showN = !isConsultDone(r);
       // 일정: "2026년6월20일 13:30" 형식
@@ -2028,7 +2040,7 @@
       }
       return `
         <tr onclick="openConsultDetail(${r._origIdx})">
-          <td>${list.length - i}</td>
+          <td>${list.length - (start + i)}</td>
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
           <td><span class="dw-status-pill ${status}">${status}</span>${showN ? '<span class="nbadge" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#e74c3c;color:#fff;font-size:8.5px;font-weight:800;margin-left:3px;vertical-align:middle;">N</span>' : ''}</td>
           <td>${r.counselor || ''}</td>
@@ -2039,9 +2051,39 @@
         </tr>
       `;
     }).join('');
+
+    // 페이지네이션 렌더
+    renderPagination(totalPages, list.length);
   };
 
-  // ── 컬럼 리사이즈 ──
+  // ── 페이지네이션 렌더 ──
+  function renderPagination(totalPages, totalCount) {
+    const el = document.getElementById('csPagination');
+    if (!el) return;
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+    const btnStyle = 'padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#555;';
+    const activeBtnStyle = 'padding:4px 10px;border:1px solid #7b5fd9;border-radius:6px;background:#7b5fd9;font-size:12px;cursor:pointer;color:#fff;font-weight:700;';
+
+    let html = '';
+    html += `<button style="${btnStyle}" onclick="gotoPage(1)" ${currentPage===1?'disabled':''}>«</button>`;
+    html += `<button style="${btnStyle}" onclick="gotoPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+
+    const range = 2;
+    for (let p = Math.max(1, currentPage-range); p <= Math.min(totalPages, currentPage+range); p++) {
+      html += `<button style="${p===currentPage?activeBtnStyle:btnStyle}" onclick="gotoPage(${p})">${p}</button>`;
+    }
+
+    html += `<button style="${btnStyle}" onclick="gotoPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+    html += `<button style="${btnStyle}" onclick="gotoPage(${totalPages})" ${currentPage===totalPages?'disabled':''}>»</button>`;
+    html += `<span style="font-size:11px;color:#999;margin-left:6px;">${totalCount}건 / ${totalPages}페이지</span>`;
+    el.innerHTML = html;
+  }
+
+  window.gotoPage = function(p) {
+    currentPage = p;
+    renderConsultList();
+  };
   function initColumnResize() {
     const table = document.getElementById('csTable');
     let startX, startWidth, currentTh, allThs;
