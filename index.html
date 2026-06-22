@@ -1562,15 +1562,15 @@
   .dw-toolbar-spacer { flex:1; }
   .dw-toolbar-select { border:1px solid #ddd; border-radius:5px; padding:4px 4px; font-size:12px; color:#555; width:50px; }
 
-  /* 테이블 (리사이즈 가능 컬럼) */
+  /* 테이블 (엑셀 스타일 리사이즈) */
   .dw-table-scroll { overflow-x:auto; }
-  table.dw-table { width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed; }
-  table.dw-table thead th { position:relative; padding:10px 8px; text-align:center; font-weight:700; color:#555; background:#fafafa; border-bottom:1px solid #e5e5e5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
-  table.dw-table tbody td { padding:11px 8px; text-align:center; border-bottom:1px solid #f0f0f0; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  table.dw-table { border-collapse:collapse; font-size:13px; table-layout:fixed; min-width:100%; }
+  table.dw-table thead th { position:relative; padding:10px 8px; text-align:center; font-weight:700; color:#555; background:#fafafa; border:1px solid #e0e0e0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
+  table.dw-table tbody td { padding:11px 8px; text-align:center; border:1px solid #ebebeb; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   table.dw-table tbody tr { cursor:pointer; }
   table.dw-table tbody tr:hover { background:#f8f7fc; }
 
-  .dw-col-resizer { position:absolute; right:0; top:0; width:6px; height:100%; cursor:col-resize; z-index:2; }
+  .dw-col-resizer { position:absolute; right:-3px; top:0; width:6px; height:100%; cursor:col-resize; z-index:2; }
   .dw-col-resizer:hover { background:#7b5fd9; opacity:0.4; }
 
   .dw-td-name { font-weight:500; }
@@ -2035,16 +2035,26 @@
   // ── 컬럼 리사이즈 ──
   function initColumnResize() {
     const table = document.getElementById('csTable');
-    let startX, startWidth, currentTh;
+    let startX, startWidth, currentTh, allThs;
 
     table.querySelectorAll('.dw-col-resizer').forEach(resizer => {
       resizer.addEventListener('mousedown', function(e) {
         currentTh = e.target.parentElement;
         startX = e.pageX;
         startWidth = currentTh.offsetWidth;
+
+        // 모든 컬럼의 현재 너비를 픽셀로 고정 (다른 컬럼이 움직이지 않도록)
+        allThs = table.querySelectorAll('thead th');
+        allThs.forEach(th => { th.style.width = th.offsetWidth + 'px'; });
+
+        // 테이블 너비를 auto로 해제 (컬럼 합계에 따라 자연스럽게 늘어나도록)
+        table.style.width = 'auto';
+        table.style.minWidth = 'auto';
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
         e.preventDefault();
+        e.stopPropagation();
       });
     });
     function onMouseMove(e) {
@@ -2056,6 +2066,7 @@
       currentTh = null;
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+    }
     }
   }
   initColumnResize();
