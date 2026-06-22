@@ -1379,7 +1379,7 @@
   // ── 상세 렌더링 ──
   function renderRsvDetail(r) {
     const rows = [
-      ['접수번호', r.receiptNo||'-'],
+      ['접수일시', r.submittedAt ? String(r.submittedAt).slice(0,16) : '-'],
       ['접수일시', formatSubmittedAt(r.submittedAt)],
       ['상담날짜', r.date||'-'],
       ['상담시간', r.time||'-'],
@@ -1410,7 +1410,7 @@
         `).join('')}
       </div>
       <div class="rsv-action-row">
-        <button class="rsv-btn-confirm" onclick="updateStatus('확정')">✅ 예약 확정</button>
+        <button class="rsv-btn-confirm" onclick="updateStatus('예약')">✅ 예약 확정</button>
         <button class="rsv-btn-cancel"  onclick="updateStatus('취소')">❌ 예약 취소</button>
       </div>
       <div id="rsvActionMsg" style="font-size:12px;color:#555;text-align:center;"></div>
@@ -2318,7 +2318,7 @@
 
     const payload = {
       action: selectedConsult ? 'saveConsult' : 'createConsult',
-      receiptNo: selectedConsult ? selectedConsult.receiptNo : '',
+      rowIndex: selectedConsult ? selectedConsult._rowIndex : '',
       date: document.getElementById('cfDate').value,
       time: document.getElementById('cfTime').value,
       visitStatus: document.getElementById('cfVisitStatus').value,
@@ -5111,24 +5111,25 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
-    const rows = [];
+    const rowIndexes = [];
     checkboxes.forEach(cb => {
       const tr = cb.closest('tr');
       if (tr) {
         const onclick = tr.getAttribute('onclick');
         const match = onclick && onclick.match(/openConsultDetail\((\d+)\)/);
-        if (match) rows.push(parseInt(match[1]));
+        if (match) {
+          const origIdx = parseInt(match[1]);
+          const r = window._allConsultsRef ? window._allConsultsRef[origIdx] : null;
+          if (r && r._rowIndex) rowIndexes.push(r._rowIndex);
+        }
       }
     });
 
-    if (!rows.length) return;
-    const receiptNos = rows.map(i => window._allConsultsRef ? window._allConsultsRef[i]?.receiptNo : null).filter(Boolean);
-    if (!receiptNos.length) return;
-
-    if (!confirm(`${receiptNos.length}건을 삭제하시겠습니까?`)) return;
+    if (!rowIndexes.length) return;
+    if (!confirm(`${rowIndexes.length}건을 삭제하시겠습니까?`)) return;
 
     try {
-      const params = new URLSearchParams({ action: 'deleteConsults', receiptNos: receiptNos.join(',') });
+      const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
       const res = await fetch(`${POLL_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
