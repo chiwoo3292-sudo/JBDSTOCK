@@ -1545,7 +1545,7 @@
 </section>
 
 <!-- ========================================================== -->
-<!-- 💬 쇼룸상담 탭 (다우오피스 동일 스타일) -->
+<!-- 💬 쇼룸상담 탭 -->
 <!-- ========================================================== -->
 <section id="consultTab" class="tab-panel" style="display:none;">
 <style>
@@ -1555,7 +1555,6 @@
   .dw-header { display:flex; align-items:center; gap:7px; margin-bottom:18px; }
   .dw-header-icon { width:22px; height:22px; border-radius:5px; background:#7b5fd9; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; flex-shrink:0; }
   .dw-header h2 { font-size:17px; font-weight:700; color:#222; text-decoration:underline; text-underline-offset:4px; }
-  .dw-header .dw-icon-btn { color:#aaa; font-size:13px; cursor:pointer; }
   .dw-header-spacer { flex:1; }
   .dw-refresh-btn { padding:6px 13px; font-size:12px; font-weight:700; border-radius:6px; background:#111; color:#fff; border:none; cursor:pointer; }
 
@@ -1573,37 +1572,42 @@
   .dw-search-line .dw-dropdown { border:1px solid #ddd; border-radius:5px; padding:4px 9px; font-size:12px; color:#666; }
 
   .dw-search-controls { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-  .dw-search-box { display:flex; align-items:center; border:1px solid #ddd; border-radius:6px; padding:0 10px; height:32px; width:240px; }
-  .dw-search-box input { border:none; outline:none; flex:1; font-size:12.5px; font-family:inherit; color:#333; }
+
+  /* 통합 검색창: 입력+아이콘 한 덩어리 */
+  .dw-search-box { display:flex; align-items:center; border:1px solid #ddd; border-radius:6px; padding:0 10px; height:32px; width:240px; background:#fff; }
+  .dw-search-box input { border:none; outline:none; flex:1; font-size:12.5px; font-family:inherit; color:#333; background:transparent; }
   .dw-search-box input::placeholder { color:#bbb; }
-  .dw-search-box .icon { color:#aaa; font-size:12px; margin-left:4px; order:2; }
+  .dw-search-box .icon { color:#aaa; font-size:12px; margin-left:6px; pointer-events:none; }
+
   .dw-cond-btn { border:1px solid #ddd; border-radius:6px; padding:0 12px; height:32px; font-size:12.5px; font-weight:700; color:#555; background:#fff; cursor:pointer; }
 
-  .dw-count-line { font-size:13px; color:#222; margin-bottom:12px; font-weight:500; }
+  .dw-count-toolbar-row { display:flex; align-items:center; margin-bottom:8px; }
+  .dw-count-line { font-size:13px; color:#222; font-weight:500; }
   .dw-count-line strong { font-weight:700; }
 
-  /* 필터 칩 (요청에 의해 추가 유지, 우측 정렬) */
   .dw-filter-chips { display:flex; gap:6px; margin-left:auto; }
   .dw-chip { padding:4px 12px; border-radius:999px; border:1px solid #ddd; background:#fff; font-size:11.5px; font-weight:700; color:#666; cursor:pointer; }
   .dw-chip.on { background:#222; color:#fff; border-color:#222; }
-  .dw-count-toolbar-row { display:flex; align-items:center; margin-bottom:8px; }
 
   /* 툴바 */
   .dw-toolbar { display:flex; align-items:center; gap:16px; padding:9px 2px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; margin-bottom:0; }
-  .dw-toolbar-item { display:flex; align-items:center; gap:4px; font-size:12.5px; color:#555; font-weight:600; cursor:pointer; }
+  .dw-toolbar-item { display:flex; align-items:center; gap:4px; font-size:12.5px; color:#555; font-weight:600; cursor:pointer; background:none; border:none; padding:0; }
   .dw-toolbar-item .ic { font-size:13px; }
   .dw-toolbar-spacer { flex:1; }
   .dw-toolbar-select { border:1px solid #ddd; border-radius:5px; padding:4px 8px; font-size:12px; color:#555; }
 
-  /* 테이블 */
-  table.dw-table { width:100%; border-collapse:collapse; font-size:13px; }
-  table.dw-table thead th { padding:10px 8px; text-align:center; font-weight:700; color:#555; background:#fafafa; border-bottom:1px solid #e5e5e5; white-space:nowrap; }
-  table.dw-table tbody td { padding:11px 8px; text-align:center; border-bottom:1px solid #f0f0f0; color:#333; }
+  /* 테이블 (리사이즈 가능 컬럼) */
+  .dw-table-scroll { overflow-x:auto; }
+  table.dw-table { width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed; }
+  table.dw-table thead th { position:relative; padding:10px 8px; text-align:center; font-weight:700; color:#555; background:#fafafa; border-bottom:1px solid #e5e5e5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
+  table.dw-table tbody td { padding:11px 8px; text-align:center; border-bottom:1px solid #f0f0f0; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   table.dw-table tbody tr { cursor:pointer; }
   table.dw-table tbody tr:hover { background:#f8f7fc; }
 
+  .dw-col-resizer { position:absolute; right:0; top:0; width:6px; height:100%; cursor:col-resize; z-index:2; }
+  .dw-col-resizer:hover { background:#7b5fd9; opacity:0.4; }
+
   .dw-td-name { font-weight:500; }
-  .dw-td-name .dw-link-ic { color:#aaa; font-size:11px; margin-left:3px; }
   .dw-td-name .nbadge { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:#e74c3c; color:#fff; font-size:8.5px; font-weight:800; margin-left:3px; vertical-align:middle; }
 
   .dw-status-pill { display:inline-block; padding:3px 10px; border-radius:5px; font-size:12px; font-weight:700; }
@@ -1613,35 +1617,70 @@
   .dw-empty-row td { padding:60px 0; color:#aaa; font-size:13px; }
   .dw-checkbox { width:14px; height:14px; }
 
-  /* 상세 모달 */
-  .dw-detail-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:600; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; }
-  .dw-detail-overlay.open { display:flex; }
-  .dw-detail-box { background:#fff; border-radius:14px; max-width:640px; width:100%; overflow:hidden; }
-  .dw-detail-top { background:#f7f7f9; padding:18px 24px; display:flex; align-items:center; gap:10px; border-bottom:1px solid #eee; }
-  .dw-detail-top h3 { font-size:16px; font-weight:800; flex:1; }
-  .dw-detail-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; }
-  .dw-detail-body { padding:22px 24px; max-height:75vh; overflow-y:auto; }
+  /* ===== 등록/상세 폼 (전체화면 페이지형) ===== */
+  .dw-form-overlay { display:none; position:fixed; inset:0; background:#fff; z-index:700; overflow-y:auto; }
+  .dw-form-overlay.open { display:block; }
+  .dw-form-page { max-width:1100px; margin:0 auto; padding:28px 32px 60px; }
 
-  .dw-section-title { font-size:12px; font-weight:800; color:#7b5fd9; letter-spacing:0.05em; margin:18px 0 10px; text-transform:uppercase; }
-  .dw-section-title:first-child { margin-top:0; }
+  .dw-form-header { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
+  .dw-form-header .dw-header-icon { }
+  .dw-form-header h2 { font-size:16px; font-weight:700; color:#222; }
+  .dw-form-header .dw-form-close { margin-left:auto; background:none; border:none; font-size:20px; cursor:pointer; color:#999; }
 
-  .dw-info-grid { display:grid; grid-template-columns:100px 1fr; row-gap:9px; font-size:13px; background:#fafafa; border-radius:10px; padding:14px 16px; }
-  .dw-info-label { color:#888; font-weight:700; }
-  .dw-info-val { color:#222; }
+  .dw-form-subtab { font-size:12px; color:#999; margin-bottom:22px; display:flex; gap:6px; align-items:center; }
+  .dw-form-subtab .dw-subtab-badge { font-size:10px; color:#999; background:#f1f1f3; border-radius:4px; padding:2px 6px; }
 
-  .dw-form-group { margin-bottom:14px; }
-  .dw-form-group label { display:block; font-size:12px; font-weight:700; color:#555; margin-bottom:6px; }
-  .dw-form-group input[type=text], .dw-form-group textarea {
-    width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit;
+  .dw-section-h { font-size:14px; font-weight:700; color:#7b5fd9; margin:26px 0 14px; }
+  .dw-section-h:first-of-type { margin-top:0; }
+
+  .dw-field-row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:24px; margin-bottom:18px; align-items:start; }
+  .dw-field-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .dw-field-row.cols-1 { grid-template-columns: 1fr; }
+
+  .dw-field label { display:block; font-size:12.5px; font-weight:600; color:#444; margin-bottom:6px; }
+  .dw-field label .req { color:#e0444c; margin-left:2px; }
+  .dw-field .hint { font-size:11px; color:#999; margin-top:5px; line-height:1.5; }
+
+  .dw-field input[type=text], .dw-field input[type=date], .dw-field input[type=time], .dw-field input[type=number], .dw-field select, .dw-field textarea {
+    width:100%; padding:9px 11px; border:1px solid #ddd; border-radius:6px; font-size:13px; font-family:inherit; color:#333; outline:none;
   }
-  .dw-form-group textarea { min-height:80px; resize:vertical; }
-  .dw-yn-group { display:flex; gap:8px; }
-  .dw-yn-btn { flex:1; padding:9px; text-align:center; border:1px solid #ddd; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#555; }
-  .dw-yn-btn.active { background:#7b5fd9; color:#fff; border-color:#7b5fd9; }
+  .dw-field input:focus, .dw-field select:focus, .dw-field textarea:focus { border-color:#7b5fd9; }
+  .dw-field textarea { min-height:110px; resize:vertical; }
 
-  .dw-save-btn { width:100%; padding:13px; background:#7b5fd9; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-top:8px; }
-  .dw-save-btn:hover { background:#6a4fc4; }
-  .dw-save-msg { text-align:center; font-size:12px; color:#555; margin-top:8px; }
+  .dw-inline-2 { display:flex; gap:8px; }
+  .dw-inline-2 input:first-child { flex:1.4; }
+  .dw-inline-2 input:last-child { flex:1; }
+  .dw-unit-input { display:flex; align-items:center; gap:6px; }
+  .dw-unit-input input { flex:1; }
+  .dw-unit-input span { font-size:12.5px; color:#666; white-space:nowrap; }
+
+  .dw-radio-group { display:flex; gap:18px; align-items:center; height:36px; }
+  .dw-radio-group label { display:flex; align-items:center; gap:5px; font-size:13px; font-weight:400; color:#333; margin:0; cursor:pointer; }
+  .dw-radio-group input[type=radio] { width:15px; height:15px; cursor:pointer; }
+
+  .dw-counselor-list { display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
+  .dw-counselor-chip { display:inline-flex; align-items:center; gap:8px; background:#f3f1fb; color:#5b3fc0; border-radius:6px; padding:6px 10px; font-size:12.5px; font-weight:600; width:fit-content; }
+  .dw-counselor-chip .x { cursor:pointer; color:#9a8bd6; font-weight:700; }
+  .dw-add-counselor-btn { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#666; cursor:pointer; font-weight:600; background:none; border:none; padding:4px 0; }
+
+  .dw-checkbox-row { display:flex; gap:22px; align-items:center; flex-wrap:wrap; }
+  .dw-checkbox-row label { display:flex; align-items:center; gap:6px; font-size:13px; color:#333; cursor:pointer; font-weight:400; }
+  .dw-checkbox-row input[type=checkbox] { width:15px; height:15px; cursor:pointer; }
+
+  .dw-conditional-box { margin-top:10px; padding:14px; background:#f9f8fd; border:1px solid #e8e4f7; border-radius:8px; display:none; }
+  .dw-conditional-box.show { display:block; }
+  .dw-conditional-box label { font-size:12px; font-weight:600; color:#7b5fd9; margin-bottom:6px; display:block; }
+
+  .dw-author-readonly { font-size:13px; color:#999; }
+
+  .dw-form-footer { display:flex; justify-content:center; gap:8px; margin-top:36px; }
+  .dw-btn-confirm { background:#a98c5d; color:#fff; border:none; border-radius:6px; padding:10px 32px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .dw-btn-confirm:hover { background:#977b4f; }
+  .dw-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:6px; padding:10px 24px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .dw-form-msg { text-align:center; font-size:12px; color:#555; margin-top:12px; }
+
+  /* 읽기전용 보기 모드(기존 데이터 상세) 표시용 */
+  .dw-field .readonly-text { padding:9px 11px; background:#f7f7f7; border-radius:6px; font-size:13px; color:#333; min-height:18px; }
 </style>
 
 <div class="dw-wrap">
@@ -1649,8 +1688,6 @@
   <div class="dw-header">
     <div class="dw-header-icon">📋</div>
     <h2>쇼룸 상담</h2>
-    <span class="dw-icon-btn">ⓘ</span>
-    <span class="dw-icon-btn">⚙</span>
     <div class="dw-header-spacer"></div>
     <button class="dw-refresh-btn" onclick="loadConsults()">🔄 새로고침</button>
   </div>
@@ -1664,7 +1701,6 @@
     <span class="dw-search-label">검색</span>
     <span class="dw-save-filter">새 필터 저장</span>
     <div class="dw-search-right">
-      <span>⚙ 목록 관리</span>
       <span class="dw-dropdown">기본형 ▾</span>
     </div>
   </div>
@@ -1674,7 +1710,7 @@
       <input type="text" id="csSearch" placeholder="텍스트 검색" oninput="renderConsultList()">
       <span class="icon">🔍</span>
     </div>
-    <button class="dw-cond-btn">+ 조건추가</button>
+    <button class="dw-cond-btn" onclick="alert('조건추가 필터 기능은 추후 작업 예정입니다.')">+ 조건추가</button>
   </div>
 
   <div class="dw-count-toolbar-row">
@@ -1687,10 +1723,10 @@
   </div>
 
   <div class="dw-toolbar">
-    <div class="dw-toolbar-item"><span class="ic">✏️</span> 등록</div>
-    <div class="dw-toolbar-item"><span class="ic">🗑️</span> 삭제</div>
-    <div class="dw-toolbar-item"><span class="ic">⬆️</span> 일괄 등록</div>
-    <div class="dw-toolbar-item"><span class="ic">⬇️</span> 목록 다운로드 ▾</div>
+    <button class="dw-toolbar-item" onclick="openManualRegister()"><span class="ic">✏️</span> 등록</button>
+    <button class="dw-toolbar-item" onclick="alert('삭제할 항목을 선택해주세요.')"><span class="ic">🗑️</span> 삭제</button>
+    <button class="dw-toolbar-item" onclick="alert('일괄등록 기능은 추후 작업 예정입니다.')"><span class="ic">⬆️</span> 일괄 등록</button>
+    <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')"><span class="ic">⬇️</span> 목록 다운로드 ▾</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize">
       <option value="20">20</option>
@@ -1699,35 +1735,233 @@
     </select>
   </div>
 
-  <table class="dw-table">
-    <thead>
-      <tr>
-        <th style="width:46px;">No.</th>
-        <th style="width:34px;"><input type="checkbox" class="dw-checkbox" disabled></th>
-        <th style="width:90px;">상태</th>
-        <th style="width:100px;">상담자</th>
-        <th>성함</th>
-        <th>업체명</th>
-        <th style="width:150px;">일정</th>
-        <th style="width:130px;">연락처</th>
-        <th style="width:100px;">유형</th>
-      </tr>
-    </thead>
-    <tbody id="csTableBody">
-      <tr class="dw-empty-row"><td colspan="9">불러오는 중...</td></tr>
-    </tbody>
-  </table>
+  <div class="dw-table-scroll">
+    <table class="dw-table" id="csTable">
+      <thead>
+        <tr>
+          <th style="width:46px;">No.<span class="dw-col-resizer"></span></th>
+          <th style="width:34px;"><input type="checkbox" class="dw-checkbox" disabled><span class="dw-col-resizer"></span></th>
+          <th style="width:90px;">상태<span class="dw-col-resizer"></span></th>
+          <th style="width:100px;">상담자<span class="dw-col-resizer"></span></th>
+          <th style="width:160px;">성함<span class="dw-col-resizer"></span></th>
+          <th style="width:160px;">업체명<span class="dw-col-resizer"></span></th>
+          <th style="width:160px;">일정<span class="dw-col-resizer"></span></th>
+          <th style="width:140px;">연락처<span class="dw-col-resizer"></span></th>
+        </tr>
+      </thead>
+      <tbody id="csTableBody">
+        <tr class="dw-empty-row"><td colspan="8">불러오는 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- 상세 모달 -->
-<div class="dw-detail-overlay" id="csDetailOverlay">
-  <div class="dw-detail-box">
-    <div class="dw-detail-top">
-      <span class="dw-status-pill" id="csDetailStatusBadge"></span>
-      <h3>쇼룸 상담 상세</h3>
-      <button class="dw-detail-close" onclick="closeConsultDetail()">✕</button>
+<!-- ============================================================ -->
+<!-- 등록/상세 폼 (전체화면) -->
+<!-- ============================================================ -->
+<div class="dw-form-overlay" id="csFormOverlay">
+  <div class="dw-form-page">
+    <div class="dw-form-header">
+      <div class="dw-header-icon">📋</div>
+      <h2 id="csFormTitle">쇼룸 상담</h2>
+      <button class="dw-form-close" onclick="closeConsultForm()">✕</button>
     </div>
-    <div class="dw-detail-body" id="csDetailBody"></div>
+    <div class="dw-form-subtab">상담일지 <span class="dw-subtab-badge">main</span></div>
+
+    <div class="dw-section-h">예약정보</div>
+
+    <div class="dw-field-row cols-1">
+      <div class="dw-field">
+        <label>상담자</label>
+        <div class="dw-counselor-list" id="csCounselorList"></div>
+        <button type="button" class="dw-add-counselor-btn" onclick="openCounselorPicker()">＋ 추가</button>
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-2">
+      <div class="dw-field">
+        <label>일정</label>
+        <div class="dw-inline-2">
+          <input type="date" id="cfDate">
+          <input type="time" id="cfTime">
+        </div>
+      </div>
+      <div class="dw-field">
+        <label>방문 여부</label>
+        <select id="cfVisitStatus">
+          <option value="신규">신규</option>
+          <option value="재방문">재방문</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dw-section-h">고객정보</div>
+
+    <div class="dw-field-row cols-2">
+      <div class="dw-field">
+        <label>상태<span class="req">*</span></label>
+        <select id="cfStatus">
+          <option value="">선택안함</option>
+          <option value="예약">예약</option>
+          <option value="상담완료">상담완료</option>
+        </select>
+      </div>
+      <div class="dw-field">
+        <label>유형<span class="req">*</span></label>
+        <select id="cfVisitorType">
+          <option value="">선택안함</option>
+          <option value="개인 소비자">개인 소비자</option>
+          <option value="인테리어업체">인테리어업체</option>
+          <option value="건축사무소">건축사무소</option>
+          <option value="건설사">건설사</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-2">
+      <div class="dw-field">
+        <label>성함<span class="req">*</span></label>
+        <input type="text" id="cfName">
+        <div class="hint">* 개인고객 : 이름 / 업체 : 이름 및 직급</div>
+      </div>
+      <div class="dw-field">
+        <label>업체명</label>
+        <input type="text" id="cfCompany">
+        <div class="hint">* 턴키업체가 있는 경우도 기재</div>
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-2">
+      <div class="dw-field">
+        <label>연락처</label>
+        <input type="text" id="cfPhone" placeholder="010-0000-0000">
+      </div>
+      <div class="dw-field">
+        <label>방문 인원</label>
+        <div class="dw-unit-input" style="max-width:160px;">
+          <input type="text" id="cfVisitCount">
+          <span>명</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dw-field-row" style="grid-template-columns: 2fr 1fr 1fr;">
+      <div class="dw-field">
+        <label>현장 주소</label>
+        <input type="text" id="cfAddress">
+      </div>
+      <div class="dw-field">
+        <label>평형</label>
+        <div class="dw-unit-input">
+          <input type="text" id="cfSize">
+          <span>평</span>
+        </div>
+      </div>
+      <div class="dw-field">
+        <label>공간유형</label>
+        <select id="cfSpaceType">
+          <option value="">선택안함</option>
+          <option value="아파트">아파트</option>
+          <option value="빌라">빌라</option>
+          <option value="주택">주택</option>
+          <option value="상가/상업공간">상가/상업공간</option>
+          <option value="사무실">사무실</option>
+          <option value="오피스텔">오피스텔</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dw-field-row" style="grid-template-columns: 1fr 1.4fr 1fr;">
+      <div class="dw-field">
+        <label>시공 예정일</label>
+        <input type="date" id="cfWorkDate">
+        <div class="hint">* 예정일 확정이 아닌 경우 시기로 기재</div>
+      </div>
+      <div class="dw-field">
+        <label>공사 기간</label>
+        <input type="text" id="cfWorkPeriod" placeholder="예: 2/4 ~ 3/13 (6주)">
+      </div>
+      <div class="dw-field">
+        <label>엘리베이터</label>
+        <div class="dw-radio-group">
+          <label><input type="radio" name="cfElevator" value="유" checked> 유</label>
+          <label><input type="radio" name="cfElevator" value="무"> 무</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-1">
+      <div class="dw-field">
+        <label>시공 예정 시기</label>
+        <input type="text" id="cfWorkTiming">
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-1">
+      <div class="dw-field">
+        <label>관심 제품</label>
+        <input type="text" id="cfProducts">
+      </div>
+    </div>
+
+    <div class="dw-section-h">상담 내역</div>
+
+    <div class="dw-field-row cols-2">
+      <div class="dw-field">
+        <label>단가안내</label>
+        <select id="cfPriceInfo">
+          <option value="">선택안함</option>
+          <option value="소비자가 안내">소비자가 안내</option>
+          <option value="업체가 안내">업체가 안내</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-1">
+      <div class="dw-field">
+        <label>요청사항</label>
+        <div class="dw-checkbox-row">
+          <label><input type="checkbox" id="cfReqSample" onchange="toggleConditional('cfReqSample','cfSampleBox')"> 쪽샘플 전달</label>
+          <label><input type="checkbox" id="cfReqCard" onchange="toggleConditional('cfReqCard','cfCardBox')"> 명함 전달</label>
+          <label><input type="checkbox" id="cfReqQuote"> 견적서 요청</label>
+          <label><input type="checkbox" id="cfReqRevisit"> 재방문 예정</label>
+        </div>
+        <div class="hint">* 쪽샘플 전달의 경우 체크 후 샘플 제공목록에 기입 &nbsp;/&nbsp; * 다른 담당자의 명함 전달시 체크 후 담당자 선택</div>
+
+        <div class="dw-conditional-box" id="cfSampleBox">
+          <label>샘플 제공목록</label>
+          <input type="text" id="cfSampleList" placeholder="제공한 쪽샘플을 입력해주세요">
+        </div>
+
+        <div class="dw-conditional-box" id="cfCardBox">
+          <label>명함 전달 담당자</label>
+          <select id="cfCardStaff">
+            <option value="">담당자 선택</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-1">
+      <div class="dw-field">
+        <label>전달사항</label>
+        <textarea id="cfMemo" placeholder="상담 시 특이사항이 있을 경우 기재하여 주십시오."></textarea>
+        <div class="hint">* 상담 시 특이사항이 있을 경우 기재하여 주십시오.</div>
+      </div>
+    </div>
+
+    <div class="dw-field-row cols-1">
+      <div class="dw-field">
+        <label>작성자</label>
+        <div class="dw-author-readonly" id="cfAuthor">자동입력</div>
+      </div>
+    </div>
+
+    <div class="dw-form-footer">
+      <button class="dw-btn-confirm" onclick="saveConsultForm()">확인</button>
+      <button class="dw-btn-cancel" onclick="closeConsultForm()">취소</button>
+    </div>
+    <div class="dw-form-msg" id="cfMsg"></div>
   </div>
 </div>
 
@@ -1738,18 +1972,25 @@
   let allConsults = [];
   let selectedConsult = null;
   let csCurrentFilter = '전체';
-  let formState = { sampleGiven:'', cardGiven:'', revisit:'', priceInfo:'' };
+  let selectedCounselors = []; // 상담자 목록 (이름+직함 문자열 배열)
+
+  // ── 직원 목록 (추후 별도 관리 화면에서 등록 예정, 임시 하드코딩) ──
+  const STAFF_LIST = [
+    { name: '김진재', title: '대리' },
+    { name: '최은용', title: '차장' },
+    { name: '김현정', title: '실장' },
+  ];
 
   function isConsultDone(r) {
     return !!((r.counselor && r.counselor.trim()) || (r.content && r.content.trim()));
   }
-
   function getDisplayStatus(r) {
     return isConsultDone(r) ? '상담완료' : '예약';
   }
 
+  // ── 목록 불러오기 ──
   window.loadConsults = async function() {
-    document.getElementById('csTableBody').innerHTML = '<tr class="dw-empty-row"><td colspan="9">불러오는 중...</td></tr>';
+    document.getElementById('csTableBody').innerHTML = '<tr class="dw-empty-row"><td colspan="8">불러오는 중...</td></tr>';
     try {
       const res = await fetch(`${CS_URL}?action=getConsults`);
       const data = await res.json();
@@ -1757,10 +1998,10 @@
         allConsults = data.rows || [];
         renderConsultList();
       } else {
-        document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="9">불러오기 실패: ${data.message||''}</td></tr>`;
+        document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="8">불러오기 실패: ${data.message||''}</td></tr>`;
       }
     } catch(e) {
-      document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="9">오류: ${e.message}</td></tr>`;
+      document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="8">오류: ${e.message}</td></tr>`;
     }
   };
 
@@ -1786,7 +2027,7 @@
     document.getElementById('csCount').textContent = list.length;
 
     if (!list.length) {
-      document.getElementById('csTableBody').innerHTML = '<tr class="dw-empty-row"><td colspan="9">데이터가 없습니다.</td></tr>';
+      document.getElementById('csTableBody').innerHTML = '<tr class="dw-empty-row"><td colspan="8">데이터가 없습니다.</td></tr>';
       return;
     }
 
@@ -1802,16 +2043,124 @@
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
           <td><span class="dw-status-pill ${status}">${status}</span></td>
           <td>${r.counselor || ''}</td>
-          <td class="dw-td-name">${r.name||''}${r.name?'<span class="dw-link-ic">⧉</span>':''}${showN ? '<span class="nbadge">N</span>' : ''}</td>
+          <td class="dw-td-name">${r.name||''}${showN ? '<span class="nbadge">N</span>' : ''}</td>
           <td>${r.company || ''}</td>
           <td>${r.date} ${r.time}</td>
           <td>${r.phone || ''}</td>
-          <td>${r.visitorType || ''}</td>
         </tr>
       `;
     }).join('');
   };
 
+  // ── 컬럼 리사이즈 ──
+  function initColumnResize() {
+    const table = document.getElementById('csTable');
+    let startX, startWidth, currentTh;
+
+    table.querySelectorAll('.dw-col-resizer').forEach(resizer => {
+      resizer.addEventListener('mousedown', function(e) {
+        currentTh = e.target.parentElement;
+        startX = e.pageX;
+        startWidth = currentTh.offsetWidth;
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        e.preventDefault();
+      });
+    });
+    function onMouseMove(e) {
+      if (!currentTh) return;
+      const newWidth = Math.max(40, startWidth + (e.pageX - startX));
+      currentTh.style.width = newWidth + 'px';
+    }
+    function onMouseUp() {
+      currentTh = null;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+  }
+  initColumnResize();
+
+  // ── 조건부 출력 토글 (쪽샘플/명함전달) ──
+  window.toggleConditional = function(checkboxId, boxId) {
+    const checked = document.getElementById(checkboxId).checked;
+    const box = document.getElementById(boxId);
+    box.classList.toggle('show', checked);
+  };
+
+  // ── 상담자 선택 (간단 prompt 방식, 추후 모달로 고도화 가능) ──
+  window.openCounselorPicker = function() {
+    const options = STAFF_LIST.map((s,i) => `${i+1}. ${s.name} ${s.title}`).join('\n');
+    const input = prompt(`상담자를 선택해주세요 (번호 입력):\n${options}`);
+    const idx = parseInt(input, 10) - 1;
+    if (STAFF_LIST[idx]) {
+      const label = `${STAFF_LIST[idx].name} ${STAFF_LIST[idx].title}`;
+      if (!selectedCounselors.includes(label)) {
+        selectedCounselors.push(label);
+        renderCounselorList();
+      }
+    }
+  };
+  function renderCounselorList() {
+    document.getElementById('csCounselorList').innerHTML = selectedCounselors.map((c, i) => `
+      <span class="dw-counselor-chip">${c} <span class="x" onclick="removeCounselor(${i})">✕</span></span>
+    `).join('');
+  }
+  window.removeCounselor = function(i) {
+    selectedCounselors.splice(i, 1);
+    renderCounselorList();
+  };
+
+  // ── 명함전달 담당자 드롭다운 채우기 ──
+  function fillCardStaffSelect() {
+    const sel = document.getElementById('cfCardStaff');
+    sel.innerHTML = '<option value="">담당자 선택</option>' +
+      STAFF_LIST.map(s => `<option value="${s.name} ${s.title}">${s.name} ${s.title}</option>`).join('');
+  }
+
+  // ── 등록 폼 열기 (신규, 전화예약 수기등록용) ──
+  window.openManualRegister = function() {
+    selectedConsult = null;
+    selectedCounselors = [];
+    renderCounselorList();
+    fillCardStaffSelect();
+    document.getElementById('csFormTitle').textContent = '쇼룸 상담';
+    resetConsultForm();
+    document.getElementById('cfAuthor').textContent = '자동입력';
+    document.getElementById('csFormOverlay').classList.add('open');
+  };
+
+  function resetConsultForm() {
+    document.getElementById('cfDate').value = '';
+    document.getElementById('cfTime').value = '';
+    document.getElementById('cfVisitStatus').value = '신규';
+    document.getElementById('cfStatus').value = '';
+    document.getElementById('cfVisitorType').value = '';
+    document.getElementById('cfName').value = '';
+    document.getElementById('cfCompany').value = '';
+    document.getElementById('cfPhone').value = '';
+    document.getElementById('cfVisitCount').value = '';
+    document.getElementById('cfAddress').value = '';
+    document.getElementById('cfSize').value = '';
+    document.getElementById('cfSpaceType').value = '';
+    document.getElementById('cfWorkDate').value = '';
+    document.getElementById('cfWorkPeriod').value = '';
+    document.querySelector('input[name=cfElevator][value="유"]').checked = true;
+    document.getElementById('cfWorkTiming').value = '';
+    document.getElementById('cfProducts').value = '';
+    document.getElementById('cfPriceInfo').value = '';
+    document.getElementById('cfReqSample').checked = false;
+    document.getElementById('cfReqCard').checked = false;
+    document.getElementById('cfReqQuote').checked = false;
+    document.getElementById('cfReqRevisit').checked = false;
+    document.getElementById('cfSampleList').value = '';
+    document.getElementById('cfCardStaff').value = '';
+    document.getElementById('cfMemo').value = '';
+    document.getElementById('cfSampleBox').classList.remove('show');
+    document.getElementById('cfCardBox').classList.remove('show');
+    document.getElementById('cfMsg').textContent = '';
+  }
+
+  // ── 접수일시 포맷 ──
   function csFormatSubmittedAt(val) {
     if (!val) return '-';
     const d = new Date(val);
@@ -1822,143 +2171,103 @@
     return `${y}년${m}월${day}일 ${hh}시${mm}분`;
   }
 
+  // ── 기존 데이터 상세보기 (목록 클릭 시) ──
   window.openConsultDetail = function(idx) {
     selectedConsult = allConsults[idx];
     const r = selectedConsult;
-    formState = {
-      sampleGiven: r.sampleGiven    || '',
-      cardGiven:   r.cardGiven      || '',
-      revisit:     r.revisitConsult || '',
-      priceInfo:   r.priceInfo      || '',
+    fillCardStaffSelect();
+
+    selectedCounselors = r.counselor ? r.counselor.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    renderCounselorList();
+
+    document.getElementById('csFormTitle').textContent = '쇼룸 상담';
+    resetConsultForm();
+
+    document.getElementById('cfDate').value = r.date || '';
+    document.getElementById('cfTime').value = r.time || '';
+    document.getElementById('cfVisitStatus').value = r.revisit === '재방문' ? '재방문' : '신규';
+    document.getElementById('cfStatus').value = getDisplayStatus(r);
+    document.getElementById('cfVisitorType').value = r.visitorType || '';
+    document.getElementById('cfName').value = r.name || '';
+    document.getElementById('cfCompany').value = r.company || '';
+    document.getElementById('cfPhone').value = r.phone || '';
+    document.getElementById('cfVisitCount').value = (r.visitCount||'').replace(/[^0-9]/g,'');
+    document.getElementById('cfAddress').value = r.address || '';
+    document.getElementById('cfSize').value = (r.size||'').replace(/[^0-9.]/g,'');
+    document.getElementById('cfSpaceType').value = r.spaceType || '';
+    document.getElementById('cfWorkDate').value = r.workDate || '';
+    document.getElementById('cfProducts').value = r.products || '';
+    document.getElementById('cfPriceInfo').value = r.priceInfo || '';
+    document.getElementById('cfMemo').value = r.content || r.memo || '';
+
+    // 요청사항 체크 복원
+    const reqSample = !!(r.sampleGiven === '제공');
+    const reqCard   = !!(r.cardGiven === '전달');
+    document.getElementById('cfReqSample').checked = reqSample;
+    document.getElementById('cfReqCard').checked = reqCard;
+    document.getElementById('cfReqRevisit').checked = (r.revisitConsult === '재방문 예상');
+    if (reqSample) { document.getElementById('cfSampleBox').classList.add('show'); }
+    if (reqCard) { document.getElementById('cfCardBox').classList.add('show'); }
+
+    document.getElementById('cfAuthor').textContent = r.counselor || '자동입력';
+
+    document.getElementById('csFormOverlay').classList.add('open');
+  };
+
+  window.closeConsultForm = function() {
+    document.getElementById('csFormOverlay').classList.remove('open');
+  };
+
+  // ── 저장 (신규 등록 + 기존 수정 겸용) ──
+  window.saveConsultForm = async function() {
+    const name = document.getElementById('cfName').value.trim();
+    if (!name) { alert('성함을 입력해주세요.'); return; }
+
+    const payload = {
+      action: selectedConsult ? 'saveConsult' : 'createConsult',
+      receiptNo: selectedConsult ? selectedConsult.receiptNo : '',
+      date: document.getElementById('cfDate').value,
+      time: document.getElementById('cfTime').value,
+      visitStatus: document.getElementById('cfVisitStatus').value,
+      statusField: document.getElementById('cfStatus').value,
+      visitorType: document.getElementById('cfVisitorType').value,
+      name: name,
+      company: document.getElementById('cfCompany').value.trim(),
+      phone: document.getElementById('cfPhone').value.trim(),
+      visitCount: document.getElementById('cfVisitCount').value.trim(),
+      address: document.getElementById('cfAddress').value.trim(),
+      size: document.getElementById('cfSize').value.trim(),
+      spaceType: document.getElementById('cfSpaceType').value,
+      workDate: document.getElementById('cfWorkDate').value,
+      workPeriod: document.getElementById('cfWorkPeriod').value.trim(),
+      elevator: document.querySelector('input[name=cfElevator]:checked').value,
+      workTiming: document.getElementById('cfWorkTiming').value.trim(),
+      products: document.getElementById('cfProducts').value.trim(),
+      priceInfo: document.getElementById('cfPriceInfo').value,
+      reqSample: document.getElementById('cfReqSample').checked ? '제공' : '미제공',
+      reqCard:   document.getElementById('cfReqCard').checked ? '전달' : '미전달',
+      reqQuote:  document.getElementById('cfReqQuote').checked ? 'Y' : 'N',
+      reqRevisit: document.getElementById('cfReqRevisit').checked ? '재방문 예상' : '',
+      sampleList: document.getElementById('cfSampleList').value.trim(),
+      cardStaff:  document.getElementById('cfCardStaff').value,
+      content:    document.getElementById('cfMemo').value.trim(),
+      counselor:  selectedCounselors.join(', '),
     };
 
-    const status = getDisplayStatus(r);
-    document.getElementById('csDetailStatusBadge').className = `dw-status-pill ${status}`;
-    document.getElementById('csDetailStatusBadge').textContent = status;
-
-    document.getElementById('csDetailBody').innerHTML = `
-      <div class="dw-section-title">예약 정보</div>
-      <div class="dw-info-grid">
-        <span class="dw-info-label">접수번호</span><span class="dw-info-val">${r.receiptNo||'-'}</span>
-        <span class="dw-info-label">접수일시</span><span class="dw-info-val">${csFormatSubmittedAt(r.submittedAt)}</span>
-        <span class="dw-info-label">상담날짜</span><span class="dw-info-val">${r.date||'-'} ${r.time||''}</span>
-        <span class="dw-info-label">예약자유형</span><span class="dw-info-val">${r.visitorType||'-'}</span>
-        <span class="dw-info-label">방문인원</span><span class="dw-info-val">${r.visitCount||'-'}</span>
-        <span class="dw-info-label">재방문(예약시)</span><span class="dw-info-val">${r.revisit||'-'}</span>
-        <span class="dw-info-label">성함</span><span class="dw-info-val">${r.name||'-'}</span>
-        <span class="dw-info-label">연락처</span><span class="dw-info-val">${r.phone||'-'}</span>
-        <span class="dw-info-label">업체명</span><span class="dw-info-val">${r.company||'-'}</span>
-        <span class="dw-info-label">현장주소</span><span class="dw-info-val">${r.address||'-'}</span>
-        <span class="dw-info-label">공간유형</span><span class="dw-info-val">${r.spaceType||'-'}</span>
-        <span class="dw-info-label">평수</span><span class="dw-info-val">${r.size||'-'}</span>
-        <span class="dw-info-label">층수</span><span class="dw-info-val">${r.floor||'-'}</span>
-        <span class="dw-info-label">엘리베이터</span><span class="dw-info-val">${r.elevator||'-'}</span>
-        <span class="dw-info-label">시공예정일</span><span class="dw-info-val">${r.workDate||'-'}</span>
-        <span class="dw-info-label">선호제품</span><span class="dw-info-val">${r.products||'-'}</span>
-        <span class="dw-info-label">전달사항</span><span class="dw-info-val">${r.memo||'-'}</span>
-        <span class="dw-info-label">처리상태</span><span class="dw-info-val">${r.status||'-'}</span>
-      </div>
-
-      <div class="dw-section-title">상담 기록</div>
-
-      <div class="dw-form-group">
-        <label>상담자</label>
-        <input type="text" id="csCounselor" value="${r.counselor||''}" placeholder="상담 진행한 직원명">
-      </div>
-
-      <div class="dw-form-group">
-        <label>상담 내용</label>
-        <textarea id="csContent" placeholder="상담 내용을 입력해주세요.">${r.content||''}</textarea>
-      </div>
-
-      <div class="dw-form-group">
-        <label>쪽샘플 제공 여부</label>
-        <div class="dw-yn-group" id="csSampleGroup">
-          <div class="dw-yn-btn ${formState.sampleGiven==='제공'?'active':''}" data-val="제공" onclick="setYn('sampleGiven','제공')">제공</div>
-          <div class="dw-yn-btn ${formState.sampleGiven==='미제공'?'active':''}" data-val="미제공" onclick="setYn('sampleGiven','미제공')">미제공</div>
-        </div>
-      </div>
-
-      <div class="dw-form-group">
-        <label>명함 전달 여부</label>
-        <div class="dw-yn-group" id="csCardGroup">
-          <div class="dw-yn-btn ${formState.cardGiven==='전달'?'active':''}" data-val="전달" onclick="setYn('cardGiven','전달')">전달</div>
-          <div class="dw-yn-btn ${formState.cardGiven==='미전달'?'active':''}" data-val="미전달" onclick="setYn('cardGiven','미전달')">미전달</div>
-        </div>
-      </div>
-
-      <div class="dw-form-group">
-        <label>재방문 여부 (상담 후 예상)</label>
-        <div class="dw-yn-group" id="csRevisitGroup">
-          <div class="dw-yn-btn ${formState.revisit==='재방문 예상'?'active':''}" data-val="재방문 예상" onclick="setYn('revisit','재방문 예상')">재방문 예상</div>
-          <div class="dw-yn-btn ${formState.revisit==='재방문 어려움'?'active':''}" data-val="재방문 어려움" onclick="setYn('revisit','재방문 어려움')">재방문 어려움</div>
-        </div>
-      </div>
-
-      <div class="dw-form-group">
-        <label>금액 안내 유무</label>
-        <div class="dw-yn-group" id="csPriceGroup">
-          <div class="dw-yn-btn ${formState.priceInfo==='안내함'?'active':''}" data-val="안내함" onclick="setYn('priceInfo','안내함')">안내함</div>
-          <div class="dw-yn-btn ${formState.priceInfo==='안내안함'?'active':''}" data-val="안내안함" onclick="setYn('priceInfo','안내안함')">안내안함</div>
-        </div>
-      </div>
-
-      <button class="dw-save-btn" onclick="saveConsultDetail()">💾 저장</button>
-      <div class="dw-save-msg" id="csSaveMsg"></div>
-    `;
-
-    document.getElementById('csDetailOverlay').classList.add('open');
-  };
-
-  window.setYn = function(field, val) {
-    formState[field] = formState[field] === val ? '' : val;
-    const groupMap = { sampleGiven:'csSampleGroup', cardGiven:'csCardGroup', revisit:'csRevisitGroup', priceInfo:'csPriceGroup' };
-    const group = document.getElementById(groupMap[field]);
-    if (group) {
-      group.querySelectorAll('.dw-yn-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.val === formState[field]);
-      });
-    }
-  };
-
-  window.closeConsultDetail = function() {
-    document.getElementById('csDetailOverlay').classList.remove('open');
-    selectedConsult = null;
-  };
-
-  window.saveConsultDetail = async function() {
-    if (!selectedConsult) return;
-    const counselor = document.getElementById('csCounselor').value.trim();
-    const content   = document.getElementById('csContent').value.trim();
-
-    document.getElementById('csSaveMsg').textContent = '저장 중...';
+    document.getElementById('cfMsg').textContent = '저장 중...';
     try {
-      const params = new URLSearchParams({
-        action: 'saveConsult',
-        receiptNo: selectedConsult.receiptNo,
-        counselor, content,
-        sampleGiven: formState.sampleGiven,
-        cardGiven:   formState.cardGiven,
-        revisit:     formState.revisit,
-        priceInfo:   formState.priceInfo,
-      });
+      const params = new URLSearchParams(payload);
       const res = await fetch(`${CS_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
-        document.getElementById('csSaveMsg').textContent = '✅ 저장 완료!';
-        const idx = allConsults.findIndex(r => r.receiptNo === selectedConsult.receiptNo);
-        if (idx !== -1) {
-          allConsults[idx] = { ...allConsults[idx], counselor, content,
-            sampleGiven: formState.sampleGiven, cardGiven: formState.cardGiven,
-            revisitConsult: formState.revisit, priceInfo: formState.priceInfo };
-        }
-        renderConsultList();
-        setTimeout(() => closeConsultDetail(), 800);
+        document.getElementById('cfMsg').textContent = '✅ 저장 완료!';
+        await loadConsults();
+        setTimeout(() => closeConsultForm(), 600);
       } else {
-        document.getElementById('csSaveMsg').textContent = '❌ ' + (data.message||'저장 실패');
+        document.getElementById('cfMsg').textContent = '❌ ' + (data.message||'저장 실패');
       }
     } catch(e) {
-      document.getElementById('csSaveMsg').textContent = '❌ 오류: ' + e.message;
+      document.getElementById('cfMsg').textContent = '❌ 오류: ' + e.message;
     }
   };
 })();
