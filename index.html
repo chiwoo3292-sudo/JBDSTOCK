@@ -1692,6 +1692,7 @@
     <button class="dw-toolbar-item" onclick="openManualRegister()">✏ 등록</button>
     <button class="dw-toolbar-item" onclick="deleteCheckedConsults()">🗑 삭제</button>
     <button class="dw-toolbar-item" onclick="openCsvModal()">↑ 일괄 등록</button>
+    <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#7b5fd9;font-weight:700;">📥 다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')">↓ 목록 다운로드 ▾</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize">
@@ -2002,7 +2003,12 @@
       return;
     }
 
-    list.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+    // 날짜 내림차순 정렬 (미래 위, 과거 아래)
+    list.sort((a,b) => {
+      const da = (a.date||'') + (a.time||'');
+      const db = (b.date||'') + (b.time||'');
+      return db.localeCompare(da);
+    });
 
     document.getElementById('csTableBody').innerHTML = list.map((r, i) => {
       const status = getDisplayStatus(r);
@@ -2598,6 +2604,11 @@
     localStorage.setItem(SESSION_KEY, String(Date.now()));
     unlockBody();
     window.scrollTo(0, 0);
+    // 잠금 해제 후 마지막 탭으로 복귀
+    const lastTab = localStorage.getItem('baram_last_tab');
+    if (lastTab && document.getElementById(lastTab) && typeof setTab === 'function') {
+        setTab(lastTab);
+    }
 }
     
     function checkPassword() {
@@ -2898,6 +2909,8 @@ function setTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(panel => {
     panel.style.display = panel.id === tabId ? 'block' : 'none';
   });
+  // 현재 탭 저장 (새로고침 복귀용)
+  localStorage.setItem('baram_last_tab', tabId);
   // 예약관리 탭 진입 시 자동 로드
   if (tabId === 'reservationTab' && typeof loadReservations === 'function') {
     loadReservations();
@@ -3065,6 +3078,11 @@ function initApp() {
   $('calcResetBtn').addEventListener('click',resetCalculator);
   document.querySelectorAll('.js-copy-template').forEach(btn=>btn.addEventListener('click',()=>{ copyToClipboard(templates[btn.dataset.template] || ''); btn.blur(); }));
   document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>setTab(btn.dataset.tab)));
+  // 새로고침 시 마지막 탭 복귀
+  const lastTab = localStorage.getItem('baram_last_tab');
+  if (lastTab && document.getElementById(lastTab)) {
+    setTab(lastTab);
+  }
 }
 // PRICE 시트에서 products 로드 후 앱 초기화
 async function startApp() {
@@ -5082,7 +5100,33 @@ if ('serviceWorker' in navigator) {
     }
   };
 
-  // ── 7. CSV 일괄 등록 ──
+  // ── 다우 시트 변환 (구글시트 '다우import' 탭 → 쇼룸상담) ──
+  window.importFromDaouSheet = async function() {
+    if (!confirm('구글시트 [다우import] 탭의 데이터를 쇼룸상담으로 변환 등록하시겠습니까?')) return;
+
+    // 진행 알림
+    const notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#7b5fd9;color:#fff;padding:14px 20px;border-radius:10px;font-size:13px;font-weight:700;';
+    notif.textContent = '다우 시트 변환 중...';
+    document.body.appendChild(notif);
+
+    try {
+      const res = await fetch(`${POLL_URL}?action=importFromDaouSheet`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        notif.textContent = `✅ ${data.count}건 변환 완료!`;
+        notif.style.background = '#1a7a45';
+        loadConsults();
+      } else {
+        notif.textContent = '❌ ' + (data.message||'실패');
+        notif.style.background = '#c0392b';
+      }
+    } catch(e) {
+      notif.textContent = '❌ 오류: ' + e.message;
+      notif.style.background = '#c0392b';
+    }
+    setTimeout(() => notif.remove(), 3000);
+  };
   window.openCsvModal = function() {
     document.getElementById('csvModalOverlay').classList.add('open');
     document.getElementById('csvFileInput').value = '';
