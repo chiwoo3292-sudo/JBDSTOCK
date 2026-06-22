@@ -1951,7 +1951,7 @@
   ];
 
   function isConsultDone(r) {
-    return !!((r.counselor && r.counselor.trim()) || (r.content && r.content.trim()));
+    return !!((r.counselor && String(r.counselor).trim()) || (r.content && String(r.content).trim()));
   }
   function getDisplayStatus(r) {
     return isConsultDone(r) ? '상담완료' : '예약';
