@@ -2335,7 +2335,7 @@
     w.document.close();
   };
 
-  function buildConsultFormHtml(r) {
+  window.buildConsultFormHtml = function buildConsultFormHtml(r) {
     const STAFF_OPTIONS = STAFF_LIST.map(s => `<option value="${s.name} ${s.title}">${s.name} ${s.title}</option>`).join('');
     const isEdit = !!r;
     const v = (key, def='') => r ? (r[key]||def) : def;
