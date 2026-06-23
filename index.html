@@ -2368,15 +2368,21 @@
     <div class="sh">예약정보</div>
     <div class="f" style="margin-bottom:12px;"><label>상담자</label>
       <div class="chips" id="chipList"></div>
-      <select id="selCounselor" onchange="addCounselor()"><option value="">＋ 상담자 추가</option>${STAFF_OPTIONS}</select>
+      <button type="button" onclick="openStaffPicker()" style="padding:8px 16px;background:#f3f1fb;color:#7b5fd9;border:1px solid #e0d8f7;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:auto;">＋ 추가</button>
     </div>
     <div class="g2">
-      <div class="f"><label>일정 (날짜)</label><input type="date" id="fDate" value="${v('date')}"></div>
-      <div class="f"><label>시간 (HH:MM)</label><input type="text" id="fTime" placeholder="HH:MM" value="${v('time')}"></div>
+      <div class="f"><label>일정</label><input type="date" id="fDate" value="${v('date')}"></div>
+      <div class="f"><label>시간</label><input type="text" id="fTime" value="${v('time')}"></div>
     </div>
     <div class="g2">
-      <div class="f"><label>방문여부</label><select id="fRevisit"><option value="신규">신규</option><option value="재방문">재방문</option></select></div>
+      <div class="f"><label>방문여부</label><select id="fRevisit" onchange="checkRevisit()"><option value="신규">신규</option><option value="재방문">재방문</option></select></div>
       <div class="f"><label>처리상태</label><select id="fStatus"><option value="예약">예약</option><option value="상담완료">상담완료</option><option value="샘플수령">샘플수령</option><option value="미방문">미방문</option><option value="전화상담">전화상담</option></select></div>
+    </div>
+    <!-- 재방문 검색창 (14번) -->
+    <div id="revisitSearchBox" style="display:none;background:#f9f8fd;border:1px solid #e0d8f7;border-radius:10px;padding:14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#7b5fd9;margin-bottom:8px;">🔍 기존 방문 이력 검색</div>
+      <input type="text" id="revisitSearchInput" placeholder="이름 또는 연락처 입력" oninput="searchRevisit()" style="margin-bottom:8px;">
+      <div id="revisitSearchResults" style="max-height:160px;overflow-y:auto;"></div>
     </div>
     <div class="sh">고객정보</div>
     <div class="g2">
@@ -2384,7 +2390,7 @@
       <div class="f"><label>성함 *</label><input type="text" id="fName" value="${v('name')}"></div>
     </div>
     <div class="g2">
-      <div class="f"><label>연락처</label><input type="text" id="fPhone" placeholder="010-0000-0000" value="${v('phone')}"></div>
+      <div class="f"><label>연락처</label><input type="text" id="fPhone" value="${v('phone')}"></div>
       <div class="f"><label>업체명</label><input type="text" id="fCompany" value="${v('company')}"></div>
     </div>
     <div class="g2">
@@ -2407,14 +2413,14 @@
       <div class="f"><label>단가안내</label><select id="fPriceInfo"><option value="">선택안함</option><option value="소비자가 안내">소비자가 안내</option><option value="업체가 안내">업체가 안내</option></select></div>
     </div>
     <div class="f" style="margin-bottom:12px;"><label>요청사항</label>
-      <div class="cbrow">
-        <label><input type="checkbox" id="fReqSample" onchange="toggleC('fReqSample','fSampleBox')"> 쪽샘플 전달</label>
-        <label><input type="checkbox" id="fReqCard" onchange="toggleC('fReqCard','fCardBox')"> 명함 전달</label>
-        <label><input type="checkbox" id="fReqQuote"> 견적서 요청</label>
-        <label><input type="checkbox" id="fReqRevisit"> 재방문 예정</label>
+      <div class="cbrow" style="display:flex;gap:18px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqSample" onchange="toggleC('fReqSample','fSampleBox')"> 쪽샘플 전달</label>
+        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqCard" onchange="toggleC('fReqCard','fCardBox')"> 명함 전달</label>
+        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqQuote"> 견적서 요청</label>
+        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqRevisit"> 재방문 예정</label>
       </div>
       <div class="cbox" id="fSampleBox"><label>샘플 제공목록</label><input type="text" id="fSampleList" value="${v('sampleGiven')}"></div>
-      <div class="cbox" id="fCardBox"><label>명함 전달 담당자</label><select id="fCardStaff"><option value="">담당자 선택</option>${STAFF_OPTIONS}</select></div>
+      <div class="cbox" id="fCardBox"><label>명함 전달 담당자</label><select id="fCardStaff"><option value="">담당자 선택</option></select></div>
     </div>
     <div class="f"><label>전달사항</label><textarea id="fMemo">${v('memo')||v('content')}</textarea></div>
     <div class="foot"><button class="bc" onclick="submitForm()">확인</button><button class="bx" onclick="window.close()">취소</button></div>
@@ -2423,10 +2429,98 @@
       const POLL_URL='https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
       const ROW_INDEX=${isEdit ? r._rowIndex : 0};
       let chips=${JSON.stringify(isEdit ? (v('counselor')).split(',').map(s=>s.trim()).filter(Boolean) : [])};
+      let staffList = [];
+      let consultHistory = [];
+
+      // 직원 목록 실시간 로드
+      async function loadStaff() {
+        try {
+          const res = await fetch(POLL_URL+'?action=getEmployees');
+          const data = await res.json();
+          staffList = (data.rows||[]).filter(r=>!r.leaveDate);
+          // 명함전달 드롭박스 채우기
+          const sel = document.getElementById('fCardStaff');
+          if (sel) {
+            sel.innerHTML = '<option value="">담당자 선택</option>' +
+              staffList.map(s=>\`<option value="\${s.name} \${s.title}">\${s.name} \${s.title}</option>\`).join('');
+            ${isEdit && v('cardGiven') ? `sel.value='${v('cardGiven')}';` : ''}
+          }
+        } catch(e) { console.error('직원 로드 실패', e); }
+      }
+
+      // 상담 이력 로드 (재방문 검색용)
+      async function loadConsultHistory() {
+        try {
+          const res = await fetch(POLL_URL+'?action=getConsults');
+          const data = await res.json();
+          consultHistory = data.rows || [];
+        } catch(e) {}
+      }
+
+      // 상담자 선택 팝업
+      function openStaffPicker() {
+        const w = window.open('', '_blank', 'width=400,height=500');
+        const opts = staffList.map((s,i) =>
+          \`<div onclick="window.opener.addCounselorFromPicker('\${s.name} \${s.title}');window.close();"
+            style="padding:14px 20px;border-bottom:1px solid #eee;cursor:pointer;font-size:14px;font-weight:600;"
+            onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+            \${s.name} <span style="color:#7b5fd9;font-size:12px;">\${s.title}</span>
+          </div>\`
+        ).join('');
+        w.document.write(\`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>상담자 선택</title></head>
+          <body style="margin:0;font-family:sans-serif;">
+          <div style="padding:16px 20px;border-bottom:2px solid #333;font-size:15px;font-weight:800;">상담자 선택</div>
+          \${opts || '<div style="padding:20px;color:#aaa;text-align:center;">등록된 직원이 없습니다</div>'}
+          </body></html>\`);
+        w.document.close();
+      }
+      window.addCounselorFromPicker = function(name) {
+        if (!chips.includes(name)) { chips.push(name); renderChips(); }
+      };
+
+      // 재방문 검색
+      function checkRevisit() {
+        const box = document.getElementById('revisitSearchBox');
+        if (box) box.style.display = document.getElementById('fRevisit').value === '재방문' ? 'block' : 'none';
+      }
+      function searchRevisit() {
+        const q = document.getElementById('revisitSearchInput').value.trim().toLowerCase();
+        const results = document.getElementById('revisitSearchResults');
+        if (!q) { results.innerHTML = ''; return; }
+        const matched = consultHistory.filter(r =>
+          (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
+        ).slice(0, 10);
+        if (!matched.length) { results.innerHTML = '<div style="padding:8px;color:#aaa;font-size:12px;">검색 결과 없음</div>'; return; }
+        results.innerHTML = matched.map((r,i) => \`
+          <div ondblclick="applyRevisitData(\${i})" onclick="this.style.background='#e8e4f7'"
+            style="padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13px;"
+            onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+            <strong>\${r.name||''}</strong> <span style="color:#888;font-size:12px;">\${r.phone||''}</span>
+            <br><span style="color:#aaa;font-size:11px;">\${r.date||''} · \${r.company||''}</span>
+          </div>
+        \`).join('');
+        window._revisitMatched = matched;
+      }
+      window.applyRevisitData = function(idx) {
+        const r = window._revisitMatched[idx];
+        if (!r) return;
+        if (document.getElementById('fName')) document.getElementById('fName').value = r.name||'';
+        if (document.getElementById('fPhone')) document.getElementById('fPhone').value = r.phone||'';
+        if (document.getElementById('fCompany')) document.getElementById('fCompany').value = r.company||'';
+        if (document.getElementById('fAddress')) document.getElementById('fAddress').value = r.address||'';
+        if (document.getElementById('fSize')) document.getElementById('fSize').value = r.size||'';
+        if (document.getElementById('fSpaceType')) document.getElementById('fSpaceType').value = r.spaceType||'';
+        if (document.getElementById('fWorkDate')) document.getElementById('fWorkDate').value = r.workDate||'';
+        if (document.getElementById('fProducts')) document.getElementById('fProducts').value = r.products||'';
+        if (document.getElementById('fType')) document.getElementById('fType').value = r.visitorType||'';
+        document.getElementById('revisitSearchBox').style.display = 'none';
+        alert(\`\${r.name} 님의 기존 데이터를 불러왔습니다!\`);
+      };
+
       function renderChips(){document.getElementById('chipList').innerHTML=chips.map((c,i)=>\`<span class="chip">\${c}<span class="x" onclick="removeChip(\${i})">✕</span></span>\`).join('');}
-      function addCounselor(){const s=document.getElementById('selCounselor');if(s.value&&!chips.includes(s.value)){chips.push(s.value);renderChips();}s.value='';}
       function removeChip(i){chips.splice(i,1);renderChips();}
       function toggleC(cb,box){document.getElementById(box).classList.toggle('show',document.getElementById(cb).checked);}
+
       // 초기값
       document.getElementById('fRevisit').value='${v('revisit','신규')}';
       document.getElementById('fStatus').value='${v('status','예약')}';
@@ -2435,10 +2529,15 @@
       document.getElementById('fPriceInfo').value='${v('priceInfo')}';
       ${isEdit && r.elevator==='무' ? "document.querySelector('input[name=fElev][value=무]').checked=true;" : ''}
       ${isEdit && v('sampleGiven') ? "document.getElementById('fReqSample').checked=true;document.getElementById('fSampleBox').classList.add('show');" : ''}
-      ${isEdit && v('cardGiven') ? `document.getElementById('fReqCard').checked=true;document.getElementById('fCardBox').classList.add('show');document.getElementById('fCardStaff').value='${v('cardGiven')}';` : ''}
+      ${isEdit && v('cardGiven') ? `document.getElementById('fReqCard').checked=true;document.getElementById('fCardBox').classList.add('show');` : ''}
       ${isEdit && v('reqQuote')==='Y' ? "document.getElementById('fReqQuote').checked=true;" : ''}
       ${isEdit && v('revisitConsult')==='재방문예정' ? "document.getElementById('fReqRevisit').checked=true;" : ''}
+      checkRevisit();
       renderChips();
+
+      // 직원 + 이력 로드
+      loadStaff();
+      loadConsultHistory();
       async function submitForm(){
         const name=document.getElementById('fName').value.trim();
         if(!name){alert('성함을 입력해주세요.');return;}
@@ -3404,23 +3503,36 @@
             set('myiTenure', tenure);
         }
 
-        // 연차
-        const leave = parseInt(u.annualLeave || 0);
-        if (leave > 0) {
-            // 총 연차는 입사연도 기준 15일 기본 (추후 시트에서 관리)
-            const total = 20; // 임시 고정값, 추후 시트 컬럼 추가
-            const used = total - leave;
-            const pct = Math.round((leave / total) * 100);
-            set('myiLeaveLeft', leave);
-            const totalEl = document.getElementById('myiLeaveTotal');
-            if (totalEl) totalEl.textContent = `/ ${total} 일`;
-            const bar = document.getElementById('myiProgressBar');
-            if (bar) bar.style.width = pct + '%';
-            const pctEl = document.getElementById('myiProgressPct');
-            if (pctEl) pctEl.textContent = pct + '%';
+        // 연차 계산 (한국 근로기준법)
+        const today2 = new Date();
+        const join = new Date(u.joinDate);
+        const end = u.leaveDate ? new Date(u.leaveDate) : today2;
+        const diffDays = Math.floor((end - join) / (1000*60*60*24));
+        const years = Math.floor(diffDays / 365);
+        const months = Math.floor(diffDays / 30);
+
+        let generated = 0;
+        if (years < 1) {
+          // 1년 미만: 매월 1개 (최대 11개)
+          generated = Math.min(months, 11);
         } else {
-            set('myiLeaveLeft', '-');
+          // 1년 이상: 15개 기본 + 2년마다 1개 추가 (최대 25개)
+          generated = Math.min(15 + Math.floor((years - 1) / 2), 25);
         }
+
+        const used = parseInt(u.annualLeave || 0);
+        const remaining = Math.max(generated - used, 0);
+        const pct = generated > 0 ? Math.round((remaining / generated) * 100) : 0;
+
+        set('myiLeaveLeft', remaining);
+        const totalEl = document.getElementById('myiLeaveTotal');
+        if (totalEl) totalEl.textContent = `/ ${generated} 일`;
+        const bar = document.getElementById('myiProgressBar');
+        if (bar) bar.style.width = pct + '%';
+        const pctEl = document.getElementById('myiProgressPct');
+        if (pctEl) pctEl.textContent = `남은연차 ${remaining}일 / 사용연차 ${used}일`;
+        // 프로그레스바 색상 (50% 이하면 주황)
+        if (bar) bar.style.background = pct >= 50 ? '#2ecc71' : '#e67e22';
     }
 
     // 게스트 비밀번호 확인
