@@ -2626,19 +2626,37 @@
     });
   }
 
+  // ── 상담 폼을 새 창으로 띄우는 공통 헬퍼 (등록=r없음, 상세/수정=r있음) ──
+  window.openConsultWindow = async function(r) {
+    // STAFF_LIST(객체 배열) 준비 - buildConsultFormHtml이 s.name/s.title을 사용
+    try {
+      const list = await loadStaffList(); // ["김진재 대리", ...] 문자열 배열
+      window.STAFF_LIST = (list || []).map(str => {
+        const parts = String(str).trim().split(/\s+/);
+        const title = parts.length > 1 ? parts.pop() : '';
+        return { name: parts.join(' '), title };
+      });
+    } catch(e) {
+      window.STAFF_LIST = [];
+    }
+    const html = window.buildConsultFormHtml(r || null);
+    const w = window.open('', '_blank');
+    if (!w) { alert('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    // 새 창이 닫히면 목록 새로고침
+    const timer = setInterval(() => {
+      if (w.closed) {
+        clearInterval(timer);
+        if (typeof loadConsults === 'function') loadConsults();
+      }
+    }, 700);
+  };
+
   // ── 등록 폼 열기 (신규, 전화예약 수기등록용) ──
   window.openManualRegister = function() {
-    selectedConsult = null;
-    selectedCounselors = [];
-    fillCardStaffSelect();
-    fillCounselorSelect();
-    resetConsultForm();
-    renderCounselorList();
-    document.getElementById('csFormTitle').textContent = '쇼룸 상담 등록';
-    document.getElementById('cfStatus').value = '예약';
-    document.getElementById('cfVisitStatus').value = '신규';
-    document.getElementById('cfAuthor').textContent = '자동입력';
-    document.getElementById('csFormOverlay').classList.add('open');
+    window.openConsultWindow(null);
   };
 
   window.buildConsultFormHtml = function buildConsultFormHtml(r) {
@@ -6712,10 +6730,8 @@ if ('serviceWorker' in navigator) {
   window.openConsultNewTab = function(idx) {
     const r = (window._allConsultsRef || [])[idx];
     if (!r) { alert('데이터를 찾을 수 없습니다. 목록을 새로고침해주세요.'); return; }
-    // ERP 오버레이 폼 열기 (등록과 동일)
-    if (typeof openConsultDetail === 'function') {
-      openConsultDetail(idx);
-    }
+    // 등록과 동일하게 새 창으로 상세/수정 폼 열기
+    window.openConsultWindow(r);
   };
 
   window.importFromDaouSheet = async function() {
