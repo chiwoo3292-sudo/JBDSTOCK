@@ -1200,7 +1200,7 @@
         </div>
         <div style="margin-bottom:12px;">
           <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">모바일 <span style="color:#aaa; font-weight:400;">(010-XXXX-XXXX)</span></div>
-          <input type="tel" id="cardMobile" placeholder="010-0000-0000" style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; box-sizing:border-box;">
+          <input type="tel" id="cardMobile" style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; box-sizing:border-box;">
         </div>
         <div>
           <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">유선번호 <span style="color:#aaa; font-weight:400;">(XX-XXXX-XXXX)</span></div>
@@ -1464,16 +1464,14 @@
   function fmtDateOnly(val) {
     if (!val) return '-';
     const s = String(val).trim();
-    // "2026-11-30T15:00:00.000Z" → "2026년11월30일"
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[1] + '년' + m[2] + '월' + m[3] + '일';
     const d = new Date(s);
-    if (isNaN(d.getTime())) {
-      // 이미 YYYY-MM-DD 형식이면
-      const parts = s.slice(0,10).split('-');
-      if (parts.length === 3) return `${parts[0]}년${parseInt(parts[1])}월${parseInt(parts[2])}일`;
-      return s;
-    }
-    const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
-    return `${y}년${m}월${day}일`;
+    if (isNaN(d.getTime())) return s;
+    const y = d.getFullYear();
+    const mo = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return y + '년' + mo + '월' + day + '일';
   }
 
   function fmtTimeOnly(val) {
@@ -1660,12 +1658,12 @@
   .dw-search-controls { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
 
   /* 통합 검색창: 입력+아이콘 한 덩어리 */
-  .dw-search-box { display:flex; align-items:center; border:1px solid #ddd; border-radius:6px; padding:0 10px; height:32px; width:240px; background:#fff; }
-  .dw-search-box input { border:none; outline:none; flex:1; font-size:12.5px; font-family:inherit; color:#333; background:transparent; }
+  .dw-search-box { display:flex; align-items:center; border:1px solid #ddd; border-radius:6px; padding:0 10px; height:36px; width:340px; max-width:100%; background:#fff; flex:0 0 340px; }
+  .dw-search-box input { border:0 !important; outline:none; flex:1 1 auto; min-width:0; width:auto !important; height:auto !important; padding:0 !important; border-radius:0 !important; box-shadow:none !important; font-size:13px; font-family:inherit; color:#333; background:transparent !important; }
   .dw-search-box input::placeholder { color:#bbb; }
-  .dw-search-box .icon { color:#aaa; font-size:12px; margin-left:6px; pointer-events:none; }
+  .dw-search-box .icon { color:#777; font-size:14px; margin-left:8px; pointer-events:none; flex:0 0 auto; }
 
-  .dw-cond-btn { border:1px solid #ddd; border-radius:6px; padding:0 12px; height:32px; font-size:12.5px; font-weight:700; color:#555; background:#fff; cursor:pointer; }
+  .dw-cond-btn { border:1px solid #ddd; border-radius:6px; padding:0 14px; height:36px; font-size:12.5px; font-weight:700; color:#555; background:#fff; cursor:pointer; white-space:nowrap; }
 
   .dw-count-toolbar-row { display:flex; align-items:center; margin-bottom:8px; }
   .dw-count-line { font-size:13px; color:#222; font-weight:500; }
@@ -1748,7 +1746,7 @@
 
   .dw-field label { display:block; font-size:12.5px; font-weight:600; color:#444; margin-bottom:6px; }
   .dw-field label .req { color:#e0444c; margin-left:2px; }
-  .dw-field .hint { font-size:11px; color:#999; margin-top:5px; line-height:1.5; }
+  .dw-field .hint { display:none; }
 
   .dw-field input[type=text], .dw-field input[type=date], .dw-field input[type=time], .dw-field input[type=number], .dw-field select, .dw-field textarea {
     width:100%; padding:9px 11px; border:1px solid #ddd; border-radius:6px; font-size:13px; font-family:inherit; color:#333; outline:none;
@@ -1772,8 +1770,8 @@
   .dw-counselor-chip .x { cursor:pointer; color:#9a8bd6; font-weight:700; }
   .dw-add-counselor-btn { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#666; cursor:pointer; font-weight:600; background:none; border:none; padding:4px 0; }
 
-  .dw-checkbox-row { display:flex; gap:22px; align-items:center; flex-wrap:wrap; }
-  .dw-checkbox-row label { display:flex; align-items:center; gap:6px; font-size:13px; color:#333; cursor:pointer; font-weight:400; }
+  .dw-checkbox-row { display:flex; gap:18px; align-items:center; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; }
+  .dw-checkbox-row label { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#333; cursor:pointer; font-weight:400; white-space:nowrap; flex:0 0 auto; }
   .dw-checkbox-row input[type=checkbox] { width:15px; height:15px; cursor:pointer; }
 
   .dw-conditional-box { margin-top:10px; padding:14px; background:#f9f8fd; border:1px solid #e8e4f7; border-radius:8px; display:none; }
@@ -1901,7 +1899,7 @@
         <label>일정</label>
         <div class="dw-inline-2">
           <input type="date" id="cfDate">
-          <input type="text" id="cfTime" placeholder="HH:MM" maxlength="5" style="width:80px;">
+          <input type="text" id="cfTime" maxlength="5" style="width:80px;">
         </div>
       </div>
       <div class="dw-field">
@@ -1912,7 +1910,7 @@
         </select>
         <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#f9f8fd;border:1px solid #e0d8f7;border-radius:8px;padding:12px;">
           <div style="font-size:12px;font-weight:700;color:#7b5fd9;margin-bottom:6px;">🔍 기존 방문 이력 검색</div>
-          <input type="text" id="cfRevisitInput" placeholder="이름 또는 연락처" oninput="searchRevisitOverlay()" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;">
+          <input type="text" id="cfRevisitInput" oninput="searchRevisitOverlay()" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;">
           <div id="cfRevisitResults" style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:6px;"></div>
         </div>
       </div>
@@ -1945,19 +1943,18 @@
       <div class="dw-field">
         <label>성함<span class="req">*</span></label>
         <input type="text" id="cfName">
-        <div class="hint">* 개인고객 : 이름 / 업체 : 이름 및 직급</div>
+
       </div>
       <div class="dw-field">
         <label>업체명</label>
         <input type="text" id="cfCompany">
-        <div class="hint">* 턴키업체가 있는 경우도 기재</div>
       </div>
     </div>
 
     <div class="dw-field-row cols-2">
       <div class="dw-field">
         <label>연락처</label>
-        <input type="text" id="cfPhone" placeholder="010-0000-0000">
+        <input type="text" id="cfPhone">
       </div>
       <div class="dw-field">
         <label>방문 인원</label>
@@ -2048,11 +2045,11 @@
           <label><input type="checkbox" id="cfReqQuote"> 견적서 요청</label>
           <label><input type="checkbox" id="cfReqRevisit"> 재방문 예정</label>
         </div>
-        <div class="hint">* 쪽샘플 전달의 경우 체크 후 샘플 제공목록에 기입 &nbsp;/&nbsp; * 다른 담당자의 명함 전달시 체크 후 담당자 선택</div>
+
 
         <div class="dw-conditional-box" id="cfSampleBox">
           <label>샘플 제공목록</label>
-          <input type="text" id="cfSampleList" placeholder="제공한 쪽샘플을 입력해주세요">
+          <input type="text" id="cfSampleList">
         </div>
 
         <div class="dw-conditional-box" id="cfCardBox">
@@ -2067,8 +2064,7 @@
     <div class="dw-field-row cols-1">
       <div class="dw-field">
         <label>전달사항</label>
-        <textarea id="cfMemo" placeholder="상담 시 특이사항이 있을 경우 기재하여 주십시오."></textarea>
-        <div class="hint">* 상담 시 특이사항이 있을 경우 기재하여 주십시오.</div>
+        <textarea id="cfMemo"></textarea>
       </div>
     </div>
 
@@ -2216,14 +2212,11 @@
     document.getElementById('csTableBody').innerHTML = pageList.map((r, i) => {
       const status = getDisplayStatus(r);
       const showN = !isConsultDone(r);
-      const dateStr = r.date || '';
+      const dateStr = csDateInputValue(r.date) || '';
       const timeStart = r.time ? String(r.time).split('~')[0].trim() : '';
       let scheduleDisplay = '';
       if (dateStr) {
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-          scheduleDisplay = `${parts[0]}년${parts[1]}월${parts[2]}일`;
-        } else { scheduleDisplay = dateStr; }
+        scheduleDisplay = csDateDisplay(dateStr);
         if (timeStart) scheduleDisplay += ` ${timeStart}`;
       }
       return `
@@ -2350,9 +2343,18 @@
 
   // ── 등록 폼 열기 (신규, 전화예약 수기등록용) ──
   window.openManualRegister = function() {
-    const w = window.open('', '_blank', 'width=1100,height=900');
-    w.document.write(buildConsultFormHtml(null));
-    w.document.close();
+    selectedConsult = null;
+    selectedCounselors = [];
+    fillCardStaffSelect();
+    fillCounselorSelect();
+    resetConsultForm();
+    renderCounselorList();
+    document.getElementById('csFormTitle').textContent = '쇼룸 상담 등록';
+    document.getElementById('cfStatus').value = '예약';
+    document.getElementById('cfVisitStatus').value = '신규';
+    document.getElementById('cfAuthor').textContent = '자동입력';
+    document.getElementById('csFormOverlay').classList.add('open');
+    history.pushState({ csFormOpen: true }, '');
   };
 
   window.buildConsultFormHtml = function buildConsultFormHtml(r) {
@@ -2602,6 +2604,21 @@
     <\/script></body></html>`;
   }
 
+  function csDateInputValue(val) {
+    if (!val) return '';
+    const s = String(val).trim();
+    const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    return iso ? iso[1] : s;
+  }
+
+  function csDateDisplay(val) {
+    if (!val) return '';
+    if (typeof fmtDateOnly === 'function') return fmtDateOnly(val);
+    const s = String(val).trim();
+    const parts = s.slice(0, 10).split('-');
+    if (parts.length === 3) return parts[0] + '년' + parts[1] + '월' + parts[2] + '일';
+    return s;
+  }
   function resetConsultForm() {
     document.getElementById('cfDate').value = '';
     document.getElementById('cfTime').value = '';
@@ -2683,7 +2700,7 @@
     set('cfCompany', r.company);
     set('cfAddress', r.address);
     set('cfSize', String(r.size||'').replace(/[^0-9.]/g,''));
-    set('cfWorkDate', r.workDate);
+    set('cfWorkDate', csDateInputValue(r.workDate));
     set('cfProducts', r.products);
     if (document.getElementById('cfSpaceType')) document.getElementById('cfSpaceType').value = r.spaceType||'';
     if (document.getElementById('cfVisitorType')) document.getElementById('cfVisitorType').value = r.visitorType||'';
@@ -2707,7 +2724,7 @@
     resetConsultForm();
 
     // 일정: 날짜 + 시작시간 추출
-    document.getElementById('cfDate').value = r.date || '';
+    document.getElementById('cfDate').value = csDateInputValue(r.date);
     // time이 "13:30~14:00" 형식이면 "13:30"만 추출
     const timeStart = r.time ? String(r.time).split('~')[0].trim() : '';
     document.getElementById('cfTime').value = timeStart;
@@ -2726,7 +2743,7 @@
     document.getElementById('cfAddress').value = r.address || '';
     document.getElementById('cfSize').value = String(r.size||'').replace(/[^0-9.]/g,'');
     document.getElementById('cfSpaceType').value = r.spaceType || '';
-    document.getElementById('cfWorkDate').value = r.workDate || '';
+    document.getElementById('cfWorkDate').value = csDateInputValue(r.workDate);
     document.getElementById('cfProducts').value = r.products || '';
 
     // 시공예정시기, 공사기간 (쇼룸상담 추가 필드)
