@@ -6285,15 +6285,11 @@ if ('serviceWorker' in navigator) {
   };
 
   window.openConsultNewTab = function(idx) {
-    const r = allConsults[idx];
-    if (!r) { console.warn('데이터 없음:', idx, allConsults.length); return; }
-    // 팝업 차단 우회: 빈 탭 먼저 열고 내용 작성
-    const html = buildConsultFormHtml(r);
+    const r = (window._allConsultsRef || [])[idx];
+    if (!r) { alert('데이터를 찾을 수 없습니다. 목록을 새로고침해주세요.'); return; }
+    const html = window.buildConsultFormHtml(r);
     const w = window.open('about:blank', '_blank');
-    if (!w) {
-      alert('팝업이 차단되었습니다. 브라우저에서 팝업을 허용해주세요.');
-      return;
-    }
+    if (!w) { alert('팝업이 차단되었습니다. 브라우저에서 팝업을 허용해주세요.'); return; }
     w.document.open();
     w.document.write(html);
     w.document.close();
