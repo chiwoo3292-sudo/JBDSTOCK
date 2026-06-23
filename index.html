@@ -292,6 +292,13 @@
     .layout {
         grid-template-columns: 1fr !important; /* PC의 1.3fr 1fr 구조를 깨고 100%로 */
         gap: 14px !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    /* [핵심] grid/flex 자식이 내부 넓은 표 때문에 늘어나 페이지를 밀어내는 현상 차단 */
+    #pricingTab .layout > * {
+        min-width: 0 !important;
+        max-width: 100% !important;
     }
 
     /* 2. 상단바(검색창, 추가 버튼 구역) 배치 조절 */
@@ -401,6 +408,13 @@
         height: auto !important;
         max-height: none !important;
         gap: 14px !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    /* flex 자식 카드들이 내부 넓은 표/버튼 때문에 늘어나지 않도록 폭 고정 */
+    .pricing-right-col > * {
+        min-width: 0 !important;
+        max-width: 100% !important;
     }
     /* 9. '단가 안내' 표: 높이 제한 해제 + 가로 폭 가두고 표만 좌우 스크롤 */
     #pricingTab .scroll[style*="max-height"] {
