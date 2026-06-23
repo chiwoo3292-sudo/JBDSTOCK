@@ -2207,18 +2207,15 @@
         if (timeStart) scheduleDisplay += ` ${timeStart}`;
       }
       return `
-        <tr onclick="openConsultNewTab(${r._origIdx})" data-orig-idx="${r._origIdx}">
+        <tr onclick="openConsultNewTab(${r._origIdx})" data-orig-idx="${r._origIdx}" style="cursor:pointer;">
           <td>${i + 1 + start}</td>
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
           <td><span class="dw-status-pill ${status}">${status}</span>${showN ? '<span class="nbadge" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#e74c3c;color:#fff;font-size:8.5px;font-weight:800;margin-left:3px;vertical-align:middle;">N</span>' : ''}</td>
-          <td onclick="event.stopPropagation()"><input class="cs-inline-input" data-field="counselor" data-idx="${r._origIdx}" value="${r.counselor||''}" placeholder="상담자" onblur="autoSaveField(this)"></td>
-          <td class="dw-td-name">
-            ${r.name||''}
-            <span onclick="event.stopPropagation();openConsultNewTab(${r._origIdx})" title="상세보기" style="cursor:pointer;margin-left:4px;font-size:13px;opacity:0.6;">📄</span>
-          </td>
-          <td onclick="event.stopPropagation()"><input class="cs-inline-input" data-field="company" data-idx="${r._origIdx}" value="${r.company||''}" placeholder="업체명" onblur="autoSaveField(this)"></td>
+          <td>${r.counselor||''}</td>
+          <td class="dw-td-name">${r.name||''} <span style="color:#ccc;font-size:11px;">📄</span></td>
+          <td>${r.company||''}</td>
           <td>${scheduleDisplay}</td>
-          <td>${r.phone || ''}</td>
+          <td>${r.phone||''}</td>
         </tr>
       `;
     }).join('');
@@ -6289,9 +6286,16 @@ if ('serviceWorker' in navigator) {
 
   window.openConsultNewTab = function(idx) {
     const r = allConsults[idx];
-    if (!r) return;
-    const w = window.open('', '_blank', 'width=1100,height=900');
-    w.document.write(buildConsultFormHtml(r));
+    if (!r) { console.warn('데이터 없음:', idx, allConsults.length); return; }
+    // 팝업 차단 우회: 빈 탭 먼저 열고 내용 작성
+    const html = buildConsultFormHtml(r);
+    const w = window.open('about:blank', '_blank');
+    if (!w) {
+      alert('팝업이 차단되었습니다. 브라우저에서 팝업을 허용해주세요.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
     w.document.close();
   };
 
