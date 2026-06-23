@@ -1882,10 +1882,14 @@
         min-width: 100px !important;
         width: 100px !important;
     }
+    /* 등록/상세 오버레이 폼: 모바일 여백 축소 */
+    .dw-form-page {
+        padding: 18px 16px 48px !important;
+    }
   }
 
   /* ===== 등록/상세 폼 (전체화면 페이지형) ===== */
-  .dw-form-overlay { display:none; position:fixed; inset:0; background:#fff; z-index:700; overflow-y:auto; }
+  .dw-form-overlay { display:none; position:fixed; inset:0; left:0; top:0; width:100%; height:100%; background:#fff; z-index:10000; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .dw-form-overlay.open { display:block; }
   .dw-form-page { max-width:1100px; margin:0 auto; padding:28px 32px 60px; }
 
@@ -3084,6 +3088,14 @@
       overlay.classList.remove('open');
     }
   });
+
+  // 오버레이를 body 직속으로 이동 (조상의 overflow/transform 영향 없이 항상 화면 전체를 덮도록)
+  (function relocateConsultOverlay() {
+    const overlay = document.getElementById('csFormOverlay');
+    if (overlay && overlay.parentElement !== document.body) {
+      document.body.appendChild(overlay);
+    }
+  })();
 
   // ── 저장 (신규 등록 + 기존 수정 겸용) ──
   window.saveConsultForm = async function() {
@@ -6935,4 +6947,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-  </html>
+                </html>
