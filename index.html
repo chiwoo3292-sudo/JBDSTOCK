@@ -50,12 +50,36 @@
   [spellcheck], input, textarea, td, th, select { -webkit-spellcheck: false; }
   td, th { -webkit-user-modify: read-only; }
   .wrap { max-width:1880px; margin:0 auto; padding:10px; }
-  .tabs { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
-  .tab-btn { min-height:40px; padding:0 16px; border:1px solid #d8d8d8; border-radius:999px; background:#fff; color:#444; font-size:13px; font-weight:700; cursor:pointer; }
+  .tabs-wrap { position:relative; display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .hamburger-btn { min-width:36px; height:36px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
+  .hamburger-btn span { display:block; width:16px; height:2px; background:#444; border-radius:2px; }
+  .tabs { display:flex; gap:8px; align-items:center; overflow-x:auto; flex:1; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; user-select:none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tabs.dragging { cursor:grabbing; }
+  .tab-btn { min-height:36px; padding:0 14px; border:1px solid #d8d8d8; border-radius:999px; background:#fff; color:#444; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .tab-btn.active { background:#111; color:#fff; border-color:#111; }
-  .user-info-badge { margin-left:auto; display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:700; color:#333; cursor:pointer; border:1px solid #eee; white-space:nowrap; }
+  .user-info-badge { flex-shrink:0; display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:700; color:#333; cursor:pointer; border:1px solid #eee; white-space:nowrap; position:relative; }
   .user-info-badge .user-dot { width:8px; height:8px; border-radius:50%; background:#7b5fd9; }
   .user-info-badge .user-dot.guest { background:#aaa; }
+
+  /* 햄버거 메뉴 드롭다운 */
+  .hamburger-menu { display:none; position:fixed; top:0; left:0; width:280px; height:100vh; background:#fff; z-index:99998; box-shadow:4px 0 20px rgba(0,0,0,0.12); overflow-y:auto; flex-direction:column; }
+  .hamburger-menu.open { display:flex; }
+  .hamburger-menu-header { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid #eee; }
+  .hamburger-menu-header h3 { font-size:15px; font-weight:800; margin:0; }
+  .hamburger-menu-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; min-height:auto; padding:0; }
+  .hamburger-menu-item { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f5f5f5; cursor:pointer; font-size:13.5px; font-weight:600; color:#333; }
+  .hamburger-menu-item:hover { background:#f9f9f9; }
+  .hamburger-menu-item input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:#7b5fd9; }
+  .hamburger-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:99997; }
+  .hamburger-overlay.open { display:block; }
+
+  /* 유저 드롭다운 메뉴 */
+  .user-dropdown { display:none; position:absolute; top:calc(100% + 8px); right:0; background:#fff; border:1px solid #eee; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); min-width:140px; z-index:9999; overflow:hidden; }
+  .user-dropdown.open { display:block; }
+  .user-dropdown-item { display:flex; align-items:center; gap:8px; padding:12px 16px; font-size:13px; font-weight:600; color:#333; cursor:pointer; }
+  .user-dropdown-item:hover { background:#f5f5f5; }
+  .user-dropdown-item.logout { color:#e74c3c; }
   .tab-panel { display:none; }
   .tab-panel.active { display:block; }
   .layout { display:grid; grid-template-columns:1.3fr 1fr; gap:18px; }
@@ -367,30 +391,50 @@
 
 <section id="mainSection" style="display:none;">
   <div class="wrap">
-  <div class="tabs no-capture">
-  <button type="button" class="tab-btn active" data-tab="pricingTab">단가표</button>
-  <button type="button" class="tab-btn" data-tab="calculatorTab">계산기</button>
-  <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
-  <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
-  <button type="button" class="tab-btn" data-tab="consultTab">💬 쇼룸상담</button>
-  <button type="button" class="tab-btn" data-tab="reservationTab">📅 예약관리</button>
-  <button type="button" class="tab-btn" data-tab="cardScanTab">📷 명함스캐닝</button>
-  <button type="button" class="tab-btn" data-tab="contactsTab">📋 연락처</button>
-  <button type="button" class="tab-btn" data-tab="floorplanTab">📐 면적분석</button>
-  <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
-  <button type="button" class="tab-btn" data-tab="myInfoTab" id="myInfoTabBtn" style="display:none;">👤 내 정보</button>
-  <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">⚙️ 관리자</button>
-  <div class="user-info-badge" id="userInfoBadge" onclick="showUserMenu()" style="display:none;">
-    <span class="user-dot" id="userDot"></span>
-    <span id="userInfoText">게스트</span>
-    <span style="color:#aaa;">▾</span>
+  <div class="tabs-wrap no-capture">
+    <button class="hamburger-btn no-capture" onclick="openHamburger()" title="전체 메뉴">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="tabs no-capture" id="mainTabBar">
+      <button type="button" class="tab-btn active" data-tab="pricingTab">단가표</button>
+      <button type="button" class="tab-btn" data-tab="calculatorTab">계산기</button>
+      <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
+      <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
+      <button type="button" class="tab-btn" data-tab="consultTab">쇼룸상담</button>
+      <button type="button" class="tab-btn" data-tab="reservationTab">예약관리</button>
+      <button type="button" class="tab-btn" data-tab="cardScanTab">명함스캐닝</button>
+      <button type="button" class="tab-btn" data-tab="contactsTab">연락처</button>
+      <button type="button" class="tab-btn" data-tab="floorplanTab">면적분석</button>
+      <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
+      <button type="button" class="tab-btn" data-tab="noticeTab">공지게시판</button>
+      <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
+    </div>
+    <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;">
+      <span class="user-dot" id="userDot"></span>
+      <span id="userInfoText">게스트</span>
+      <span style="color:#aaa;">▾</span>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="user-dropdown-item" onclick="goMyInfo()">👤 내 정보</div>
+        <div class="user-dropdown-item logout" onclick="logoutUser()">🚪 로그아웃</div>
+      </div>
+    </div>
   </div>
-</div>
+
+  <!-- 햄버거 오버레이 -->
+  <div class="hamburger-overlay" id="hamburgerOverlay" onclick="closeHamburger()"></div>
+  <!-- 햄버거 메뉴 -->
+  <div class="hamburger-menu" id="hamburgerMenu">
+    <div class="hamburger-menu-header">
+      <h3>☰ 전체 메뉴</h3>
+      <button class="hamburger-menu-close" onclick="closeHamburger()">✕</button>
+    </div>
+    <div id="hamburgerMenuItems"></div>
+  </div>
 
   <section id="pricingTab" class="tab-panel active">
     <div class="layout">
       <div class="card">
-        <h2 class="title">BARAM 단가표</h2>
+        <h2 class="title">지복득 단가표</h2>
         <div class="topbar">
           <div class="product-add">
             <select id="productSelect"></select>
@@ -1399,13 +1443,50 @@
     return `${y}년${m}월${day}일 ${hh}시${mm}분`;
   }
 
+  // ── 날짜 포맷 헬퍼 ──
+  function fmtDateTime(val) {
+    if (!val) return '-';
+    const s = String(val).trim();
+    // "2026-06-22T23:46" or "2026-06-22T23:46:00.000Z"
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    const kst = new Date(d.getTime() + (d.getTimezoneOffset() === 0 ? 9*60*60*1000 : 0));
+    // 이미 KST인 경우 (T 없이 그냥 날짜 문자열이면) 그냥 파싱
+    const target = s.endsWith('Z') ? kst : d;
+    const y = target.getFullYear();
+    const m = target.getMonth()+1;
+    const day = target.getDate();
+    const hh = String(target.getHours()).padStart(2,'0');
+    const mm = String(target.getMinutes()).padStart(2,'0');
+    return `${y}년${m}월${day}일 ${hh}시${mm}분`;
+  }
+
+  function fmtDateOnly(val) {
+    if (!val) return '-';
+    const s = String(val).trim();
+    // "2026-11-30T15:00:00.000Z" → "2026년11월30일"
+    const d = new Date(s);
+    if (isNaN(d.getTime())) {
+      // 이미 YYYY-MM-DD 형식이면
+      const parts = s.slice(0,10).split('-');
+      if (parts.length === 3) return `${parts[0]}년${parseInt(parts[1])}월${parseInt(parts[2])}일`;
+      return s;
+    }
+    const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+    return `${y}년${m}월${day}일`;
+  }
+
+  function fmtTimeOnly(val) {
+    if (!val) return '-';
+    return String(val).split('~')[0].trim();
+  }
+
   // ── 상세 렌더링 ──
   function renderRsvDetail(r) {
     const rows = [
-      ['접수일시', r.submittedAt ? String(r.submittedAt).slice(0,16) : '-'],
-      ['접수일시', formatSubmittedAt(r.submittedAt)],
+      ['접수일시', fmtDateTime(r.submittedAt)],
       ['상담날짜', r.date||'-'],
-      ['상담시간', r.time||'-'],
+      ['상담시간', fmtTimeOnly(r.time)],
       ['예약자유형', r.visitorType||'-'],
       ['방문인원', r.visitCount||'-'],
       ['재방문', r.revisit||'-'],
@@ -1417,7 +1498,7 @@
       ['평수', r.size||'-'],
       ['층수', r.floor||'-'],
       ['엘리베이터', r.elevator||'-'],
-      ['시공예정일', r.workDate||'-'],
+      ['시공예정일', fmtDateOnly(r.workDate)],
       ['선호제품', r.products||'-'],
       ['전달사항', r.memo||'-'],
       ['처리상태', r.status||'대기'],
@@ -1599,6 +1680,7 @@
   /* 인라인 편집 */
   .cs-inline-input { border:none; background:transparent; font-size:13px; font-family:inherit; color:#333; width:100%; outline:none; cursor:text; }
   .cs-inline-input:focus { background:#f3f1fb; border-radius:4px; padding:2px 4px; }
+  .cs-inline-input::placeholder { color:transparent; }
 
   .dw-td-name { font-weight:500; }
   .dw-td-name .nbadge { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:#e74c3c; color:#fff; font-size:8.5px; font-weight:800; margin-left:3px; vertical-align:middle; }
@@ -1710,7 +1792,6 @@
 
   <div class="dw-search-line">
     <span class="dw-search-label">검색</span>
-    <span class="dw-save-filter">새 필터 저장</span>
     <div class="dw-search-right">
       <span class="dw-dropdown">기본형 ▾</span>
     </div>
@@ -1726,13 +1807,20 @@
 
   <div class="dw-count-toolbar-row">
     <div class="dw-count-line"><strong id="csCount">0</strong> 개의 데이터가 있습니다</div>
-    <div class="dw-filter-chips">
-      <div class="dw-chip on" data-filter="전체" onclick="setCsFilter(this)">전체</div>
-      <div class="dw-chip" data-filter="예약" onclick="setCsFilter(this)">예약</div>
-      <div class="dw-chip" data-filter="상담완료" onclick="setCsFilter(this)">상담완료</div>
-      <div class="dw-chip" data-filter="샘플수령" onclick="setCsFilter(this)">샘플수령</div>
-      <div class="dw-chip" data-filter="미방문" onclick="setCsFilter(this)">미방문</div>
-      <div class="dw-chip" data-filter="전화상담" onclick="setCsFilter(this)">전화상담</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <div class="dw-filter-chips">
+        <div class="dw-chip on" data-filter="전체" onclick="setCsFilter(this)">전체</div>
+        <div class="dw-chip" data-filter="예약" onclick="setCsFilter(this)">예약</div>
+        <div class="dw-chip" data-filter="상담완료" onclick="setCsFilter(this)">상담완료</div>
+        <div class="dw-chip" data-filter="샘플수령" onclick="setCsFilter(this)">샘플수령</div>
+        <div class="dw-chip" data-filter="미방문" onclick="setCsFilter(this)">미방문</div>
+        <div class="dw-chip" data-filter="전화상담" onclick="setCsFilter(this)">전화상담</div>
+      </div>
+      <div class="dw-filter-chips" style="margin-left:8px;border-left:1px solid #eee;padding-left:8px;">
+        <div class="dw-chip" data-date-filter="today" onclick="setDateFilter(this)">금일</div>
+        <div class="dw-chip" data-date-filter="1day" onclick="setDateFilter(this)">1일전</div>
+        <div class="dw-chip" data-date-filter="2day" onclick="setDateFilter(this)">2일전</div>
+      </div>
     </div>
   </div>
 
@@ -2115,7 +2203,7 @@
         if (timeStart) scheduleDisplay += ` ${timeStart}`;
       }
       return `
-        <tr onclick="openConsultNewTab(${r._origIdx})">
+        <tr onclick="openConsultNewTab(${r._origIdx})" data-orig-idx="${r._origIdx}">
           <td>${i + 1 + start}</td>
           <td onclick="event.stopPropagation()"><input type="checkbox" class="dw-checkbox"></td>
           <td><span class="dw-status-pill ${status}">${status}</span>${showN ? '<span class="nbadge" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#e74c3c;color:#fff;font-size:8.5px;font-weight:800;margin-left:3px;vertical-align:middle;">N</span>' : ''}</td>
@@ -2588,8 +2676,159 @@
 </section>
 
 <!-- ========================================================== -->
-<!-- 👤 내 정보 탭 -->
+<!-- 📢 공지게시판 탭 -->
 <!-- ========================================================== -->
+<section id="noticeTab" class="tab-panel" style="display:none;">
+<style>
+  .notice-wrap { max-width:900px; margin:0 auto; }
+  .notice-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .notice-header h2 { font-size:17px; font-weight:800; margin:0; }
+  .notice-write-btn { padding:8px 18px; background:#7b5fd9; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  table.notice-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.notice-table th { padding:10px 12px; background:#fafafa; border-top:2px solid #333; border-bottom:1px solid #ddd; font-weight:700; color:#555; text-align:center; }
+  table.notice-table td { padding:11px 12px; border-bottom:1px solid #eee; color:#333; }
+  table.notice-table tbody tr { cursor:pointer; }
+  table.notice-table tbody tr:hover { background:#f9f8ff; }
+  .notice-badge { display:inline-block; background:#e74c3c; color:#fff; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:700; margin-right:4px; }
+  .notice-empty { padding:60px; text-align:center; color:#aaa; font-size:13px; }
+
+  /* 글쓰기/상세 모달 */
+  .notice-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:800; align-items:center; justify-content:center; }
+  .notice-modal-overlay.open { display:flex; }
+  .notice-modal { background:#fff; border-radius:14px; max-width:700px; width:90%; max-height:85vh; overflow-y:auto; padding:28px; }
+  .notice-modal h3 { font-size:16px; font-weight:800; margin:0 0 18px; }
+  .notice-modal input[type=text], .notice-modal textarea, .notice-modal select { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; margin-bottom:12px; }
+  .notice-modal textarea { min-height:180px; resize:vertical; }
+  .notice-modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
+  .notice-btn-submit { background:#7b5fd9; color:#fff; border:none; border-radius:8px; padding:10px 24px; font-size:13px; font-weight:700; cursor:pointer; }
+  .notice-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; }
+  .notice-detail-content { font-size:13px; line-height:1.8; color:#333; white-space:pre-wrap; background:#fafafa; border-radius:8px; padding:16px; min-height:100px; }
+  .notice-detail-meta { font-size:12px; color:#aaa; margin-bottom:14px; }
+</style>
+<div class="notice-wrap">
+  <div class="notice-header">
+    <h2>📢 공지게시판</h2>
+    <button class="notice-write-btn" onclick="openNoticeWrite()">✏ 글쓰기</button>
+  </div>
+  <table class="notice-table">
+    <thead>
+      <tr>
+        <th style="width:50px;">번호</th>
+        <th style="width:60px;">구분</th>
+        <th>제목</th>
+        <th style="width:100px;">작성자</th>
+        <th style="width:110px;">작성일</th>
+      </tr>
+    </thead>
+    <tbody id="noticeTableBody">
+      <tr><td colspan="5" class="notice-empty">불러오는 중...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 글쓰기 모달 -->
+<div class="notice-modal-overlay" id="noticeWriteModal">
+  <div class="notice-modal">
+    <h3>공지 작성</h3>
+    <select id="noticeCategory">
+      <option value="일반">일반</option>
+      <option value="공지">공지</option>
+      <option value="중요">중요</option>
+    </select>
+    <input type="text" id="noticeTitle" placeholder="제목을 입력하세요">
+    <textarea id="noticeContent" placeholder="내용을 입력하세요"></textarea>
+    <div class="notice-modal-footer">
+      <button class="notice-btn-submit" onclick="submitNotice()">등록</button>
+      <button class="notice-btn-cancel" onclick="closeNoticeWrite()">취소</button>
+    </div>
+    <div id="noticeSaveMsg" style="text-align:center;font-size:12px;margin-top:8px;color:#555;"></div>
+  </div>
+</div>
+
+<!-- 상세 모달 -->
+<div class="notice-modal-overlay" id="noticeDetailModal">
+  <div class="notice-modal">
+    <h3 id="noticeDetailTitle"></h3>
+    <div class="notice-detail-meta" id="noticeDetailMeta"></div>
+    <div class="notice-detail-content" id="noticeDetailContent"></div>
+    <div class="notice-modal-footer">
+      <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const NOTICE_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
+  let notices = [];
+
+  window.loadNotices = async function() {
+    try {
+      const res = await fetch(`${NOTICE_URL}?action=getNotices`);
+      const data = await res.json();
+      notices = data.rows || [];
+      renderNotices();
+    } catch(e) {
+      document.getElementById('noticeTableBody').innerHTML = `<tr><td colspan="5" class="notice-empty">오류: ${e.message}</td></tr>`;
+    }
+  };
+
+  function renderNotices() {
+    const tbody = document.getElementById('noticeTableBody');
+    if (!notices.length) { tbody.innerHTML = '<tr><td colspan="5" class="notice-empty">등록된 공지가 없습니다.</td></tr>'; return; }
+    tbody.innerHTML = notices.slice().reverse().map((n, i) => {
+      const badge = n.category === '공지' || n.category === '중요'
+        ? `<span class="notice-badge">${n.category}</span>` : '';
+      return `<tr onclick="showNoticeDetail(${notices.length-1-i})">
+        <td style="text-align:center;">${notices.length - i}</td>
+        <td style="text-align:center;">${n.category||'일반'}</td>
+        <td>${badge}${n.title||''}</td>
+        <td style="text-align:center;">${n.author||''}</td>
+        <td style="text-align:center;">${(n.date||'').slice(0,10)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.showNoticeDetail = function(idx) {
+    const n = notices[idx];
+    if (!n) return;
+    document.getElementById('noticeDetailTitle').textContent = n.title||'';
+    document.getElementById('noticeDetailMeta').textContent = `${n.category||'일반'} · ${n.author||''} · ${(n.date||'').slice(0,10)}`;
+    document.getElementById('noticeDetailContent').textContent = n.content||'';
+    document.getElementById('noticeDetailModal').classList.add('open');
+  };
+
+  window.openNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.add('open'); };
+  window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); };
+
+  window.submitNotice = async function() {
+    const title = document.getElementById('noticeTitle').value.trim();
+    const content = document.getElementById('noticeContent').value.trim();
+    const category = document.getElementById('noticeCategory').value;
+    if (!title) { alert('제목을 입력하세요.'); return; }
+    const user = JSON.parse(localStorage.getItem('baram_user')||'null');
+    const author = user ? `${user.name} ${user.title}` : '게스트';
+    document.getElementById('noticeSaveMsg').textContent = '등록 중...';
+    try {
+      const params = new URLSearchParams({ action:'saveNotice', title, content, category, author });
+      const res = await fetch(`${NOTICE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        document.getElementById('noticeSaveMsg').textContent = '✅ 등록 완료!';
+        document.getElementById('noticeTitle').value = '';
+        document.getElementById('noticeContent').value = '';
+        loadNotices();
+        setTimeout(() => { closeNoticeWrite(); document.getElementById('noticeSaveMsg').textContent=''; }, 800);
+      } else {
+        document.getElementById('noticeSaveMsg').textContent = '❌ ' + (data.message||'실패');
+      }
+    } catch(e) { document.getElementById('noticeSaveMsg').textContent = '❌ 오류: ' + e.message; }
+  };
+})();
+</script>
+</section>
+
+
 <section id="myInfoTab" class="tab-panel" style="display:none;">
 <style>
   .myi-wrap { max-width:960px; margin:0 auto; padding:12px 0; }
@@ -3598,19 +3837,146 @@ function setTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(panel => {
     panel.style.display = panel.id === tabId ? 'block' : 'none';
   });
-  // 현재 탭 저장 (새로고침 복귀용)
   localStorage.setItem('baram_last_tab', tabId);
-  // 예약관리 탭 진입 시 자동 로드
-  if (tabId === 'reservationTab' && typeof loadReservations === 'function') {
-    loadReservations();
-  }
-  // 쇼룸상담 탭 진입 시 자동 로드
-  if (tabId === 'consultTab' && typeof loadConsults === 'function') {
-    loadConsults();
-  }
-  // 탭 전환 시 모바일 줌 상태 초기화
+  if (tabId === 'reservationTab' && typeof loadReservations === 'function') loadReservations();
+  if (tabId === 'consultTab' && typeof loadConsults === 'function') loadConsults();
+  if (tabId === 'noticeTab' && typeof loadNotices === 'function') loadNotices();
+  if (tabId === 'adminTab' && typeof loadEmployees === 'function') loadEmployees();
   resetViewportZoom();
+  closeHamburger();
 }
+
+// ── 햄버거 메뉴 ──
+const TAB_LABELS = {
+  pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
+  invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
+  cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
+  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자'
+};
+const VISIBLE_TABS_KEY = 'baram_visible_tabs';
+
+function getVisibleTabs() {
+  const saved = localStorage.getItem(VISIBLE_TABS_KEY);
+  if (saved) return JSON.parse(saved);
+  return Object.keys(TAB_LABELS);
+}
+
+function saveVisibleTabs(list) {
+  localStorage.setItem(VISIBLE_TABS_KEY, JSON.stringify(list));
+}
+
+function applyVisibleTabs() {
+  const visible = getVisibleTabs();
+  document.querySelectorAll('#mainTabBar .tab-btn[data-tab]').forEach(btn => {
+    const tab = btn.dataset.tab;
+    if (tab === 'adminTab') return; // 관리자 탭은 권한으로 제어
+    btn.style.display = visible.includes(tab) ? '' : 'none';
+  });
+}
+
+function openHamburger() {
+  const visible = getVisibleTabs();
+  const items = document.getElementById('hamburgerMenuItems');
+  items.innerHTML = Object.entries(TAB_LABELS).map(([id, label]) => {
+    const adminEl = document.getElementById('adminTabBtn');
+    if (id === 'adminTab' && (!adminEl || adminEl.style.display === 'none')) return '';
+    const checked = visible.includes(id);
+    return `<div class="hamburger-menu-item" onclick="setTab('${id}')">
+      <span>${label}</span>
+      <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleTabVisible('${id}',this.checked)">
+    </div>`;
+  }).join('');
+  document.getElementById('hamburgerMenu').classList.add('open');
+  document.getElementById('hamburgerOverlay').classList.add('open');
+}
+
+function closeHamburger() {
+  document.getElementById('hamburgerMenu').classList.remove('open');
+  document.getElementById('hamburgerOverlay').classList.remove('open');
+}
+
+window.toggleTabVisible = function(tabId, checked) {
+  let visible = getVisibleTabs();
+  if (checked && !visible.includes(tabId)) visible.push(tabId);
+  if (!checked) visible = visible.filter(t => t !== tabId);
+  saveVisibleTabs(visible);
+  applyVisibleTabs();
+};
+
+// ── 탭바 드래그 스크롤 ──
+(function() {
+  const tabBar = document.getElementById('mainTabBar');
+  if (!tabBar) return;
+  let isDown = false, startX, scrollLeft;
+  tabBar.addEventListener('mousedown', e => {
+    if (e.target.tagName === 'BUTTON') return;
+    isDown = true; startX = e.pageX - tabBar.offsetLeft; scrollLeft = tabBar.scrollLeft;
+    tabBar.classList.add('dragging');
+  });
+  tabBar.addEventListener('mouseleave', () => { isDown = false; tabBar.classList.remove('dragging'); });
+  tabBar.addEventListener('mouseup', () => { isDown = false; tabBar.classList.remove('dragging'); });
+  tabBar.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    e.preventDefault();
+    tabBar.scrollLeft = scrollLeft - (e.pageX - tabBar.offsetLeft - startX);
+  });
+  // 터치 드래그
+  let touchStartX, touchScrollLeft;
+  tabBar.addEventListener('touchstart', e => { touchStartX = e.touches[0].pageX; touchScrollLeft = tabBar.scrollLeft; }, {passive:true});
+  tabBar.addEventListener('touchmove', e => {
+    const diff = touchStartX - e.touches[0].pageX;
+    tabBar.scrollLeft = touchScrollLeft + diff;
+  }, {passive:true});
+})();
+
+// ── 유저 드롭다운 ──
+window.toggleUserDropdown = function(e) {
+  e.stopPropagation();
+  document.getElementById('userDropdown').classList.toggle('open');
+};
+document.addEventListener('click', () => {
+  const dd = document.getElementById('userDropdown');
+  if (dd) dd.classList.remove('open');
+});
+window.goMyInfo = function() {
+  document.getElementById('userDropdown').classList.remove('open');
+  setTab('myInfoTab');
+};
+
+// ── 날짜 필터 ──
+let csDateFilter = null;
+window.setDateFilter = function(el) {
+  const prev = document.querySelector('.dw-chip[data-date-filter].on');
+  if (prev) prev.classList.remove('on');
+  if (prev === el) { csDateFilter = null; }
+  else { el.classList.add('on'); csDateFilter = el.dataset.dateFilter; }
+  currentPage = 1;
+  if (typeof renderConsultList === 'function') renderConsultList();
+};
+
+// renderConsultList에 날짜 필터 연동은 아래서 패치
+const _origRenderConsultList = window.renderConsultList;
+window.renderConsultList = function() {
+  if (csDateFilter && window.allConsults) {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const targetDate = new Date(today);
+    if (csDateFilter === '1day') targetDate.setDate(targetDate.getDate()-1);
+    if (csDateFilter === '2day') targetDate.setDate(targetDate.getDate()-2);
+    const targetStr = targetDate.toISOString().slice(0,10);
+    const origFilter = window.allConsults.filter.bind(window.allConsults);
+    // 날짜 필터 임시 적용
+    const saved = window.allConsults;
+    window.allConsults = window.allConsults.filter(r => (r.date||'').slice(0,10) === targetStr);
+    if (_origRenderConsultList) _origRenderConsultList();
+    window.allConsults = saved;
+    return;
+  }
+  if (_origRenderConsultList) _origRenderConsultList();
+};
+
+// 초기 즐겨찾기 적용
+applyVisibleTabs();
 
 function formatDecimal(value, digits=3) {
   const num = Number(value);
@@ -5767,26 +6133,19 @@ if ('serviceWorker' in navigator) {
   // ── 6. 삭제 기능 ──
   window.deleteCheckedConsults = async function() {
     const checkboxes = document.querySelectorAll('#csTableBody .dw-checkbox:checked');
-    if (!checkboxes.length) {
-      alert('삭제할 항목을 선택해주세요.');
-      return;
-    }
+    if (!checkboxes.length) { alert('삭제할 항목을 선택해주세요.'); return; }
 
     const rowIndexes = [];
     checkboxes.forEach(cb => {
       const tr = cb.closest('tr');
       if (tr) {
-        const onclick = tr.getAttribute('onclick');
-        const match = onclick && onclick.match(/openConsultDetail\((\d+)\)/);
-        if (match) {
-          const origIdx = parseInt(match[1]);
-          const r = window._allConsultsRef ? window._allConsultsRef[origIdx] : null;
-          if (r && r._rowIndex) rowIndexes.push(r._rowIndex);
-        }
+        const origIdx = parseInt(tr.dataset.origIdx);
+        const r = window._allConsultsRef && !isNaN(origIdx) ? window._allConsultsRef[origIdx] : null;
+        if (r && r._rowIndex) rowIndexes.push(r._rowIndex);
       }
     });
 
-    if (!rowIndexes.length) return;
+    if (!rowIndexes.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
     if (!confirm(`${rowIndexes.length}건을 삭제하시겠습니까?`)) return;
 
     try {
@@ -5799,9 +6158,7 @@ if ('serviceWorker' in navigator) {
       } else {
         alert('삭제 실패: ' + (data.message||''));
       }
-    } catch(e) {
-      alert('삭제 오류: ' + e.message);
-    }
+    } catch(e) { alert('삭제 오류: ' + e.message); }
   };
 
   // ── 다우 시트 변환 (구글시트 '다우import' 탭 → 쇼룸상담) ──
