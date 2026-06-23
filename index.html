@@ -1481,6 +1481,22 @@
     return String(val).split('~')[0].trim();
   }
 
+  // 시공예정시기: Date형식이면 YYYY년MM월DD일, 아니면 그대로
+  window.fmtWorkTiming = function fmtWorkTiming(val) {
+    if (!val) return '';
+    const s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s) || /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${y}년 ${m}월 ${day}일`;
+      }
+    }
+    return s;
+  };
+
   // ── 상세 렌더링 ──
   function renderRsvDetail(r) {
     const rows = [
@@ -1800,7 +1816,7 @@
 
   <div class="dw-count-toolbar-row">
     <div class="dw-count-line"><strong id="csCount">0</strong> 개의 데이터가 있습니다</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto;">
       <div class="dw-filter-chips">
         <div class="dw-chip on" data-filter="전체" onclick="setCsFilter(this)">전체</div>
         <div class="dw-chip" data-filter="예약" onclick="setCsFilter(this)">예약</div>
@@ -1809,7 +1825,7 @@
         <div class="dw-chip" data-filter="미방문" onclick="setCsFilter(this)">미방문</div>
         <div class="dw-chip" data-filter="전화상담" onclick="setCsFilter(this)">전화상담</div>
       </div>
-      <div class="dw-filter-chips" style="margin-left:8px;border-left:1px solid #eee;padding-left:8px;">
+      <div class="dw-filter-chips" style="border-left:1px solid #eee;padding-left:8px;">
         <div class="dw-chip" data-date-filter="today" onclick="setDateFilter(this)">금일</div>
         <div class="dw-chip" data-date-filter="1day" onclick="setDateFilter(this)">1일전</div>
         <div class="dw-chip" data-date-filter="2day" onclick="setDateFilter(this)">2일전</div>
@@ -1890,10 +1906,15 @@
       </div>
       <div class="dw-field">
         <label>방문 여부</label>
-        <select id="cfVisitStatus">
+        <select id="cfVisitStatus" onchange="toggleRevisitSearch()">
           <option value="신규">신규</option>
           <option value="재방문">재방문</option>
         </select>
+        <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#f9f8fd;border:1px solid #e0d8f7;border-radius:8px;padding:12px;">
+          <div style="font-size:12px;font-weight:700;color:#7b5fd9;margin-bottom:6px;">🔍 기존 방문 이력 검색</div>
+          <input type="text" id="cfRevisitInput" placeholder="이름 또는 연락처" oninput="searchRevisitOverlay()" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;">
+          <div id="cfRevisitResults" style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:6px;"></div>
+        </div>
       </div>
     </div>
 
@@ -1977,7 +1998,6 @@
       <div class="dw-field">
         <label>시공 예정일</label>
         <input type="date" id="cfWorkDate" style="max-width:160px;">
-        <div class="hint">* 예정일 확정이 아닌 경우 시기로 기재</div>
       </div>
       <div class="dw-field">
         <label>공사 기간</label>
@@ -2406,7 +2426,7 @@
     <div class="g3">
       <div class="f"><label>시공예정일</label><input type="date" id="fWorkDate" value="${v('workDate')}"></div>
       <div class="f"><label>공사기간</label><input type="text" id="fWorkPeriod" value="${v('workPeriod')}"></div>
-      <div class="f"><label>시공예정시기</label><input type="text" id="fWorkTiming" value="${v('workTiming')}"></div>
+      <div class="f"><label>시공예정시기</label><input type="text" id="fWorkTiming" value="${(window.fmtWorkTiming||function(v){return v||'';})(v('workTiming'))}"></div>
     </div>
     <div class="f" style="margin-bottom:14px;"><label>관심제품</label><input type="text" id="fProducts" value="${v('products')}"></div>
     <div class="sh">상담 내역</div>
@@ -2625,6 +2645,54 @@
   }
 
   // ── 기존 데이터 상세보기 (목록 클릭 시) ──
+  // ── 오버레이 재방문 검색 ──
+  window.toggleRevisitSearch = function() {
+    const box = document.getElementById('cfRevisitSearchBox');
+    if (box) box.style.display = document.getElementById('cfVisitStatus').value === '재방문' ? 'block' : 'none';
+  };
+
+  window.searchRevisitOverlay = function() {
+    const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
+    const results = document.getElementById('cfRevisitResults');
+    if (!q) { results.innerHTML = ''; return; }
+    const matched = allConsults.filter(r =>
+      (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
+    ).slice(0, 8);
+    if (!matched.length) {
+      results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">검색 결과 없음</div>';
+      return;
+    }
+    results.innerHTML = matched.map((r, i) => `
+      <div ondblclick="applyRevisitOverlay(${allConsults.indexOf(r)})"
+        style="padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13px;"
+        onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+        <strong>${r.name||''}</strong>
+        <span style="color:#888;font-size:12px;margin-left:6px;">${r.phone||''}</span>
+        <br><span style="color:#aaa;font-size:11px;">${r.date||''} · ${r.company||''}</span>
+        <span style="color:#7b5fd9;font-size:11px;margin-left:8px;">더블클릭 시 적용</span>
+      </div>
+    `).join('');
+  };
+
+  window.applyRevisitOverlay = function(idx) {
+    const r = allConsults[idx];
+    if (!r) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
+    set('cfName', r.name);
+    set('cfPhone', r.phone);
+    set('cfCompany', r.company);
+    set('cfAddress', r.address);
+    set('cfSize', String(r.size||'').replace(/[^0-9.]/g,''));
+    set('cfWorkDate', r.workDate);
+    set('cfProducts', r.products);
+    if (document.getElementById('cfSpaceType')) document.getElementById('cfSpaceType').value = r.spaceType||'';
+    if (document.getElementById('cfVisitorType')) document.getElementById('cfVisitorType').value = r.visitorType||'';
+    document.getElementById('cfRevisitSearchBox').style.display = 'none';
+    document.getElementById('cfRevisitInput').value = '';
+    document.getElementById('cfRevisitResults').innerHTML = '';
+    alert(`${r.name} 님의 기존 데이터를 불러왔습니다!`);
+  };
+
   window.openConsultDetail = function(idx) {
     if (idx < 0 || idx >= allConsults.length) return; // 범위 체크
     selectedConsult = allConsults[idx];
@@ -6287,12 +6355,10 @@ if ('serviceWorker' in navigator) {
   window.openConsultNewTab = function(idx) {
     const r = (window._allConsultsRef || [])[idx];
     if (!r) { alert('데이터를 찾을 수 없습니다. 목록을 새로고침해주세요.'); return; }
-    const html = window.buildConsultFormHtml(r);
-    const w = window.open('about:blank', '_blank');
-    if (!w) { alert('팝업이 차단되었습니다. 브라우저에서 팝업을 허용해주세요.'); return; }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    // ERP 오버레이 폼 열기 (등록과 동일)
+    if (typeof openConsultDetail === 'function') {
+      openConsultDetail(idx);
+    }
   };
 
   window.importFromDaouSheet = async function() {
