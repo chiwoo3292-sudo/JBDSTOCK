@@ -2639,7 +2639,6 @@
     document.getElementById('cfVisitStatus').value = '신규';
     document.getElementById('cfAuthor').textContent = '자동입력';
     document.getElementById('csFormOverlay').classList.add('open');
-    history.pushState({ csFormOpen: true }, '');
   };
 
   window.buildConsultFormHtml = function buildConsultFormHtml(r) {
@@ -3070,32 +3069,11 @@
     document.getElementById('cfAuthor').textContent = r.counselor || '자동입력';
 
     document.getElementById('csFormOverlay').classList.add('open');
-    history.pushState({ csFormOpen: true }, '');
   };
 
   window.closeConsultForm = function() {
     document.getElementById('csFormOverlay').classList.remove('open');
-    // popstate로 닫힌 게 아니면 히스토리 back 처리
-    if (history.state && history.state.csFormOpen) {
-      history.back();
-    }
   };
-
-  // 뒤로가기 버튼 눌렀을 때 폼 오버레이만 닫기
-  window.addEventListener('popstate', function(e) {
-    const overlay = document.getElementById('csFormOverlay');
-    if (overlay && overlay.classList.contains('open')) {
-      overlay.classList.remove('open');
-    }
-  });
-
-  // 오버레이를 body 직속으로 이동 (조상의 overflow/transform 영향 없이 항상 화면 전체를 덮도록)
-  (function relocateConsultOverlay() {
-    const overlay = document.getElementById('csFormOverlay');
-    if (overlay && overlay.parentElement !== document.body) {
-      document.body.appendChild(overlay);
-    }
-  })();
 
   // ── 저장 (신규 등록 + 기존 수정 겸용) ──
   window.saveConsultForm = async function() {
@@ -6947,4 +6925,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-                </html>
+          </html>
