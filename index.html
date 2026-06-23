@@ -64,14 +64,21 @@
   .tab-btn { min-height:36px; padding:0 14px; border:1px solid #d8d8d8; border-radius:999px; background:#fff; color:#444; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .tab-btn.active { background:#111; color:#fff; border-color:#111; }
   .user-info-badge { 
-    flex-shrink:0; display:flex; align-items:center; gap:8px; 
-    background:#f5f5f5; border-radius:999px; padding:6px 14px; 
-    font-size:12.5px; font-weight:700; color:#333; cursor:pointer; 
-    border:1px solid #eee; white-space:nowrap; position:relative;
-    margin-left:auto;
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border-radius:50%;
+    background:#7b5fd9; color:#fff;
+    font-size:15px; font-weight:800; cursor:pointer; 
+    border:none; position:relative; margin-left:auto;
+    transition:transform .12s ease, box-shadow .12s ease;
+    box-shadow:0 1px 3px rgba(123,95,217,0.35);
   }
-  .user-info-badge .user-dot { width:8px; height:8px; border-radius:50%; background:#7b5fd9; }
-  .user-info-badge .user-dot.guest { background:#aaa; }
+  .user-info-badge:hover { transform:translateY(-1px); box-shadow:0 3px 8px rgba(123,95,217,0.45); }
+  .user-info-badge.guest { background:#aaa; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
+  .user-info-badge.guest:hover { box-shadow:0 3px 8px rgba(0,0,0,0.2); }
+  /* 드롭다운 헤더(이름/직급 표시) */
+  .user-dropdown-header { padding:12px 16px; border-bottom:1px solid #f0f0f0; }
+  .user-dropdown-header .udh-name { font-size:13px; font-weight:800; color:#222; }
+  .user-dropdown-header .udh-sub { font-size:11.5px; color:#999; margin-top:2px; }
 
   /* 햄버거 메뉴 드롭다운 */
   .hamburger-menu { display:none; position:fixed; top:0; left:0; width:280px; height:100vh; background:#fff; z-index:99998; box-shadow:4px 0 20px rgba(0,0,0,0.12); overflow-y:auto; flex-direction:column; }
@@ -364,6 +371,40 @@
         min-height: 40px !important;
         font-size: 13px !important;
     }
+
+    /* 8. [핵심] 단가표 오른쪽 영역 고정높이 해제 → 콘텐츠 높이만큼 세로 흐름 */
+    .pricing-right-col {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        max-height: none !important;
+        gap: 14px !important;
+    }
+    /* 9. '단가 안내' 표 최대높이 제한 해제 (모바일에선 전체 표시) */
+    #pricingTab .scroll[style*="max-height"] {
+        max-height: none !important;
+    }
+    #captureArea .scroll {
+        max-height: none !important;
+    }
+    /* 10. 오른쪽 컨트롤(체크박스/셀렉트) 모바일에서 세로 정렬·터치 확대 */
+    #pricingTab .right-controls {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    #pricingTab .right-controls .plain-select {
+        height: 40px !important;
+        font-size: 14px !important;
+    }
+    #pricingTab .check-row {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        gap: 10px !important;
+    }
+    /* 11. 모바일에서 PC 전용(문자/카톡) 카드 숨김 */
+    .desktop-only { display: none !important; }
 }
 
 </style>
@@ -420,12 +461,14 @@
       <button type="button" class="tab-btn" data-tab="noticeTab">공지게시판</button>
       <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
     </div>
-    <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;">
-      <span class="user-dot" id="userDot"></span>
-      <span id="userInfoText">게스트</span>
-      <span style="color:#aaa;">▾</span>
+    <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
+      <span id="userInitial">G</span>
       <div class="user-dropdown" id="userDropdown">
-        <div class="user-dropdown-item" onclick="goMyInfo()">👤 내 정보</div>
+        <div class="user-dropdown-header" id="userDropdownHeader">
+          <div class="udh-name" id="userInfoText">게스트</div>
+          <div class="udh-sub" id="userInfoSub">게스트 접속</div>
+        </div>
+        <div class="user-dropdown-item" id="userDropdownMyInfo" onclick="goMyInfo()">👤 내 정보</div>
         <div class="user-dropdown-item logout" onclick="logoutUser()">🚪 로그아웃</div>
       </div>
     </div>
@@ -471,7 +514,7 @@
         </div>
       </div>
 
-   <div style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px; height: calc(100vh - 130px); max-height: calc(100vh - 130px);">
+   <div class="pricing-right-col" style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px; height: calc(100vh - 130px); max-height: calc(100vh - 130px);">
         <div class="card" id="captureArea">
           <div class="right-head">
             <h2 class="title" style="margin-bottom:0;">단가 안내</h2>
@@ -3638,10 +3681,20 @@
         // 사용자 정보 표시
         const badge = document.getElementById('userInfoBadge');
         const userText = document.getElementById('userInfoText');
+        const userSub = document.getElementById('userInfoSub');
+        const userInitial = document.getElementById('userInitial');
         if (badge) badge.style.display = 'flex';
 
         if (loginType === 'user' && userData) {
-            userText.textContent = `${userData.name} ${userData.title}`;
+            // 원형 아바타: 이름 첫 글자
+            const nm = (userData.name || '').trim();
+            if (userInitial) userInitial.textContent = nm ? nm.charAt(0) : '?';
+            if (badge) badge.classList.remove('guest');
+            // 드롭다운 헤더: 전체 이름 + 직급
+            if (userText) userText.textContent = nm || '사용자';
+            if (userSub) userSub.textContent = userData.title || '';
+            const myInfoItem = document.getElementById('userDropdownMyInfo');
+            if (myInfoItem) myInfoItem.style.display = 'flex';
             // 내 정보 탭 표시
             const myBtn = document.getElementById('myInfoTabBtn');
             if (myBtn) myBtn.style.display = '';
@@ -3655,7 +3708,13 @@
             // 내 정보 탭 데이터 채우기
             fillMyInfo(userData);
         } else {
-            userText.textContent = '게스트';
+            // 게스트: 회색 원 + G
+            if (userInitial) userInitial.textContent = 'G';
+            if (badge) badge.classList.add('guest');
+            if (userText) userText.textContent = '게스트';
+            if (userSub) userSub.textContent = '게스트 접속';
+            const myInfoItem = document.getElementById('userDropdownMyInfo');
+            if (myInfoItem) myInfoItem.style.display = 'none';
             // 게스트는 모든 탭 허용
         }
 
@@ -6770,4 +6829,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-</html>
+          </html>
