@@ -2250,6 +2250,8 @@
     if (_origSetDateFilter) _origSetDateFilter(el);
     updateActiveFilterBadges();
   };
+
+  window.toggleSort = function(field) {
     if (csSort.field === field) {
       csSort.dir = csSort.dir === 'asc' ? 'desc' : 'asc';
     } else {
@@ -2266,10 +2268,12 @@
   };
 
   window.setCsFilter = function(el) {
-    document.querySelectorAll('.dw-chip').forEach(c => c.classList.remove('on'));
+    document.querySelectorAll('.dw-chip[data-filter]').forEach(c => c.classList.remove('on'));
     el.classList.add('on');
     csCurrentFilter = el.dataset.filter;
+    currentPage = 1;
     renderConsultList();
+    updateActiveFilterBadges();
   };
 
   window.renderConsultList = function() {
