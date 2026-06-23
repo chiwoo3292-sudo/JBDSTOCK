@@ -2592,63 +2592,151 @@
 <!-- ========================================================== -->
 <section id="myInfoTab" class="tab-panel" style="display:none;">
 <style>
-  .mi-wrap { max-width:720px; margin:0 auto; padding:8px 0; }
-  .mi-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:28px; margin-bottom:20px; }
-  .mi-profile { display:flex; align-items:center; gap:20px; margin-bottom:24px; }
-  .mi-avatar { width:72px; height:72px; border-radius:50%; background:#7b5fd9; display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff; font-weight:800; flex-shrink:0; }
-  .mi-profile-info h3 { font-size:20px; font-weight:800; color:#222; margin:0 0 4px; }
-  .mi-profile-info p { font-size:13px; color:#888; margin:0; }
-  .mi-grid { display:grid; grid-template-columns:120px 1fr; gap:12px; font-size:13px; }
-  .mi-label { color:#888; font-weight:700; }
-  .mi-val { color:#222; }
-  .mi-divider { border:none; border-top:1px solid #f0f0f0; margin:20px 0; }
-  .mi-section-title { font-size:14px; font-weight:800; color:#7b5fd9; margin-bottom:16px; }
-  .mi-pw-group { display:flex; flex-direction:column; gap:10px; }
-  .mi-pw-group input { padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; outline:none; }
-  .mi-pw-group input:focus { border-color:#7b5fd9; }
-  .mi-pw-btn { background:#7b5fd9; color:#fff; border:none; border-radius:8px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer; margin-top:4px; }
-  .mi-pw-btn:hover { background:#6a4fc4; }
-  .mi-pw-msg { font-size:12px; text-align:center; margin-top:8px; color:#555; }
-  .mi-badge { display:inline-block; background:#f3f1fb; color:#7b5fd9; border-radius:6px; padding:3px 10px; font-size:12px; font-weight:700; margin-left:6px; }
-  .mi-leave-num { font-size:28px; font-weight:800; color:#7b5fd9; }
+  .myi-wrap { max-width:960px; margin:0 auto; padding:12px 0; }
+
+  /* 프로필 카드 */
+  .myi-profile-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px 28px; margin-bottom:16px; display:flex; align-items:center; gap:22px; }
+  .myi-avatar { width:90px; height:90px; border-radius:12px; background:#e8e4f7; display:flex; align-items:center; justify-content:center; font-size:36px; color:#7b5fd9; font-weight:800; flex-shrink:0; overflow:hidden; }
+  .myi-avatar img { width:100%; height:100%; object-fit:cover; }
+  .myi-profile-info { flex:1; }
+  .myi-profile-info .myi-name { font-size:22px; font-weight:800; color:#222; margin:0 0 6px; }
+  .myi-profile-meta { display:grid; grid-template-columns:60px 1fr; gap:6px; font-size:13px; }
+  .myi-meta-label { color:#999; font-weight:600; }
+  .myi-meta-val { color:#333; font-weight:600; }
+
+  /* 카드 그리드 */
+  .myi-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+
+  /* 공통 카드 */
+  .myi-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; }
+  .myi-card-title { font-size:14px; font-weight:800; color:#222; margin-bottom:16px; display:flex; align-items:center; gap:6px; }
+  .myi-row { display:flex; align-items:center; gap:10px; font-size:13px; margin-bottom:10px; }
+  .myi-row:last-child { margin-bottom:0; }
+  .myi-row-icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+  .myi-row-label { color:#999; font-weight:600; min-width:48px; }
+  .myi-row-val { color:#333; font-weight:600; }
+
+  /* 근무현황 박스 */
+  .myi-tenure-box { background:#eef3fb; border-radius:10px; padding:14px 16px; margin-top:14px; display:flex; align-items:center; justify-content:space-between; }
+  .myi-tenure-label { font-size:12px; color:#7b5fd9; font-weight:700; margin-bottom:4px; }
+  .myi-tenure-val { font-size:17px; font-weight:800; color:#2c3e70; }
+
+  /* 연차 프로그레스 */
+  .myi-leave-nums { display:flex; align-items:baseline; gap:4px; margin-bottom:10px; }
+  .myi-leave-big { font-size:28px; font-weight:800; color:#222; }
+  .myi-leave-unit { font-size:13px; color:#888; }
+  .myi-leave-total { font-size:13px; color:#888; margin-left:2px; }
+  .myi-progress-wrap { background:#e8e8e8; border-radius:999px; height:10px; overflow:hidden; }
+  .myi-progress-bar { background:#2ecc71; height:100%; border-radius:999px; transition:width 0.5s; }
+  .myi-progress-pct { text-align:right; font-size:11px; color:#2ecc71; font-weight:700; margin-top:4px; }
+
+  /* 비밀번호 변경 */
+  .myi-pw-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
+  .myi-pw-grid { display:flex; flex-direction:column; gap:10px; }
+  .myi-pw-grid input { padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; outline:none; }
+  .myi-pw-grid input:focus { border-color:#7b5fd9; }
+  .myi-pw-btn { background:#7b5fd9; color:#fff; border:none; border-radius:8px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .myi-pw-btn:hover { background:#6a4fc4; }
+  .myi-pw-msg { text-align:center; font-size:12px; color:#555; margin-top:6px; }
+
+  /* 하단 버튼 */
+  .myi-footer { display:flex; justify-content:center; gap:10px; margin-top:8px; }
+  .myi-btn-request { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:11px 24px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .myi-btn-close { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:11px 24px; font-size:13.5px; font-weight:700; cursor:pointer; }
+
+  @media(max-width:680px) {
+    .myi-grid { grid-template-columns:1fr; }
+    .myi-profile-card { flex-direction:column; text-align:center; }
+  }
 </style>
-<div class="mi-wrap">
-  <div class="mi-card">
-    <div class="mi-profile">
-      <div class="mi-avatar" id="miAvatar">?</div>
-      <div class="mi-profile-info">
-        <h3 id="miName">-</h3>
-        <p id="miDeptTitle">-</p>
-      </div>
-    </div>
-    <div class="mi-grid">
-      <span class="mi-label">아이디</span><span class="mi-val" id="miId">-</span>
-      <span class="mi-label">부서</span><span class="mi-val" id="miDept">-</span>
-      <span class="mi-label">직급</span><span class="mi-val" id="miTitle">-</span>
-      <span class="mi-label">입사일</span><span class="mi-val" id="miJoinDate">-</span>
-      <span class="mi-label">근속기간</span><span class="mi-val" id="miTenure">-</span>
-      <span class="mi-label">연락처</span><span class="mi-val" id="miPhone">-</span>
-      <span class="mi-label">사내이메일</span><span class="mi-val" id="miEmail">-</span>
-    </div>
-    <hr class="mi-divider">
-    <div style="display:flex; align-items:center; gap:16px;">
-      <div>
-        <div style="font-size:12px;color:#888;font-weight:700;margin-bottom:4px;">남은 연차</div>
-        <span class="mi-leave-num" id="miLeave">-</span><span style="font-size:13px;color:#888;"> 일</span>
+
+<div class="myi-wrap">
+
+  <!-- 프로필 카드 -->
+  <div class="myi-profile-card">
+    <div class="myi-avatar" id="myiAvatar">?</div>
+    <div class="myi-profile-info">
+      <div class="myi-name" id="myiName">-</div>
+      <div class="myi-profile-meta">
+        <span class="myi-meta-label">부서</span><span class="myi-meta-val" id="myiDept">-</span>
+        <span class="myi-meta-label">직급</span><span class="myi-meta-val" id="myiTitle">-</span>
       </div>
     </div>
   </div>
 
-  <div class="mi-card">
-    <div class="mi-section-title">🔒 비밀번호 변경</div>
-    <div class="mi-pw-group">
+  <div class="myi-grid">
+    <!-- 근무정보 카드 -->
+    <div class="myi-card">
+      <div class="myi-card-title">🗂 근무 정보 🎉</div>
+      <div class="myi-row">
+        <span class="myi-row-icon">📅</span>
+        <span class="myi-row-label">입사일</span>
+        <span class="myi-row-val" id="myiJoinDate">-</span>
+      </div>
+      <div class="myi-row">
+        <span class="myi-row-icon">🗑</span>
+        <span class="myi-row-label">퇴사일</span>
+        <span class="myi-row-val" id="myiLeaveDate">-(재직 중)-</span>
+      </div>
+      <div class="myi-tenure-box">
+        <div>
+          <div class="myi-tenure-label">현재 근무 현황</div>
+          <div class="myi-tenure-val" id="myiTenure">-</div>
+        </div>
+        <span style="font-size:22px;">📈</span>
+      </div>
+    </div>
+
+    <!-- 연차 카드 -->
+    <div>
+      <div class="myi-card" style="margin-bottom:16px;">
+        <div class="myi-card-title">📆 연차 및 휴가</div>
+        <div class="myi-leave-nums">
+          <span style="font-size:13px;color:#888;">남은 연차</span>
+          <span class="myi-leave-big" id="myiLeaveLeft">-</span>
+          <span class="myi-leave-unit">일</span>
+          <span class="myi-leave-total" id="myiLeaveTotal"></span>
+        </div>
+        <div class="myi-progress-wrap">
+          <div class="myi-progress-bar" id="myiProgressBar" style="width:0%"></div>
+        </div>
+        <div class="myi-progress-pct" id="myiProgressPct"></div>
+      </div>
+
+      <!-- 연락처 카드 -->
+      <div class="myi-card">
+        <div class="myi-card-title">✉️ 연락처 및 이메일</div>
+        <div class="myi-row">
+          <span class="myi-row-icon">📞</span>
+          <span class="myi-row-label">연락처</span>
+          <span class="myi-row-val" id="myiPhone">-</span>
+        </div>
+        <div class="myi-row">
+          <span class="myi-row-icon">✉️</span>
+          <span class="myi-row-label">사내이메일</span>
+          <span class="myi-row-val" id="myiEmail">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 비밀번호 변경 -->
+  <div class="myi-pw-card">
+    <div class="myi-card-title">🔒 비밀번호 변경</div>
+    <div class="myi-pw-grid">
       <input type="password" id="miCurPw" placeholder="현재 비밀번호">
       <input type="password" id="miNewPw" placeholder="새 비밀번호">
       <input type="password" id="miNewPw2" placeholder="새 비밀번호 확인">
-      <button class="mi-pw-btn" onclick="changeMyPassword()">비밀번호 변경</button>
-      <div class="mi-pw-msg" id="miPwMsg"></div>
+      <button class="myi-pw-btn" onclick="changeMyPassword()">비밀번호 변경</button>
+      <div class="myi-pw-msg" id="miPwMsg"></div>
     </div>
   </div>
+
+  <div class="myi-footer">
+    <button class="myi-btn-request" onclick="alert('정보 수정 신청 기능은 추후 구현 예정입니다.')">정보 수정 신청</button>
+    <button class="myi-btn-close" onclick="setTab('pricingTab')">닫기</button>
+  </div>
+
 </div>
 </section>
 
@@ -3036,34 +3124,63 @@
     // 내 정보 채우기
     function fillMyInfo(u) {
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
-        set('miName', u.name);
-        set('miId', u.id);
-        set('miDept', u.dept);
-        set('miTitle', u.title);
-        set('miPhone', u.phone);
-        set('miEmail', u.email);
-        set('miLeave', u.annualLeave || '-');
-        set('miDeptTitle', `${u.dept||''} · ${u.title||''}`);
-        // 아바타
-        const av = document.getElementById('miAvatar');
+
+        // 프로필
+        set('myiName', u.name);
+        set('myiDept', u.dept);
+        set('myiTitle', u.title);
+        set('myiPhone', u.phone);
+        set('myiEmail', u.email);
+
+        // 아바타 (이름 첫 글자)
+        const av = document.getElementById('myiAvatar');
         if (av && u.name) av.textContent = u.name[0];
-        // 입사일 + 근속기간
+
+        // 입사일
         if (u.joinDate) {
-            set('miJoinDate', u.joinDate);
-            if (!u.leaveDate) {
-                const join = new Date(u.joinDate);
-                const now = new Date();
-                const diff = now - join;
-                const days = Math.floor(diff / (1000*60*60*24));
-                const y = Math.floor(days/365), m = Math.floor((days%365)/30), d = days%30;
-                let tenure = '입사 후 ';
-                if (y > 0) tenure += `${y}년 `;
-                if (m > 0) tenure += `${m}개월 `;
-                tenure += `${d}일째 근무중`;
-                set('miTenure', tenure);
-            } else {
-                set('miTenure', `퇴사일: ${u.leaveDate}`);
-            }
+            const [y, m, d] = u.joinDate.split('-');
+            set('myiJoinDate', `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`);
+        }
+
+        // 퇴사일 / 재직중
+        if (u.leaveDate) {
+            const [y, m, d] = u.leaveDate.split('-');
+            set('myiLeaveDate', `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`);
+        } else {
+            set('myiLeaveDate', '-(재직 중)-');
+        }
+
+        // 근속기간
+        if (u.joinDate) {
+            const join = new Date(u.joinDate);
+            const end = u.leaveDate ? new Date(u.leaveDate) : new Date();
+            const diff = Math.floor((end - join) / (1000*60*60*24));
+            const y = Math.floor(diff/365);
+            const m = Math.floor((diff%365)/30);
+            const d = diff%30;
+            let tenure = '';
+            if (y > 0) tenure += `${y}년 `;
+            if (m > 0) tenure += `${m}개월 `;
+            tenure += `${d}일째 근무 중`;
+            set('myiTenure', tenure);
+        }
+
+        // 연차
+        const leave = parseInt(u.annualLeave || 0);
+        if (leave > 0) {
+            // 총 연차는 입사연도 기준 15일 기본 (추후 시트에서 관리)
+            const total = 20; // 임시 고정값, 추후 시트 컬럼 추가
+            const used = total - leave;
+            const pct = Math.round((leave / total) * 100);
+            set('myiLeaveLeft', leave);
+            const totalEl = document.getElementById('myiLeaveTotal');
+            if (totalEl) totalEl.textContent = `/ ${total} 일`;
+            const bar = document.getElementById('myiProgressBar');
+            if (bar) bar.style.width = pct + '%';
+            const pctEl = document.getElementById('myiProgressPct');
+            if (pctEl) pctEl.textContent = pct + '%';
+        } else {
+            set('myiLeaveLeft', '-');
         }
     }
 
