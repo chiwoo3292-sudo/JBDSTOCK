@@ -425,8 +425,26 @@
         width: 100% !important;
         gap: 10px !important;
     }
-    /* 11. 모바일에서 PC 전용(문자/카톡) 카드 숨김 */
-    .desktop-only { display: none !important; }
+    /* 11. 문자/카톡 카드: 모바일에서도 표시(폭 넘침만 방지) */
+    .desktop-only { display: block !important; }
+    #pricingTab .card.desktop-only {
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
+    /* 퀵 안내 버튼 영역 폭 가두기 */
+    #pricingTab .quick-copy-row {
+        max-width: 100% !important;
+    }
+    #pricingTab .quick-copy-row button {
+        width: 100% !important;
+        white-space: normal !important;
+        word-break: keep-all !important;
+    }
+    /* 자동 생성 문자 입력칸: 모바일에서 좀 더 높게 */
+    #pricingTab #copyText {
+        height: 140px !important;
+        font-size: 14px !important;
+    }
 }
 
 </style>
@@ -6851,4 +6869,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-            </html>
+  </html>
