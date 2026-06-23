@@ -1867,6 +1867,21 @@
     table.dw-table { font-size:11.5px; }
     table.dw-table thead th, table.dw-table tbody td { padding:8px 5px; }
     .cs-inline-input { font-size:11.5px; }
+    /* 쇼룸상담 표: 성함(5번째)·업체명(6번째) 열이 좁은 화면에서 0으로
+       찌그러지지 않도록 최소 너비 부여 → 넘치면 가로 스크롤로 표시 */
+    #csTable {
+        min-width: max-content !important;
+    }
+    #csTable thead th:nth-child(5),
+    #csTable tbody td:nth-child(5) {
+        min-width: 90px !important;
+        width: 90px !important;
+    }
+    #csTable thead th:nth-child(6),
+    #csTable tbody td:nth-child(6) {
+        min-width: 100px !important;
+        width: 100px !important;
+    }
   }
 
   /* ===== 등록/상세 폼 (전체화면 페이지형) ===== */
@@ -6920,4 +6935,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-      </html>
+  </html>
