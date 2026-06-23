@@ -413,12 +413,22 @@
     #pricingTab .right-controls {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
-        flex-wrap: wrap !important;
         gap: 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
+    /* 셀렉트가 자기 칸 안에 갇히도록(긴 텍스트가 칸을 넘겨 옆 칸을 밀어내는 현상 방지) */
     #pricingTab .right-controls .plain-select {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
         height: 40px !important;
         font-size: 14px !important;
+        padding: 0 22px 0 4px !important;
+        background-color: #f7f7f7 !important;
+        border-radius: 8px !important;
+        text-overflow: ellipsis !important;
+        box-sizing: border-box !important;
     }
     #pricingTab .check-row {
         grid-column: 1 / -1 !important;
