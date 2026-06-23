@@ -1785,16 +1785,9 @@
     <button class="dw-refresh-btn" onclick="loadConsults()">🔄 새로고침</button>
   </div>
 
-  <div class="dw-subtab-row">
-    <span class="dw-subtab-active">상담일지</span>
-    <span class="dw-subtab-badge">main</span>
-  </div>
+  <div style="margin-bottom:16px;border-bottom:1px solid #e3e3e3;"></div>
 
   <div class="dw-search-line">
-    <span class="dw-search-label">검색</span>
-    <div class="dw-search-right">
-      <span class="dw-dropdown">기본형 ▾</span>
-    </div>
   </div>
 
   <div class="dw-search-controls">
@@ -2083,7 +2076,9 @@
   let csCurrentFilter = '전체';
   let selectedCounselors = [];
   let currentPage = 1;
-  let csSort = { field: 'date', dir: 'desc' }; // 기본: 날짜 내림차순 // 상담자 목록 (이름+직함 문자열 배열)
+  let csSort = { field: 'date', dir: 'desc' };
+  // 날짜 필터 (외부 변수 참조)
+  function getCsDateFilter() { return typeof csDateFilter !== 'undefined' ? csDateFilter : null; } // 상담자 목록 (이름+직함 문자열 배열)
 
   // ── 직원 목록 (추후 별도 관리 화면에서 등록 예정, 임시 하드코딩) ──
   const STAFF_LIST = [
@@ -2147,6 +2142,15 @@
     let list = allConsults.map((r, origIdx) => ({ ...r, _origIdx: origIdx })).filter(r => {
       const status = getDisplayStatus(r);
       if (csCurrentFilter !== '전체' && status !== csCurrentFilter) return false;
+      // 날짜 필터
+      if (typeof csDateFilter !== 'undefined' && csDateFilter) {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const target = new Date(today);
+        if (csDateFilter === '1day') target.setDate(target.getDate()-1);
+        if (csDateFilter === '2day') target.setDate(target.getDate()-2);
+        const targetStr = target.toISOString().slice(0,10);
+        if ((r.date||'').slice(0,10) !== targetStr) return false;
+      }
       if (q) {
         const haystack = [
           r.name, r.phone, r.date, r.company, r.counselor,
@@ -4064,27 +4068,6 @@ window.setDateFilter = function(el) {
   else { el.classList.add('on'); csDateFilter = el.dataset.dateFilter; }
   currentPage = 1;
   if (typeof renderConsultList === 'function') renderConsultList();
-};
-
-// renderConsultList에 날짜 필터 연동은 아래서 패치
-const _origRenderConsultList = window.renderConsultList;
-window.renderConsultList = function() {
-  if (csDateFilter && window.allConsults) {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const targetDate = new Date(today);
-    if (csDateFilter === '1day') targetDate.setDate(targetDate.getDate()-1);
-    if (csDateFilter === '2day') targetDate.setDate(targetDate.getDate()-2);
-    const targetStr = targetDate.toISOString().slice(0,10);
-    const origFilter = window.allConsults.filter.bind(window.allConsults);
-    // 날짜 필터 임시 적용
-    const saved = window.allConsults;
-    window.allConsults = window.allConsults.filter(r => (r.date||'').slice(0,10) === targetStr);
-    if (_origRenderConsultList) _origRenderConsultList();
-    window.allConsults = saved;
-    return;
-  }
-  if (_origRenderConsultList) _origRenderConsultList();
 };
 
 // 초기 즐겨찾기 적용
