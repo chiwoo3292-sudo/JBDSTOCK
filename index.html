@@ -1733,11 +1733,11 @@
         <tr>
           <th style="width:46px;">No.<span class="dw-col-resizer"></span></th>
           <th style="width:34px;"><input type="checkbox" class="dw-checkbox" disabled><span class="dw-col-resizer"></span></th>
-          <th style="width:90px;">상태<span class="dw-col-resizer"></span></th>
-          <th style="width:100px;">상담자<span class="dw-col-resizer"></span></th>
-          <th style="width:160px;">성함<span class="dw-col-resizer"></span></th>
-          <th style="width:160px;">업체명<span class="dw-col-resizer"></span></th>
-          <th style="width:160px;">일정<span class="dw-col-resizer"></span></th>
+          <th style="width:90px; cursor:pointer;" onclick="toggleSort('status')">상태 <span id="sort-status"></span><span class="dw-col-resizer"></span></th>
+          <th style="width:100px; cursor:pointer;" onclick="toggleSort('counselor')">상담자 <span id="sort-counselor"></span><span class="dw-col-resizer"></span></th>
+          <th style="cursor:pointer;" onclick="toggleSort('name')">성함 <span id="sort-name"></span><span class="dw-col-resizer"></span></th>
+          <th style="cursor:pointer;" onclick="toggleSort('company')">업체명 <span id="sort-company"></span><span class="dw-col-resizer"></span></th>
+          <th style="width:160px; cursor:pointer;" onclick="toggleSort('date')">일정 <span id="sort-date">▼</span><span class="dw-col-resizer"></span></th>
           <th style="width:140px;">연락처<span class="dw-col-resizer"></span></th>
         </tr>
       </thead>
@@ -1971,7 +1971,8 @@
   let selectedConsult = null;
   let csCurrentFilter = '전체';
   let selectedCounselors = [];
-  let currentPage = 1; // 상담자 목록 (이름+직함 문자열 배열)
+  let currentPage = 1;
+  let csSort = { field: 'date', dir: 'desc' }; // 기본: 날짜 내림차순 // 상담자 목록 (이름+직함 문자열 배열)
 
   // ── 직원 목록 (추후 별도 관리 화면에서 등록 예정, 임시 하드코딩) ──
   const STAFF_LIST = [
@@ -2003,6 +2004,22 @@
     } catch(e) {
       document.getElementById('csTableBody').innerHTML = `<tr class="dw-empty-row"><td colspan="8">오류: ${e.message}</td></tr>`;
     }
+  };
+
+  window.toggleSort = function(field) {
+    if (csSort.field === field) {
+      csSort.dir = csSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      csSort.field = field;
+      csSort.dir = 'asc';
+    }
+    // 아이콘 업데이트
+    ['status','counselor','name','company','date'].forEach(f => {
+      const el = document.getElementById('sort-' + f);
+      if (el) el.textContent = csSort.field === f ? (csSort.dir === 'asc' ? '▲' : '▼') : '';
+    });
+    currentPage = 1;
+    renderConsultList();
   };
 
   window.setCsFilter = function(el) {
@@ -2039,11 +2056,19 @@
       return;
     }
 
-    // 날짜 오름차순 정렬 (미래 날짜가 위, No.1 = 가장 먼 미래)
+    // 정렬
     list.sort((a,b) => {
-      const da = (a.date||'') + (a.time||'');
-      const db = (b.date||'') + (b.time||'');
-      return db.localeCompare(da); // 내림차순: 먼 미래가 위
+      let va = '', vb = '';
+      if (csSort.field === 'date') {
+        va = (a.date||'') + (a.time||'');
+        vb = (b.date||'') + (b.time||'');
+      } else {
+        va = String(a[csSort.field]||'').toLowerCase();
+        vb = String(b[csSort.field]||'').toLowerCase();
+      }
+      if (va < vb) return csSort.dir === 'asc' ? -1 : 1;
+      if (va > vb) return csSort.dir === 'asc' ? 1 : -1;
+      return 0;
     });
 
     const pageSize = parseInt(document.getElementById('csPageSize').value || '20', 10);
@@ -2062,7 +2087,7 @@
       if (dateStr) {
         const parts = dateStr.split('-');
         if (parts.length === 3) {
-          scheduleDisplay = `${parts[0]}년${parseInt(parts[1])}월${parseInt(parts[2])}일`;
+          scheduleDisplay = `${parts[0]}년${parts[1]}월${parts[2]}일`;
         } else { scheduleDisplay = dateStr; }
         if (timeStart) scheduleDisplay += ` ${timeStart}`;
       }
@@ -5284,8 +5309,8 @@ if ('serviceWorker' in navigator) {
     setTimeout(() => banner.classList.remove('show'), 8000);
   }
 
-  // 1분마다 체크
-  setInterval(checkNewReservations, 60000);
+  // 5분마다 체크
+  setInterval(checkNewReservations, 5 * 60000);
   // 초기 1회 (5초 후)
   setTimeout(checkNewReservations, 5000);
 
