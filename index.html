@@ -50,7 +50,12 @@
   [spellcheck], input, textarea, td, th, select { -webkit-spellcheck: false; }
   td, th { -webkit-user-modify: read-only; }
   .wrap { max-width:1880px; margin:0 auto; padding:10px; }
-  .tabs-wrap { position:relative; display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .tabs-wrap { 
+    position:sticky; top:0; z-index:500;
+    display:flex; align-items:center; gap:8px; margin-bottom:14px;
+    background:#fff; padding:8px 0 8px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  }
   .hamburger-btn { min-width:36px; height:36px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
   .hamburger-btn span { display:block; width:16px; height:2px; background:#444; border-radius:2px; }
   .tabs { display:flex; gap:8px; align-items:center; overflow-x:auto; flex:1; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; user-select:none; }
@@ -58,7 +63,13 @@
   .tabs.dragging { cursor:grabbing; }
   .tab-btn { min-height:36px; padding:0 14px; border:1px solid #d8d8d8; border-radius:999px; background:#fff; color:#444; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .tab-btn.active { background:#111; color:#fff; border-color:#111; }
-  .user-info-badge { flex-shrink:0; display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:700; color:#333; cursor:pointer; border:1px solid #eee; white-space:nowrap; position:relative; }
+  .user-info-badge { 
+    flex-shrink:0; display:flex; align-items:center; gap:8px; 
+    background:#f5f5f5; border-radius:999px; padding:6px 14px; 
+    font-size:12.5px; font-weight:700; color:#333; cursor:pointer; 
+    border:1px solid #eee; white-space:nowrap; position:relative;
+    margin-left:auto;
+  }
   .user-info-badge .user-dot { width:8px; height:8px; border-radius:50%; background:#7b5fd9; }
   .user-info-badge .user-dot.guest { background:#aaa; }
 
@@ -1809,26 +1820,39 @@
       <input type="text" id="csSearch" placeholder="텍스트 검색" oninput="renderConsultList()">
       <span class="icon">🔍</span>
     </div>
-    <button class="dw-cond-btn" onclick="alert('조건추가 필터 기능은 추후 작업 예정입니다.')">+ 조건추가</button>
+    <button class="dw-cond-btn" onclick="toggleCondPanel()">+ 조건추가</button>
+  </div>
+
+  <!-- 조건 패널 -->
+  <div id="csCondPanel" style="display:none;background:#f9f8fd;border:1px solid #e0d8f7;border-radius:10px;padding:14px 18px;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:800;color:#7b5fd9;margin-bottom:10px;">🔍 필터 조건 설정</div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;">상태</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div class="dw-chip on" data-filter="전체" onclick="setCsFilter(this)">전체</div>
+          <div class="dw-chip" data-filter="예약" onclick="setCsFilter(this)">예약</div>
+          <div class="dw-chip" data-filter="상담완료" onclick="setCsFilter(this)">상담완료</div>
+          <div class="dw-chip" data-filter="샘플수령" onclick="setCsFilter(this)">샘플수령</div>
+          <div class="dw-chip" data-filter="미방문" onclick="setCsFilter(this)">미방문</div>
+          <div class="dw-chip" data-filter="전화상담" onclick="setCsFilter(this)">전화상담</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;">날짜</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div class="dw-chip" data-date-filter="today" onclick="setDateFilter(this)">금일</div>
+          <div class="dw-chip" data-date-filter="1day" onclick="setDateFilter(this)">1일전</div>
+          <div class="dw-chip" data-date-filter="2day" onclick="setDateFilter(this)">2일전</div>
+        </div>
+      </div>
+      <button onclick="resetAllFilters()" style="padding:6px 14px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-weight:700;color:#666;background:#fff;cursor:pointer;margin-top:16px;">초기화</button>
+    </div>
   </div>
 
   <div class="dw-count-toolbar-row">
     <div class="dw-count-line"><strong id="csCount">0</strong> 개의 데이터가 있습니다</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto;">
-      <div class="dw-filter-chips">
-        <div class="dw-chip on" data-filter="전체" onclick="setCsFilter(this)">전체</div>
-        <div class="dw-chip" data-filter="예약" onclick="setCsFilter(this)">예약</div>
-        <div class="dw-chip" data-filter="상담완료" onclick="setCsFilter(this)">상담완료</div>
-        <div class="dw-chip" data-filter="샘플수령" onclick="setCsFilter(this)">샘플수령</div>
-        <div class="dw-chip" data-filter="미방문" onclick="setCsFilter(this)">미방문</div>
-        <div class="dw-chip" data-filter="전화상담" onclick="setCsFilter(this)">전화상담</div>
-      </div>
-      <div class="dw-filter-chips" style="border-left:1px solid #eee;padding-left:8px;">
-        <div class="dw-chip" data-date-filter="today" onclick="setDateFilter(this)">금일</div>
-        <div class="dw-chip" data-date-filter="1day" onclick="setDateFilter(this)">1일전</div>
-        <div class="dw-chip" data-date-filter="2day" onclick="setDateFilter(this)">2일전</div>
-      </div>
-    </div>
+    <div id="csActiveFilters" style="margin-left:auto;display:flex;gap:6px;"></div>
   </div>
 
   <div class="dw-toolbar">
@@ -1887,10 +1911,18 @@
     <div class="dw-field-row cols-1">
       <div class="dw-field">
         <label>상담자</label>
-        <div class="dw-counselor-list" id="csCounselorList"></div>
-        <select id="cfCounselorSelect" onchange="addCounselorFromSelect()" style="margin-top:6px;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;">
-          <option value="">＋ 상담자 추가</option>
-        </select>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="dw-counselor-list" id="csCounselorList" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          <div style="position:relative;display:inline-block;">
+            <button type="button" onclick="toggleCounselorDropdown()" 
+              style="width:30px;height:30px;border-radius:50%;border:2px solid #7b5fd9;background:#fff;color:#7b5fd9;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">＋</button>
+            <div id="cfCounselorDropdown" style="display:none;position:absolute;top:36px;left:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);min-width:160px;z-index:100;overflow:hidden;">
+              <div id="cfCounselorOptions" style="max-height:200px;overflow-y:auto;">
+                <div style="padding:10px;color:#aaa;font-size:12px;">로딩 중...</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2096,12 +2128,60 @@
   // 날짜 필터 (외부 변수 참조)
   function getCsDateFilter() { return typeof csDateFilter !== 'undefined' ? csDateFilter : null; } // 상담자 목록 (이름+직함 문자열 배열)
 
-  // ── 직원 목록 (추후 별도 관리 화면에서 등록 예정, 임시 하드코딩) ──
-  const STAFF_LIST = [
-    { name: '김진재', title: '대리' },
-    { name: '최은용', title: '차장' },
-    { name: '김현정', title: '실장' },
-  ];
+  // ── 직원 목록 실시간 로드 ──
+  let _staffListCache = null;
+  async function loadStaffList() {
+    if (_staffListCache) return _staffListCache;
+    try {
+      const res = await fetch(`${CS_URL}?action=getEmployees`);
+      const data = await res.json();
+      _staffListCache = (data.rows || []).filter(r => !r.leaveDate).map(r => `${r.name} ${r.title}`);
+    } catch(e) {
+      _staffListCache = ['김진재 대리', '최은용 차장', '김현정 실장'];
+    }
+    return _staffListCache;
+  }
+
+  function fillCounselorSelect() {
+    // 드롭다운 옵션 채우기 (실시간)
+    loadStaffList().then(list => {
+      const opts = document.getElementById('cfCounselorOptions');
+      if (!opts) return;
+      opts.innerHTML = list.map(name => `
+        <div onclick="addCounselorFromDropdown('${name}')"
+          style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;"
+          onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+          ${name}
+        </div>
+      `).join('') || '<div style="padding:10px;color:#aaa;font-size:12px;">직원 없음</div>';
+    });
+  }
+
+  window.toggleCounselorDropdown = function() {
+    const dd = document.getElementById('cfCounselorDropdown');
+    if (!dd) return;
+    const isOpen = dd.style.display === 'block';
+    dd.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) fillCounselorSelect();
+  };
+
+  window.addCounselorFromDropdown = function(name) {
+    if (name && !selectedCounselors.includes(name)) {
+      selectedCounselors.push(name);
+      renderCounselorList();
+    }
+    const dd = document.getElementById('cfCounselorDropdown');
+    if (dd) dd.style.display = 'none';
+  };
+
+  // 외부 클릭 시 드롭다운 닫기
+  document.addEventListener('click', function(e) {
+    const dd = document.getElementById('cfCounselorDropdown');
+    if (dd && !dd.closest) return;
+    if (dd && !e.target.closest('#cfCounselorDropdown') && !e.target.closest('button[onclick*="toggleCounselorDropdown"]')) {
+      dd.style.display = 'none';
+    }
+  });
 
   function isConsultDone(r) {
     return r.status && r.status !== '예약';
@@ -2128,7 +2208,48 @@
     }
   };
 
-  window.toggleSort = function(field) {
+  window.toggleCondPanel = function() {
+    const p = document.getElementById('csCondPanel');
+    if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  };
+
+  window.resetAllFilters = function() {
+    // 상태 필터 초기화
+    csCurrentFilter = '전체';
+    document.querySelectorAll('.dw-chip[data-filter]').forEach(c => c.classList.toggle('on', c.dataset.filter === '전체'));
+    // 날짜 필터 초기화
+    csDateFilter = null;
+    document.querySelectorAll('.dw-chip[data-date-filter]').forEach(c => c.classList.remove('on'));
+    currentPage = 1;
+    renderConsultList();
+    updateActiveFilterBadges();
+  };
+
+  function updateActiveFilterBadges() {
+    const el = document.getElementById('csActiveFilters');
+    if (!el) return;
+    const badges = [];
+    if (csCurrentFilter && csCurrentFilter !== '전체') {
+      badges.push(`<span style="background:#7b5fd9;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${csCurrentFilter} ✕</span>`);
+    }
+    if (csDateFilter) {
+      const label = csDateFilter === 'today' ? '금일' : csDateFilter === '1day' ? '1일전' : '2일전';
+      badges.push(`<span style="background:#2c5fc4;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${label} ✕</span>`);
+    }
+    el.innerHTML = badges.join('');
+  }
+
+  // setCsFilter/setDateFilter 후 배지 업데이트
+  const _origSetCsFilter = window.setCsFilter;
+  window.setCsFilter = function(el) {
+    if (_origSetCsFilter) _origSetCsFilter(el);
+    updateActiveFilterBadges();
+  };
+  const _origSetDateFilter = window.setDateFilter;
+  window.setDateFilter = function(el) {
+    if (_origSetDateFilter) _origSetDateFilter(el);
+    updateActiveFilterBadges();
+  };
     if (csSort.field === field) {
       csSort.dir = csSort.dir === 'asc' ? 'desc' : 'asc';
     } else {
@@ -2158,12 +2279,16 @@
     let list = allConsults.map((r, origIdx) => ({ ...r, _origIdx: origIdx })).filter(r => {
       const status = getDisplayStatus(r);
       if (csCurrentFilter !== '전체' && status !== csCurrentFilter) return false;
-      // 날짜 필터
+      // 날짜 필터 (KST 기준 실시간)
       if (typeof csDateFilter !== 'undefined' && csDateFilter) {
-        const today = new Date(); today.setHours(0,0,0,0);
-        const target = new Date(today);
-        if (csDateFilter === '1day') target.setDate(target.getDate()-1);
-        if (csDateFilter === '2day') target.setDate(target.getDate()-2);
+        const now = new Date();
+        // KST = UTC+9
+        const kstOffset = 9 * 60 * 60 * 1000;
+        const kstNow = new Date(now.getTime() + kstOffset);
+        const todayKST = kstNow.toISOString().slice(0,10);
+        const target = new Date(kstNow);
+        if (csDateFilter === '1day') target.setUTCDate(target.getUTCDate()-1);
+        if (csDateFilter === '2day') target.setUTCDate(target.getUTCDate()-2);
         const targetStr = target.toISOString().slice(0,10);
         if ((r.date||'').slice(0,10) !== targetStr) return false;
       }
@@ -2336,9 +2461,12 @@
 
   // ── 명함전달 담당자 드롭다운 채우기 ──
   function fillCardStaffSelect() {
-    const sel = document.getElementById('cfCardStaff');
-    sel.innerHTML = '<option value="">담당자 선택</option>' +
-      STAFF_LIST.map(s => `<option value="${s.name} ${s.title}">${s.name} ${s.title}</option>`).join('');
+    loadStaffList().then(list => {
+      const sel = document.getElementById('cfCardStaff');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">담당자 선택</option>' +
+        list.map(name => `<option value="${name}">${name}</option>`).join('');
+    });
   }
 
   // ── 등록 폼 열기 (신규, 전화예약 수기등록용) ──
@@ -3708,6 +3836,15 @@
     };
 
     // 직원 목록 로드 (관리자)
+    const ALL_TABS = [
+      {id:'pricingTab',label:'단가표'},{id:'calculatorTab',label:'계산기'},
+      {id:'stockTab',label:'재고현황'},{id:'invoiceTab',label:'견적서'},
+      {id:'consultTab',label:'쇼룸상담'},{id:'reservationTab',label:'예약관리'},
+      {id:'cardScanTab',label:'명함스캐닝'},{id:'contactsTab',label:'연락처'},
+      {id:'floorplanTab',label:'면적분석'},{id:'memoTab',label:'메모장'},
+      {id:'noticeTab',label:'공지게시판'}
+    ];
+
     window.loadEmployees = async function() {
         try {
             const res = await fetch(`${ERP_URL}?action=getEmployees`);
@@ -3715,8 +3852,17 @@
             const tbody = document.getElementById('adminEmpList');
             if (!tbody) return;
             if (!data.rows || !data.rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="admin-empty">직원 없음</td></tr>'; return; }
-            tbody.innerHTML = data.rows.map(r => {
+            tbody.innerHTML = data.rows.map((r, ri) => {
                 const status = r.leaveDate ? '퇴직' : '재직';
+                const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
+                  ? ALL_TABS.map(t=>t.id)
+                  : String(r.allowedTabs).split(',').map(s=>s.trim());
+                const checkboxes = ALL_TABS.map(t => `
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;">
+                    <input type="checkbox" ${allowed.includes(t.id)?'checked':''} 
+                      onchange="updateEmpTab('${r.id}',${ri},'${t.id}',this.checked)">
+                    ${t.label}
+                  </label>`).join('');
                 return `<tr>
                     <td>${r.id||''}</td>
                     <td><strong>${r.name||''}</strong></td>
@@ -3724,11 +3870,46 @@
                     <td>${r.title||''}</td>
                     <td>${r.joinDate||''}</td>
                     <td><span class="admin-status-badge ${status}">${status}</span></td>
-                    <td style="font-size:11px;color:#888;">${r.allowedTabs||'ALL'}</td>
-                    <td>${r.role||'staff'}</td>
+                    <td>
+                      <details>
+                        <summary style="cursor:pointer;font-size:11px;color:#7b5fd9;font-weight:700;">탭 설정 (${allowed.length}개)</summary>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;">${checkboxes}</div>
+                      </details>
+                    </td>
+                    <td>
+                      <select onchange="updateEmpRole('${r.id}',this.value)" style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;">
+                        <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
+                        <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
+                      </select>
+                    </td>
                 </tr>`;
             }).join('');
         } catch(e) { console.error(e); }
+    };
+
+    // 허용탭 변경
+    const _empTabState = {};
+    window.updateEmpTab = function(empId, rowIdx, tabId, checked) {
+      if (!_empTabState[empId]) {
+        // 현재 상태 초기화 - 추후 저장 시 Apps Script에 전송
+        _empTabState[empId] = { id: empId, pendingTabs: null };
+      }
+      // 체크박스 상태 수집해서 저장
+      const row = document.querySelectorAll('#adminEmpList tr')[rowIdx];
+      if (!row) return;
+      const checked_tabs = Array.from(row.querySelectorAll('input[type=checkbox]:checked'))
+        .map(cb => ALL_TABS[Array.from(row.querySelectorAll('input[type=checkbox]')).indexOf(cb)]?.id)
+        .filter(Boolean);
+      // 저장 버튼 대신 즉시 저장 (추후 Apps Script updateEmployee 필요)
+      console.log(`${empId} 허용탭:`, checked_tabs.join(','));
+      // summary 텍스트 업데이트
+      const summary = row.querySelector('summary');
+      if (summary) summary.textContent = `탭 설정 (${checked_tabs.length}개)`;
+    };
+
+    window.updateEmpRole = function(empId, role) {
+      console.log(`${empId} 권한:`, role);
+      // 추후 Apps Script updateEmployee 연동
     };
 
     // ── 세션 확인 및 자동 로그인 ──
