@@ -372,15 +372,15 @@
         padding: 7px 8px !important;
     }
 
-    /* 6. 모바일 복사 버튼이나 링크들이 있는 구역 정렬 */
+    /* 6. 모바일 복사 버튼이나 링크들이 있는 구역 정렬 (2열로 화면 안에 맞춤) */
     .quick-copy-row {
-        grid-template-columns: repeat(3, 1fr) !important; /* 3열 유지하되 글자 크기 축소 */
-        gap: 6px !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
     }
     .quick-copy-row button {
-        font-size: 11px !important;
-        padding: 0 4px !important;
-        min-height: 38px !important;
+        font-size: 12px !important;
+        padding: 0 6px !important;
+        min-height: 42px !important;
     }
 
     /* 7. 하단 액션 버튼 모바일에서 가득 차게 */
@@ -402,12 +402,30 @@
         max-height: none !important;
         gap: 14px !important;
     }
-    /* 9. '단가 안내' 표 최대높이 제한 해제 (모바일에선 전체 표시) */
+    /* 9. '단가 안내' 표: 높이 제한 해제 + 가로 폭 가두고 표만 좌우 스크롤 */
     #pricingTab .scroll[style*="max-height"] {
         max-height: none !important;
     }
+    #captureArea {
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
     #captureArea .scroll {
         max-height: none !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    #captureArea .scroll table {
+        width: max-content !important;
+        min-width: 100% !important;
+        table-layout: auto !important;
+    }
+    #captureArea .scroll table th,
+    #captureArea .scroll table td {
+        width: auto !important;
+        white-space: nowrap !important;
     }
     /* 10. 오른쪽 컨트롤(체크박스/셀렉트) 모바일에서 세로 정렬·터치 확대 */
     #pricingTab .right-controls {
@@ -441,14 +459,23 @@
         max-width: 100% !important;
         overflow: hidden !important;
     }
-    /* 퀵 안내 버튼 영역 폭 가두기 */
+    /* 퀵 안내 버튼 영역 폭 가두기 (2열) */
     #pricingTab .quick-copy-row {
+        grid-template-columns: repeat(2, 1fr) !important;
         max-width: 100% !important;
+    }
+    #pricingTab .quick-copy-label {
+        grid-column: 1 / -1 !important;
+    }
+    #pricingTab .quick-copy-row .quick-preview-trigger {
+        min-width: 0 !important;
     }
     #pricingTab .quick-copy-row button {
         width: 100% !important;
+        min-width: 0 !important;
         white-space: normal !important;
         word-break: keep-all !important;
+        box-sizing: border-box !important;
     }
     /* 자동 생성 문자 입력칸: 모바일에서 좀 더 높게 */
     #pricingTab #copyText {
@@ -6879,4 +6906,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-  </html>
+      </html>
