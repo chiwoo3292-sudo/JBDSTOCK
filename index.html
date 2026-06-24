@@ -544,7 +544,7 @@
       <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
       <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
       <button type="button" class="tab-btn" data-tab="consultTab">쇼룸상담</button>
-      <button type="button" class="tab-btn" data-tab="reservationTab">예약관리</button>
+      <button type="button" class="tab-btn" id="reservationTabBtn" data-tab="reservationTab">예약관리<span id="rsvPendingBadge" style="display:none;margin-left:4px;background:#e74c3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;">N</span></button>
       <button type="button" class="tab-btn" data-tab="cardScanTab">명함스캐닝</button>
       <button type="button" class="tab-btn" data-tab="contactsTab">연락처</button>
       <button type="button" class="tab-btn" data-tab="floorplanTab">면적분석</button>
@@ -2281,14 +2281,17 @@
   // 날짜 필터 (외부 변수 참조)
   function getCsDateFilter() { return typeof csDateFilter !== 'undefined' ? csDateFilter : null; } // 상담자 목록 (이름+직함 문자열 배열)
 
-  // ── 직원 목록 실시간 로드 ──
+  // ── 직원 목록 실시간 로드 (영업부서만) ──
   let _staffListCache = null;
   async function loadStaffList() {
     if (_staffListCache) return _staffListCache;
     try {
       const res = await fetch(`${CS_URL}?action=getEmployees`);
       const data = await res.json();
-      _staffListCache = (data.rows || []).filter(r => !r.leaveDate).map(r => `${r.name} ${r.title}`);
+      // 퇴직자 제외 + 영업부서만
+      _staffListCache = (data.rows || [])
+        .filter(r => !r.leaveDate && String(r.dept||'').trim() === '영업')
+        .map(r => `${r.name} ${r.title}`);
     } catch(e) {
       _staffListCache = ['김진재 대리', '최은용 차장', '김현정 실장'];
     }
@@ -2319,8 +2322,8 @@
   };
 
   window.addCounselorFromDropdown = function(name) {
-    if (name && !selectedCounselors.includes(name)) {
-      selectedCounselors.push(name);
+    if (name) {
+      selectedCounselors.push(name); // 중복 허용 (추가 상담 시 같은 상담자 재선택 가능)
       renderCounselorList();
     }
     const dd = document.getElementById('cfCounselorDropdown');
@@ -2603,8 +2606,8 @@
   window.addCounselorFromSelect = function() {
     const sel = document.getElementById('cfCounselorSelect');
     const val = sel.value;
-    if (val && !selectedCounselors.includes(val)) {
-      selectedCounselors.push(val);
+    if (val) {
+      selectedCounselors.push(val); // 중복 허용
       renderCounselorList();
     }
     sel.value = ''; // 선택 초기화
@@ -2629,7 +2632,7 @@
     });
   }
 
-  // ── 등록 폼 열기 (신규, 전화예약 수기등록용) ──
+  // ── 등록 폼 열기 (신규) ──
   window.openManualRegister = function() {
     selectedConsult = null;
     selectedCounselors = [];
@@ -3818,7 +3821,10 @@
         }
 
         const lastTab = localStorage.getItem('baram_last_tab');
-        if (lastTab && document.getElementById(lastTab) && typeof setTab === 'function') {
+        if (loginType === 'user') {
+            // 직원 로그인: 항상 예약관리 탭으로 시작
+            if (typeof setTab === 'function') setTab('reservationTab');
+        } else if (lastTab && document.getElementById(lastTab) && typeof setTab === 'function') {
             setTab(lastTab);
         }
     }
@@ -3927,7 +3933,7 @@
 
     // ID/PW 로그인
     window.doLogin = async function() {
-        const id = document.getElementById('loginId').value.trim();
+        const id = document.getElementById('loginId').value.trim().toLowerCase();
         const pw = document.getElementById('loginPw').value;
         const errEl = document.getElementById('loginError');
         if (!id || !pw) { errEl.style.display = 'block'; errEl.textContent = '❌ 아이디와 비밀번호를 입력해주세요.'; return; }
@@ -3938,8 +3944,11 @@
             const res = await fetch(`${ERP_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
             const data = await res.json();
             if (data.status === 'ok') {
-                localStorage.setItem(LOGIN_TYPE_KEY, 'user');
-                localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+                // 직원: 브라우저 닫으면 세션 종료되도록 sessionStorage 사용
+                sessionStorage.setItem(LOGIN_TYPE_KEY, 'user');
+                sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
+                localStorage.removeItem(LOGIN_TYPE_KEY);
+                localStorage.removeItem(USER_KEY);
                 localStorage.removeItem(SESSION_KEY);
                 unlock('user', data.user);
             } else {
@@ -3958,6 +3967,8 @@
         localStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(USER_KEY);
         localStorage.removeItem(LOGIN_TYPE_KEY);
+        sessionStorage.removeItem(LOGIN_TYPE_KEY);
+        sessionStorage.removeItem(USER_KEY);
         localStorage.removeItem('baram_last_tab');
         location.reload();
     };
@@ -3979,7 +3990,7 @@
         if (!curPw || !newPw || !newPw2) { msg.textContent = '❌ 모든 항목을 입력해주세요.'; return; }
         if (newPw !== newPw2) { msg.textContent = '❌ 새 비밀번호가 일치하지 않습니다.'; return; }
         if (newPw.length < 4) { msg.textContent = '❌ 비밀번호는 4자 이상이어야 합니다.'; return; }
-        const user = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+        const user = JSON.parse(sessionStorage.getItem(USER_KEY) || localStorage.getItem(USER_KEY) || 'null');
         if (!user) { msg.textContent = '❌ 로그인 정보 없음'; return; }
         msg.textContent = '변경 중...';
         try {
@@ -4075,24 +4086,27 @@
     };
 
     // ── 세션 확인 및 자동 로그인 ──
-    const loginType = localStorage.getItem(LOGIN_TYPE_KEY);
-    if (loginType === 'user') {
-        // 직원 로그인 - 만료 없음
-        const userData = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+    // 직원: sessionStorage (브라우저 닫으면 만료)
+    const sessionLoginType = sessionStorage.getItem(LOGIN_TYPE_KEY);
+    if (sessionLoginType === 'user') {
+        const userData = JSON.parse(sessionStorage.getItem(USER_KEY) || 'null');
         if (userData) { unlock('user', userData); }
-        else { lockBody(); }
-    } else if (loginType === 'guest') {
-        // 게스트 - 8시간
-        const savedAuth = localStorage.getItem(SESSION_KEY);
-        if (savedAuth && (Date.now() - parseInt(savedAuth, 10)) < AUTH_TIMEOUT) {
-            unlock('guest', null);
+        else { sessionStorage.removeItem(LOGIN_TYPE_KEY); lockBody(); }
+    } else {
+        // 게스트: localStorage (8시간)
+        const loginType = localStorage.getItem(LOGIN_TYPE_KEY);
+        if (loginType === 'guest') {
+            const savedAuth = localStorage.getItem(SESSION_KEY);
+            if (savedAuth && (Date.now() - parseInt(savedAuth, 10)) < AUTH_TIMEOUT) {
+                unlock('guest', null);
+            } else {
+                localStorage.removeItem(SESSION_KEY);
+                localStorage.removeItem(LOGIN_TYPE_KEY);
+                lockBody();
+            }
         } else {
-            localStorage.removeItem(SESSION_KEY);
-            localStorage.removeItem(LOGIN_TYPE_KEY);
             lockBody();
         }
-    } else {
-        lockBody();
     }
 
     // 이벤트 연결
@@ -4379,7 +4393,12 @@ function setTab(tabId) {
     panel.style.display = panel.id === tabId ? 'block' : 'none';
   });
   localStorage.setItem('baram_last_tab', tabId);
-  if (tabId === 'reservationTab' && typeof loadReservations === 'function') loadReservations();
+  if (tabId === 'reservationTab' && typeof loadReservations === 'function') {
+    loadReservations();
+    // 예약관리 탭 진입 시 대기 뱃지 숨김
+    const badge = document.getElementById('rsvPendingBadge');
+    if (badge) badge.style.display = 'none';
+  }
   if (tabId === 'consultTab' && typeof loadConsults === 'function') loadConsults();
   if (tabId === 'noticeTab' && typeof loadNotices === 'function') loadNotices();
   if (tabId === 'adminTab' && typeof loadEmployees === 'function') loadEmployees();
@@ -6618,12 +6637,21 @@ if ('serviceWorker' in navigator) {
       if (data.status !== 'ok') return;
       const pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
 
+      // 예약관리 탭 빨간 N 뱃지: 대기 건 있으면 항상 표시
+      const badge = document.getElementById('rsvPendingBadge');
+      if (badge) {
+        if (pending.length > 0) {
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      // 팝업 알림: 첫 체크는 기준값만 저장, 이후부터 대기 건 있으면 팝업
       if (lastKnownRsvCount === -1) {
         lastKnownRsvCount = pending.length;
         return;
       }
-
-      // 대기 건이 있으면 매번 알림 (신규 여부 무관)
       if (pending.length > 0) {
         const newest = pending.sort((a,b) => (b.receiptNo||'').localeCompare(a.receiptNo||''))[0];
         showRsvAlert(newest, pending.length);
