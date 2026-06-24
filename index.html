@@ -2285,36 +2285,37 @@
   let _staffListCache = null;
   async function loadStaffList() {
     if (_staffListCache) return _staffListCache;
+    const opts = document.getElementById('cfCounselorOptions');
     try {
+      if (opts) opts.innerHTML = '<div style="padding:10px;color:#aaa;font-size:12px;">불러오는 중...</div>';
       const res = await fetch(`${CS_URL}?action=getEmployees`);
       const data = await res.json();
       const allActive = (data.rows || []).filter(r => !r.leaveDate);
-      // 부서값 확인용 (콘솔에서 확인 후 정확한 부서명으로 필터 적용)
-      console.log('[직원목록] 전체 재직자:', allActive.map(r => r.name + '/' + r.dept));
-      // 영업부서만 (부서명이 '영업'을 포함하는 경우)
+      if (opts) opts.innerHTML = `<div style="padding:8px;font-size:11px;color:#555;">전체재직자 ${allActive.length}명 / 부서목록: ${[...new Set(allActive.map(r=>r.dept||'(없음)'))].join(', ')}</div>`;
       const salesStaff = allActive.filter(r => String(r.dept||'').includes('영업'));
-      console.log('[직원목록] 영업부서:', salesStaff.map(r => r.name + '/' + r.dept));
-      _staffListCache = (salesStaff.length > 0 ? salesStaff : allActive)
-        .map(r => `${r.name} ${r.title}`);
+      _staffListCache = (salesStaff.length > 0 ? salesStaff : allActive).map(r => `${r.name} ${r.title}`);
     } catch(e) {
-      console.error('[직원목록] 로드 실패:', e);
-      _staffListCache = ['김진재 대리', '최은용 차장', '김현정 실장'];
+      if (opts) opts.innerHTML = `<div style="padding:10px;color:#e74c3c;font-size:12px;">❌ 오류: ${e.message}</div>`;
+      _staffListCache = [];
     }
     return _staffListCache;
   }
 
   function fillCounselorSelect() {
-    // 드롭다운 옵션 채우기 (실시간)
     loadStaffList().then(list => {
       const opts = document.getElementById('cfCounselorOptions');
       if (!opts) return;
+      if (list.length === 0) {
+        opts.innerHTML = '<div style="padding:10px;color:#e74c3c;font-size:12px;">⚠️ 표시할 직원이 없습니다.<br>위 부서 목록을 확인해주세요.</div>';
+        return;
+      }
       opts.innerHTML = list.map(name => `
         <div onclick="addCounselorFromDropdown('${name}')"
           style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;"
           onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
           ${name}
         </div>
-      `).join('') || '<div style="padding:10px;color:#aaa;font-size:12px;">직원 없음</div>';
+      `).join('');
     });
   }
 
