@@ -2288,11 +2288,16 @@
     try {
       const res = await fetch(`${CS_URL}?action=getEmployees`);
       const data = await res.json();
-      // 퇴직자 제외 + 영업부서만
-      _staffListCache = (data.rows || [])
-        .filter(r => !r.leaveDate && String(r.dept||'').trim() === '영업')
+      const allActive = (data.rows || []).filter(r => !r.leaveDate);
+      // 부서값 확인용 (콘솔에서 확인 후 정확한 부서명으로 필터 적용)
+      console.log('[직원목록] 전체 재직자:', allActive.map(r => r.name + '/' + r.dept));
+      // 영업부서만 (부서명이 '영업'을 포함하는 경우)
+      const salesStaff = allActive.filter(r => String(r.dept||'').includes('영업'));
+      console.log('[직원목록] 영업부서:', salesStaff.map(r => r.name + '/' + r.dept));
+      _staffListCache = (salesStaff.length > 0 ? salesStaff : allActive)
         .map(r => `${r.name} ${r.title}`);
     } catch(e) {
+      console.error('[직원목록] 로드 실패:', e);
       _staffListCache = ['김진재 대리', '최은용 차장', '김현정 실장'];
     }
     return _staffListCache;
