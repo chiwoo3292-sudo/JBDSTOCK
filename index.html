@@ -1842,10 +1842,10 @@
     <!-- 월 달력 선택기 -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <span style="font-size:12px;color:#999;font-weight:600;">월 선택:</span>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button onclick="changeNoticeYear(-1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">‹</button>
-        <span id="noticeYear" style="font-size:14px;font-weight:700;color:#333;min-width:48px;text-align:center;"></span>
-        <button onclick="changeNoticeYear(1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">›</button>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button onclick="changeNoticeYear(-1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:16px;font-weight:700;color:#555;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&lt;</button>
+        <span id="noticeYear" style="font-size:14px;font-weight:700;color:#333;min-width:60px;text-align:center;"></span>
+        <button onclick="changeNoticeYear(1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:16px;font-weight:700;color:#555;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&gt;</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;flex:1;max-width:360px;">
         <button onclick="selectNoticeMonth(1)" id="mBtn_1" class="notice-m-btn">1월</button>
