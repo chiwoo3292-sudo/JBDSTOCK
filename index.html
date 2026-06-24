@@ -3757,6 +3757,7 @@
           <th>재직상태</th>
           <th>허용탭</th>
           <th>권한</th>
+          <th>저장</th>
         </tr>
       </thead>
       <tbody id="adminEmpList">
@@ -4301,11 +4302,11 @@
                   : String(r.allowedTabs).split(',').map(s=>s.trim());
                 const checkboxes = ALL_TABS.map(t => `
                   <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;">
-                    <input type="checkbox" ${allowed.includes(t.id)?'checked':''} 
-                      onchange="updateEmpTab('${r.id}',${ri},'${t.id}',this.checked)">
+                    <input type="checkbox" ${allowed.includes(t.id)?'checked':''}
+                      onchange="markEmpDirty('${r.id}',${ri})">
                     ${t.label}
                   </label>`).join('');
-                return `<tr>
+                return `<tr id="emp-row-${ri}">
                     <td>${r.id||''}</td>
                     <td><strong>${r.name||''}</strong></td>
                     <td>${r.dept||''}</td>
@@ -4314,44 +4315,78 @@
                     <td><span class="admin-status-badge ${status}">${status}</span></td>
                     <td>
                       <details>
-                        <summary style="cursor:pointer;font-size:11px;color:#7b5fd9;font-weight:700;">탭 설정 (${allowed.length}개)</summary>
+                        <summary id="emp-summary-${ri}" style="cursor:pointer;font-size:11px;color:#7b5fd9;font-weight:700;">탭 설정 (${allowed.length}개)</summary>
                         <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;">${checkboxes}</div>
                       </details>
                     </td>
                     <td>
-                      <select onchange="updateEmpRole('${r.id}',this.value)" style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;">
+                      <select id="emp-role-${ri}" onchange="markEmpDirty('${r.id}',${ri})" style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;">
                         <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
                         <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
                       </select>
+                    </td>
+                    <td>
+                      <button id="emp-save-${ri}" onclick="saveEmpSettings('${r.id}',${ri})"
+                        style="display:none;padding:4px 10px;background:#7b5fd9;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
+                        저장
+                      </button>
+                      <span id="emp-saved-${ri}" style="display:none;font-size:11px;color:#1a7a45;font-weight:700;">✅ 저장됨</span>
                     </td>
                 </tr>`;
             }).join('');
         } catch(e) { console.error(e); }
     };
 
-    // 허용탭 변경
-    const _empTabState = {};
-    window.updateEmpTab = function(empId, rowIdx, tabId, checked) {
-      if (!_empTabState[empId]) {
-        // 현재 상태 초기화 - 추후 저장 시 Apps Script에 전송
-        _empTabState[empId] = { id: empId, pendingTabs: null };
-      }
-      // 체크박스 상태 수집해서 저장
-      const row = document.querySelectorAll('#adminEmpList tr')[rowIdx];
-      if (!row) return;
-      const checked_tabs = Array.from(row.querySelectorAll('input[type=checkbox]:checked'))
-        .map(cb => ALL_TABS[Array.from(row.querySelectorAll('input[type=checkbox]')).indexOf(cb)]?.id)
-        .filter(Boolean);
-      // 저장 버튼 대신 즉시 저장 (추후 Apps Script updateEmployee 필요)
-      console.log(`${empId} 허용탭:`, checked_tabs.join(','));
+    // 변경 감지 → 저장 버튼 표시
+    window.markEmpDirty = function(empId, rowIdx) {
+      const saveBtn = document.getElementById(`emp-save-${rowIdx}`);
+      const savedEl = document.getElementById(`emp-saved-${rowIdx}`);
+      if (saveBtn) saveBtn.style.display = 'inline-block';
+      if (savedEl) savedEl.style.display = 'none';
       // summary 텍스트 업데이트
-      const summary = row.querySelector('summary');
-      if (summary) summary.textContent = `탭 설정 (${checked_tabs.length}개)`;
+      const row = document.getElementById(`emp-row-${rowIdx}`);
+      if (row) {
+        const checked_tabs = Array.from(row.querySelectorAll('input[type=checkbox]:checked')).length;
+        const summary = document.getElementById(`emp-summary-${rowIdx}`);
+        if (summary) summary.textContent = `탭 설정 (${checked_tabs}개)`;
+      }
     };
 
-    window.updateEmpRole = function(empId, role) {
-      console.log(`${empId} 권한:`, role);
-      // 추후 Apps Script updateEmployee 연동
+    // 저장 버튼 클릭 → 앱스스크립트로 전송
+    window.saveEmpSettings = async function(empId, rowIdx) {
+      const row = document.getElementById(`emp-row-${rowIdx}`);
+      const saveBtn = document.getElementById(`emp-save-${rowIdx}`);
+      const savedEl = document.getElementById(`emp-saved-${rowIdx}`);
+      if (!row) return;
+
+      // 체크된 탭 수집
+      const checkboxes = row.querySelectorAll('input[type=checkbox]');
+      const checkedTabs = Array.from(checkboxes)
+        .map((cb, i) => cb.checked ? ALL_TABS[i]?.id : null)
+        .filter(Boolean);
+      const allowedTabs = checkedTabs.length === ALL_TABS.length ? 'ALL' : checkedTabs.join(',');
+
+      // 권한(role) 수집
+      const roleEl = document.getElementById(`emp-role-${rowIdx}`);
+      const role = roleEl ? roleEl.value : 'staff';
+
+      if (saveBtn) { saveBtn.textContent = '저장 중...'; saveBtn.disabled = true; }
+      try {
+        const params = new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role });
+        const res = await fetch(`${ERP_URL}?${params}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          if (saveBtn) saveBtn.style.display = 'none';
+          if (savedEl) savedEl.style.display = 'inline';
+          setTimeout(() => { if (savedEl) savedEl.style.display = 'none'; }, 3000);
+        } else {
+          alert('저장 실패: ' + (data.message || ''));
+          if (saveBtn) { saveBtn.textContent = '저장'; saveBtn.disabled = false; }
+        }
+      } catch(e) {
+        alert('오류: ' + e.message);
+        if (saveBtn) { saveBtn.textContent = '저장'; saveBtn.disabled = false; }
+      }
     };
 
     // ── 세션 확인 및 자동 로그인 ──
