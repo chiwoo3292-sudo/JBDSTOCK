@@ -13,7 +13,7 @@
 <!-- iOS PWA 설정 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="지복득마루ERP">
+<meta name="apple-mobile-web-app-title" content="지복득마루시스템">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
 <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
@@ -555,7 +555,7 @@
         <div style="width:120px;height:120px;margin:0 auto 16px;">
           <img src="https://github.com/chiwoo3292-sudo/JBDSTOCK/blob/main/%EC%A7%80%EB%B3%B5%EB%93%9D%EB%A7%88%EB%A3%A8%EB%A9%94%EC%9D%B8%EB%A1%9C%EA%B3%A0.jpg?raw=true" style="width:100%;height:100%;object-fit:contain;">
         </div>
-        <h2 style="margin:0 0 24px; font-size:20px; color:#fff; font-weight:800; letter-spacing:1px;">지복득마루 ERP</h2>
+        <h2 style="margin:0 0 24px; font-size:20px; color:#fff; font-weight:800; letter-spacing:1px;">지복득마루시스템</h2>
 
         <!-- 로그인 섹션 -->
         <div id="loginSection">
@@ -3907,7 +3907,54 @@
     <div id="tabPermList" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
       <button onclick="closeTabPermModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="saveTabPermFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#7b5fd9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+      <button onclick="saveTabPermFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#7b5fd9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 직원 추가/수정 모달 -->
+<div id="empModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:90%;max-width:420px;padding:26px 24px 22px;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 id="empModalTitle" style="font-size:15px;font-weight:800;color:#222;margin:0;">직원 추가</h3>
+      <button onclick="closeEmpModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">아이디 <span style="color:#e74c3c;">*</span></label>
+        <input id="empModalId" type="text" placeholder="로그인 아이디 (영문/숫자)"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">이름 <span style="color:#e74c3c;">*</span></label>
+        <input id="empModalName" type="text" placeholder="홍길동"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">부서</label>
+          <input id="empModalDept" type="text" placeholder="영업"
+            style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">직급</label>
+          <input id="empModalTitle" type="text" placeholder="사원"
+            style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">입사일</label>
+        <input id="empModalJoinDate" type="date"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="background:#f8f7fc;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
+        🔒 초기 비밀번호: <strong style="color:#7b5fd9;">0000</strong>
+      </div>
+    </div>
+    <div id="empModalMsg" style="font-size:12px;min-height:18px;margin-top:10px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button onclick="closeEmpModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
+      <button onclick="submitEmpModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#7b5fd9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
     </div>
   </div>
 </div>
@@ -3941,9 +3988,9 @@
   <div class="admin-card">
     <div class="admin-section-title">👥 직원 목록</div>
     <div class="admin-toolbar">
-      <button class="admin-btn primary" onclick="alert('직원 추가 기능 추후 구현 예정')">＋ 직원 추가</button>
-      <button class="admin-btn" onclick="alert('선택된 직원 수정 추후 구현 예정')">✏ 수정</button>
-      <button class="admin-btn" onclick="alert('비밀번호 초기화 추후 구현 예정')">🔑 비밀번호 초기화</button>
+      <button class="admin-btn primary" onclick="openEmpModal('add')">＋ 직원 추가</button>
+      <button class="admin-btn" onclick="openEmpModal('edit')" id="empEditBtn">✏ 수정</button>
+      <button class="admin-btn" onclick="doResetPassword()" id="empResetBtn">🔑 비밀번호 초기화</button>
     </div>
     <table class="admin-table" id="adminEmpTable">
       <thead id="adminEmpThead">
@@ -4527,33 +4574,30 @@
                   ? ALL_TABS.map(t=>t.id)
                   : String(r.allowedTabs).split(',').map(s=>s.trim());
                 return `<tr><td colspan="8" style="padding:0;border:none;">
-                  <div id="emp-row-${ri}" style="background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 16px;margin:6px 0;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                      <div>
-                        <span style="font-size:15px;font-weight:800;color:#222;">${r.name||''}</span>
-                        <span style="font-size:12px;color:#888;margin-left:6px;">${r.dept||''} · ${r.title||''}</span>
+                  <div id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')"
+                    style="background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 16px;margin:6px 0;cursor:pointer;transition:all .1s;">
+                    <div id="emp-card-${ri}" class="emp-card"
+                      data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}" data-joindate="${r.joinDate||''}">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div>
+                          <span class="emp-card-name" style="font-size:15px;font-weight:800;color:#222;">${r.name||''}</span>
+                          <span style="font-size:12px;color:#888;margin-left:6px;">${r.dept||''} · ${r.title||''}</span>
+                        </div>
+                        <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusBg};color:${statusColor};">${status}</span>
                       </div>
-                      <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusBg};color:${statusColor};">${status}</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#999;margin-bottom:10px;">
-                      ID: ${r.id||'-'} ${r.joinDate ? '· 입사: '+r.joinDate : ''}
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                      <button onclick="openTabPermModal('${r.id}',${ri})"
-                        style="padding:6px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
-                        탭 설정 (${allowed.length}개)
-                      </button>
-                      <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
-                      <select id="emp-role-${ri}" onchange="markEmpDirty('${r.id}',${ri})"
-                        style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #ddd;background:#fff;">
-                        <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
-                        <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
-                      </select>
-                      <button id="emp-save-${ri}" onclick="saveEmpSettings('${r.id}',${ri})"
-                        style="display:none;padding:6px 12px;background:#7b5fd9;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
-                        저장
-                      </button>
-                      <span id="emp-saved-${ri}" style="display:none;font-size:12px;color:#1a7a45;font-weight:700;">✅ 저장됨</span>
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
+                          style="padding:6px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                          탭 설정 (${allowed.length}개)
+                        </button>
+                        <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
+                        <select id="emp-role-${ri}" onclick="event.stopPropagation()" onchange="markEmpDirty(\'${r.id}\',${ri})"
+                          style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #ddd;background:#fff;">
+                          <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
+                          <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
+                        </select>
+
+                      </div>
                     </div>
                   </div>
                 </td></tr>`;
@@ -4565,7 +4609,8 @@
                 const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
                   ? ALL_TABS.map(t=>t.id)
                   : String(r.allowedTabs).split(',').map(s=>s.trim());
-                return `<tr id="emp-row-${ri}">
+                return `<tr id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')" style="cursor:pointer;"
+                    data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}" data-joindate="${r.joinDate||''}">
                     <td>${r.id||''}</td>
                     <td><strong>${r.name||''}</strong></td>
                     <td>${r.dept||''}</td>
@@ -4573,71 +4618,172 @@
                     <td>${r.joinDate||''}</td>
                     <td><span class="admin-status-badge ${status}">${status}</span></td>
                     <td>
-                      <button onclick="openTabPermModal('${r.id}',${ri})"
+                      <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
                         style="padding:5px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
                         탭 설정 (${allowed.length}개)
                       </button>
                       <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
                     </td>
                     <td>
-                      <select id="emp-role-${ri}" onchange="markEmpDirty('${r.id}',${ri})" style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;">
+                      <select id="emp-role-${ri}" onclick="event.stopPropagation()" onchange="markEmpDirty(\'${r.id}\',${ri})" style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;">
                         <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
                         <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
                       </select>
                     </td>
-                    <td>
-                      <button id="emp-save-${ri}" onclick="saveEmpSettings('${r.id}',${ri})"
-                        style="display:none;padding:4px 10px;background:#7b5fd9;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
-                        저장
-                      </button>
-                      <span id="emp-saved-${ri}" style="display:none;font-size:11px;color:#1a7a45;font-weight:700;">✅ 저장됨</span>
-                    </td>
+
                 </tr>`;
               }).join('');
             }
         } catch(e) { console.error(e); }
     };
 
-    // 변경 감지 → 저장 버튼 표시
-    window.markEmpDirty = function(empId, rowIdx) {
-      const saveBtn = document.getElementById(`emp-save-${rowIdx}`);
-      const savedEl = document.getElementById(`emp-saved-${rowIdx}`);
-      if (saveBtn) saveBtn.style.display = 'inline-block';
-      if (savedEl) savedEl.style.display = 'none';
-    };
+    // ── 직원 선택 상태 ──
+    let _selectedEmpIdx = null;
+    let _selectedEmpId = null;
 
-    // 저장 버튼 클릭 → 앱스스크립트로 전송
-    window.saveEmpSettings = async function(empId, rowIdx) {
-      const saveBtn = document.getElementById(`emp-save-${rowIdx}`);
-      const savedEl = document.getElementById(`emp-saved-${rowIdx}`);
-
-      // hidden input에서 허용탭 읽기
+    window.markEmpDirty = async function(empId, rowIdx) {
+      // 즉시 저장 (저장 버튼 없음)
       const tabsInput = document.getElementById(`emp-tabs-${rowIdx}`);
       const tabsVal = tabsInput ? tabsInput.value : '';
       const checkedTabs = tabsVal ? tabsVal.split(',').filter(Boolean) : [];
       const allowedTabs = checkedTabs.length === ALL_TABS.length ? 'ALL' : checkedTabs.join(',');
-
-      // 권한(role) 수집
       const roleEl = document.getElementById(`emp-role-${rowIdx}`);
       const role = roleEl ? roleEl.value : 'staff';
-
-      if (saveBtn) { saveBtn.textContent = '저장 중...'; saveBtn.disabled = true; }
       try {
         const params = new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role });
         const res = await fetch(`${ERP_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
-          if (saveBtn) saveBtn.style.display = 'none';
-          if (savedEl) savedEl.style.display = 'inline';
-          setTimeout(() => { if (savedEl) savedEl.style.display = 'none'; }, 3000);
-        } else {
-          alert('저장 실패: ' + (data.message || ''));
-          if (saveBtn) { saveBtn.textContent = '저장'; saveBtn.disabled = false; }
-        }
-      } catch(e) {
-        alert('오류: ' + e.message);
-        if (saveBtn) { saveBtn.textContent = '저장'; saveBtn.disabled = false; }
+          // 저장됨 토스트 표시
+          showAdminToast('✅ 저장됨');
+        } else { showAdminToast('❌ ' + (data.message||'오류'), true); }
+      } catch(e) { showAdminToast('❌ 오류: ' + e.message, true); }
+    };
+
+    // 관리자 토스트 메시지
+    function showAdminToast(msg, isError) {
+      let t = document.getElementById('adminToast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'adminToast';
+        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:8px 20px;border-radius:8px;font-size:13px;font-weight:700;z-index:99999;transition:opacity .3s;pointer-events:none;';
+        document.body.appendChild(t);
       }
+      t.textContent = msg;
+      t.style.background = isError ? '#e74c3c' : '#1a7a45';
+      t.style.color = '#fff';
+      t.style.opacity = '1';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.style.opacity = '0', 2000);
+    };
+
+    window.selectEmp = function(idx, empId) {
+      _selectedEmpIdx = idx;
+      _selectedEmpId = empId;
+      // 선택 하이라이트
+      document.querySelectorAll('.emp-card, #adminEmpList tr').forEach(el => {
+        el.style.outline = '';
+        el.style.background = '';
+      });
+      const card = document.getElementById(`emp-card-${idx}`);
+      if (card) {
+        card.style.outline = '2px solid #7b5fd9';
+        card.style.background = '#f9f7ff';
+      }
+      const row = document.getElementById(`emp-row-${idx}`);
+      if (row) row.style.background = '#f3f1fb';
+    };
+
+    // ── 직원 추가/수정 모달 ──
+    let _empModalMode = 'add';
+
+    window.openEmpModal = function(mode) {
+      _empModalMode = mode;
+      const modal = document.getElementById('empModal');
+      const title = document.getElementById('empModalTitle');
+      const idInput = document.getElementById('empModalId');
+      const msg = document.getElementById('empModalMsg');
+      if (msg) msg.textContent = '';
+
+      if (mode === 'edit') {
+        if (_selectedEmpIdx === null) { alert('수정할 직원을 먼저 선택해주세요.'); return; }
+        title.textContent = '직원 정보 수정';
+        idInput.disabled = true;
+        idInput.style.background = '#f5f5f5';
+        // 현재 직원 데이터 채우기
+        const nameEl = document.querySelector(`#emp-row-${_selectedEmpIdx} strong`) ||
+                       document.querySelector(`#emp-card-${_selectedEmpIdx} .emp-card-name`);
+        const row = document.getElementById(`emp-row-${_selectedEmpIdx}`);
+        if (row) {
+          const cells = row.querySelectorAll('td');
+          document.getElementById('empModalId').value = _selectedEmpId || '';
+          // 카드형(모바일)은 data 속성에서 읽기
+          const card = document.getElementById(`emp-card-${_selectedEmpIdx}`);
+          if (card) {
+            document.getElementById('empModalName').value = card.dataset.name || '';
+            document.getElementById('empModalDept').value = card.dataset.dept || '';
+            document.getElementById('empModalTitle').value = card.dataset.title || '';
+            document.getElementById('empModalJoinDate').value = card.dataset.joindate || '';
+          } else if (cells.length >= 5) {
+            document.getElementById('empModalId').value = cells[0]?.textContent || '';
+            document.getElementById('empModalName').value = cells[1]?.textContent || '';
+            document.getElementById('empModalDept').value = cells[2]?.textContent || '';
+            document.getElementById('empModalTitle').value = cells[3]?.textContent || '';
+            document.getElementById('empModalJoinDate').value = cells[4]?.textContent || '';
+          }
+        }
+      } else {
+        title.textContent = '직원 추가';
+        idInput.disabled = false;
+        idInput.style.background = '';
+        ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate']
+          .forEach(fieldId => { const el = document.getElementById(fieldId); if(el) el.value = ''; });
+      }
+      modal.style.display = 'flex';
+    };
+
+    window.closeEmpModal = function() {
+      document.getElementById('empModal').style.display = 'none';
+    };
+
+    window.submitEmpModal = async function() {
+      const id = document.getElementById('empModalId').value.trim().toLowerCase();
+      const name = document.getElementById('empModalName').value.trim();
+      const dept = document.getElementById('empModalDept').value.trim();
+      const title = document.getElementById('empModalTitle').value.trim();
+      const joinDate = document.getElementById('empModalJoinDate').value;
+      const msg = document.getElementById('empModalMsg');
+
+      if (!name) { msg.style.color='#e74c3c'; msg.textContent='이름을 입력해주세요.'; return; }
+      if (_empModalMode === 'add' && !id) { msg.style.color='#e74c3c'; msg.textContent='아이디를 입력해주세요.'; return; }
+
+      msg.style.color='#888'; msg.textContent='저장 중...';
+      try {
+        const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
+        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate });
+        const res = await fetch(`${ERP_URL}?${params}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          msg.style.color='#1a7a45';
+          msg.textContent = _empModalMode === 'add' ? '✅ 직원이 추가되었습니다.' : '✅ 수정되었습니다.';
+          setTimeout(() => { closeEmpModal(); loadEmployees(); }, 1000);
+        } else {
+          msg.style.color='#e74c3c'; msg.textContent='❌ ' + (data.message||'오류가 발생했습니다.');
+        }
+      } catch(e) { msg.style.color='#e74c3c'; msg.textContent='❌ 오류: ' + e.message; }
+    };
+
+    // ── 비밀번호 초기화 ──
+    window.doResetPassword = async function() {
+      if (_selectedEmpId === null) { alert('비밀번호를 초기화할 직원을 먼저 선택해주세요.'); return; }
+      if (!confirm(`[${_selectedEmpId}] 직원의 비밀번호를 0000으로 초기화하시겠습니까?`)) return;
+      try {
+        const params = new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId });
+        const res = await fetch(`${ERP_URL}?${params}`);
+        const data = await res.json();
+        if (data.status === 'ok') alert('✅ 비밀번호가 0000으로 초기화되었습니다.');
+        else alert('❌ ' + (data.message||'오류'));
+      } catch(e) { alert('❌ 오류: ' + e.message); }
     };
 
     // ── 허용탭 모달 ──
@@ -4683,7 +4829,7 @@
       document.getElementById('tabPermModal').style.display = 'none';
     };
 
-    window.saveTabPermFromModal = function() {
+    window.saveTabPermFromModal = async function() {
       const allowedTabs = ALL_TABS.filter(t => {
         const group = document.querySelector(`[data-tabid="${t.id}"]`);
         return group && group.dataset.state === 'on';
@@ -4696,8 +4842,18 @@
       const btn = document.querySelector(`#emp-row-${_tabPermRowIdx} button[onclick*="openTabPermModal"]`);
       if (btn) btn.textContent = `탭 설정 (${allowedTabs.length}개)`;
 
-      markEmpDirty(_tabPermEmpId, _tabPermRowIdx);
       closeTabPermModal();
+
+      // 즉시 서버 저장
+      const roleEl = document.getElementById(`emp-role-${_tabPermRowIdx}`);
+      const role = roleEl ? roleEl.value : 'staff';
+      const finalTabs = allowedTabs.length === ALL_TABS.length ? 'ALL' : allowedTabs.join(',');
+      try {
+        const params = new URLSearchParams({ action: 'updateEmployee', id: _tabPermEmpId, allowedTabs: finalTabs, role });
+        const res = await fetch(`${ERP_URL}?${params}`);
+        const data = await res.json();
+        showAdminToast(data.status === 'ok' ? '✅ 탭 권한 저장됨' : '❌ ' + (data.message||'오류'), data.status !== 'ok');
+      } catch(e) { showAdminToast('❌ 오류: ' + e.message, true); }
     };
 
     // ── 정보 수정 신청 ──
@@ -7867,4 +8023,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-  </html>
+    </html>
