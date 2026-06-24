@@ -2082,9 +2082,18 @@
     <div class="dw-field-row cols-2">
       <div class="dw-field">
         <label>일정</label>
-        <div class="dw-inline-2">
-          <input type="date" id="cfDate">
-          <input type="text" id="cfTime" maxlength="5" style="width:80px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="position:relative;display:inline-flex;align-items:center;border:1px solid #ddd;border-radius:8px;padding:0 10px;height:38px;background:#fff;gap:6px;">
+            <span onclick="document.getElementById('cfDate').showPicker?document.getElementById('cfDate').showPicker():document.getElementById('cfDate').focus()" style="cursor:pointer;font-size:16px;">📅</span>
+            <input type="date" id="cfDate" style="border:none;outline:none;font-size:13px;background:transparent;cursor:pointer;width:120px;">
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <input type="text" id="cfTime" placeholder="09:00" maxlength="5"
+              style="width:80px;height:38px;border:1px solid #ddd;border-radius:8px;padding:0 10px;font-size:13px;text-align:center;cursor:pointer;"
+              onfocus="showTimeDropdown()" oninput="showTimeDropdown()" autocomplete="off">
+            <div id="cfTimeDropdown" style="display:none;position:absolute;top:42px;left:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:200;max-height:200px;overflow-y:auto;min-width:90px;">
+            </div>
+          </div>
         </div>
       </div>
       <div class="dw-field">
@@ -2328,6 +2337,53 @@
       `).join('');
     });
   }
+
+  // ── 시간 드롭다운 (09:00 ~ 17:30, 30분 간격) ──
+  const TIME_SLOTS = [];
+  for (let h = 9; h <= 17; h++) {
+    ['00', '30'].forEach(m => {
+      if (h === 17 && m === '30') { TIME_SLOTS.push('17:30'); return; }
+      if (h < 17 || m === '00') TIME_SLOTS.push(`${String(h).padStart(2,'0')}:${m}`);
+    });
+  }
+  // 09:00~17:30 정확히
+  const SLOTS = [];
+  for (let h = 9; h <= 17; h++) {
+    SLOTS.push(`${String(h).padStart(2,'0')}:00`);
+    if (h < 17) SLOTS.push(`${String(h).padStart(2,'0')}:30`);
+  }
+  SLOTS.push('17:30');
+
+  window.showTimeDropdown = function() {
+    const input = document.getElementById('cfTime');
+    const dd = document.getElementById('cfTimeDropdown');
+    if (!dd) return;
+    const val = (input.value || '').trim();
+    const filtered = val ? SLOTS.filter(s => s.startsWith(val)) : SLOTS;
+    dd.innerHTML = filtered.map(t => `
+      <div onclick="selectTime('${t}')"
+        style="padding:9px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;white-space:nowrap;"
+        onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+        ${t}
+      </div>
+    `).join('') || '<div style="padding:9px 14px;color:#aaa;font-size:12px;">없음</div>';
+    dd.style.display = filtered.length ? 'block' : 'none';
+  };
+
+  window.selectTime = function(t) {
+    const input = document.getElementById('cfTime');
+    if (input) input.value = t;
+    const dd = document.getElementById('cfTimeDropdown');
+    if (dd) dd.style.display = 'none';
+  };
+
+  // 외부 클릭 시 시간 드롭다운 닫기
+  document.addEventListener('click', function(e) {
+    const dd = document.getElementById('cfTimeDropdown');
+    if (dd && !e.target.closest('#cfTimeDropdown') && e.target.id !== 'cfTime') {
+      dd.style.display = 'none';
+    }
+  });
 
   window.toggleCounselorDropdown = function() {
     const dd = document.getElementById('cfCounselorDropdown');
@@ -2610,24 +2666,6 @@
     box.classList.toggle('show', checked);
   };
 
-  // ── 상담자 드롭박스에서 선택 추가 ──
-  function fillCounselorSelect() {
-    loadStaffList().then(list => {
-      const sel = document.getElementById('cfCounselorSelect');
-      if (!sel) return;
-      sel.innerHTML = '<option value="">＋ 상담자 추가</option>' +
-        list.map(name => `<option value="${name}">${name}</option>`).join('');
-    });
-  }
-  window.addCounselorFromSelect = function() {
-    const sel = document.getElementById('cfCounselorSelect');
-    const val = sel.value;
-    if (val) {
-      selectedCounselors.push(val); // 중복 허용
-      renderCounselorList();
-    }
-    sel.value = ''; // 선택 초기화
-  };
   function renderCounselorList() {
     document.getElementById('csCounselorList').innerHTML = selectedCounselors.map((c, i) => `
       <span class="dw-counselor-chip">${c} <span class="x" onclick="removeCounselor(${i})">✕</span></span>
