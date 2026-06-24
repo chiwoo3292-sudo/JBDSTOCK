@@ -1747,7 +1747,11 @@
         if (typeof sendSMS === 'function' && selectedRsv.phone) {
           const templateKey = newStatus === '예약' ? 'confirm' : newStatus === '취소' ? 'cancel' : null;
           if (templateKey) {
-            const schedule = `${csDateDisplay ? csDateDisplay(selectedRsv.date||'') : selectedRsv.date||''} ${selectedRsv.time||''}`.trim();
+            // csDateDisplay가 없을 경우 날짜 그대로 사용
+            const dateFormatted = (typeof csDateDisplay === 'function')
+              ? csDateDisplay(selectedRsv.date||'')
+              : (selectedRsv.date||'');
+            const schedule = `${dateFormatted} ${selectedRsv.time||''}`.trim();
             sendSMS(selectedRsv.phone, selectedRsv.name||'', schedule, selectedRsv.counselor||'', templateKey);
           }
         }
@@ -7818,4 +7822,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-          </html>
+  </html>
