@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-<title>바람 단가 안내 시스템</title>
+<title>지복득마루시스템</title>
 
 <!-- ── PWA 설정 ── -->
 <link rel="manifest" href="manifest.json">
@@ -13,7 +13,7 @@
 <!-- iOS PWA 설정 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="바람ERP">
+<meta name="apple-mobile-web-app-title" content="지복득마루ERP">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
 <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
@@ -598,6 +598,7 @@
       <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
       <button type="button" class="tab-btn" data-tab="noticeTab">공지게시판</button>
       <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
+      <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
       <span id="userInitial">G</span>
@@ -1742,6 +1743,15 @@
         renderRsvList();
         renderRsvDetail(selectedRsv);
         document.getElementById('rsvActionMsg').textContent = `✅ "${newStatus}" 처리 완료`;
+
+        // 문자 발송 (API 연동 후 자동 발송)
+        if (typeof sendSMS === 'function' && selectedRsv.phone) {
+          const templateKey = newStatus === '예약' ? 'confirm' : newStatus === '취소' ? 'cancel' : null;
+          if (templateKey) {
+            const schedule = `${csDateDisplay ? csDateDisplay(selectedRsv.date||'') : selectedRsv.date||''} ${selectedRsv.time||''}`.trim();
+            sendSMS(selectedRsv.phone, selectedRsv.name||'', schedule, selectedRsv.counselor||'', templateKey);
+          }
+        }
       } else {
         document.getElementById('rsvActionMsg').textContent = '❌ 오류: ' + (data.message||'');
       }
@@ -2125,8 +2135,8 @@
           <th style="width:46px;">No.<span class="dw-col-resizer"></span></th>
           <th style="width:34px;"><input type="checkbox" class="dw-checkbox" disabled><span class="dw-col-resizer"></span></th>
           <th style="width:90px; cursor:pointer;" onclick="toggleSort('status')">상태 <span id="sort-status"></span><span class="dw-col-resizer"></span></th>
-          <th style="width:100px; cursor:pointer;" onclick="toggleSort('counselor')">상담자 <span id="sort-counselor"></span><span class="dw-col-resizer"></span></th>
-          <th style="cursor:pointer;" onclick="toggleSort('name')">성함 <span id="sort-name"></span><span class="dw-col-resizer"></span></th>
+          <th style="width:250px; cursor:pointer;" onclick="toggleSort('counselor')">상담자 <span id="sort-counselor"></span><span class="dw-col-resizer"></span></th>
+          <th style="width:100px; cursor:pointer;" onclick="toggleSort('name')">성함 <span id="sort-name"></span><span class="dw-col-resizer"></span></th>
           <th style="cursor:pointer;" onclick="toggleSort('company')">업체명 <span id="sort-company"></span><span class="dw-col-resizer"></span></th>
           <th style="width:160px; cursor:pointer;" onclick="toggleSort('date')">일정 <span id="sort-date">▼</span><span class="dw-col-resizer"></span></th>
           <th style="width:140px;">연락처<span class="dw-col-resizer"></span></th>
@@ -3728,6 +3738,112 @@
 <!-- ========================================================== -->
 <!-- ⚙️ 관리자 탭 -->
 <!-- ========================================================== -->
+<!-- ============================================================ -->
+<!-- 📱 문자발송 탭 -->
+<!-- ============================================================ -->
+<section id="smsTab" class="tab-panel" style="display:none;">
+<style>
+  .sms-wrap { max-width:860px; margin:0 auto; padding:10px 0; }
+  .sms-header { font-size:20px; font-weight:800; color:#222; margin-bottom:6px; }
+  .sms-desc { font-size:13px; color:#888; margin-bottom:20px; }
+  .sms-template-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
+  .sms-template-title { font-size:14px; font-weight:800; color:#7b5fd9; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .sms-vars { font-size:11.5px; color:#aaa; margin-bottom:10px; }
+  .sms-vars span { background:#f3f1fb; color:#7b5fd9; border-radius:4px; padding:2px 7px; margin-right:4px; font-weight:700; }
+  .sms-textarea { width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; resize:vertical; box-sizing:border-box; line-height:1.7; }
+  .sms-footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:12px; }
+  .sms-char-count { font-size:12px; color:#aaa; }
+  .sms-save-btn { padding:9px 22px; border:none; border-radius:8px; background:#7b5fd9; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+  .sms-save-btn:hover { background:#6a4fc3; }
+  .sms-saved-msg { font-size:12px; color:#1a7a45; font-weight:700; display:none; }
+  .sms-send-log-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; }
+  .sms-log-title { font-size:14px; font-weight:800; color:#222; margin-bottom:14px; }
+</style>
+<div class="sms-wrap">
+  <div class="sms-header">📱 문자 발송 관리</div>
+  <div class="sms-desc">문자 템플릿을 수정하고 저장하세요. 저장된 템플릿은 자동 발송 시 사용됩니다.</div>
+
+  <!-- 예약확정 -->
+  <div class="sms-template-card">
+    <div class="sms-template-title">✅ 예약확정 문자</div>
+    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span><span>{상담자}</span></div>
+    <textarea class="sms-textarea" id="smsTemplate_confirm" oninput="updateSmsCharCount('confirm')">[지복득마루] {이름}님, 쇼룸 방문 예약이 확정되었습니다.
+방문일정: {일정}
+담당자: {상담자}
+문의: 031-000-0000</textarea>
+    <div class="sms-footer">
+      <span class="sms-char-count" id="smsCount_confirm">0자</span>
+      <span class="sms-saved-msg" id="smsSaved_confirm">✅ 저장됨</span>
+      <button class="sms-save-btn" onclick="saveSmsTemplate('confirm')">저장</button>
+    </div>
+  </div>
+
+  <!-- 예약취소 -->
+  <div class="sms-template-card">
+    <div class="sms-template-title">❌ 예약취소 문자</div>
+    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span><span>{상담자}</span></div>
+    <textarea class="sms-textarea" id="smsTemplate_cancel" oninput="updateSmsCharCount('cancel')">[지복득마루] {이름}님, 아쉽게도 예약이 취소되었습니다.
+재예약 및 문의: 031-000-0000
+불편을 드려 죄송합니다.</textarea>
+    <div class="sms-footer">
+      <span class="sms-char-count" id="smsCount_cancel">0자</span>
+      <span class="sms-saved-msg" id="smsSaved_cancel">✅ 저장됨</span>
+      <button class="sms-save-btn" onclick="saveSmsTemplate('cancel')">저장</button>
+    </div>
+  </div>
+
+  <!-- 당일예약안내 -->
+  <div class="sms-template-card">
+    <div class="sms-template-title">📅 당일예약안내 문자 <span style="font-size:11px;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-weight:700;">매일 09:00 자동발송 (일요일 제외)</span></div>
+    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span><span>{상담자}</span></div>
+    <textarea class="sms-textarea" id="smsTemplate_today" oninput="updateSmsCharCount('today')">[지복득마루] {이름}님, 오늘 쇼룸 방문 예정이십니다.
+방문일정: {일정}
+담당자: {상담자}
+주소: 경기도 화성시 동탄문화센터로 38
+문의: 031-000-0000</textarea>
+    <div class="sms-footer">
+      <span class="sms-char-count" id="smsCount_today">0자</span>
+      <span class="sms-saved-msg" id="smsSaved_today">✅ 저장됨</span>
+      <button class="sms-save-btn" onclick="saveSmsTemplate('today')">저장</button>
+    </div>
+  </div>
+
+  <!-- 발송 내역 -->
+  <div class="sms-send-log-card">
+    <div class="sms-log-title">📋 최근 발송 내역 <button onclick="loadSmsLog()" style="font-size:12px;padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;margin-left:8px;">🔄 새로고침</button></div>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th style="width:140px;">발송시각</th>
+          <th style="width:100px;">유형</th>
+          <th style="width:80px;">수신자</th>
+          <th style="width:120px;">연락처</th>
+          <th style="width:70px;">결과</th>
+        </tr>
+      </thead>
+      <tbody id="smsLogBody">
+        <tr><td colspan="5" class="admin-empty">내역이 없습니다.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- 허용탭 설정 모달 -->
+<div id="tabPermModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:90%;max-width:420px;padding:24px 24px 20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <h3 style="font-size:15px;font-weight:800;color:#222;margin:0;" id="tabPermModalTitle">탭 권한 설정</h3>
+      <button onclick="closeTabPermModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;">✕</button>
+    </div>
+    <div id="tabPermList" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button onclick="closeTabPermModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
+      <button onclick="saveTabPermFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#7b5fd9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+    </div>
+  </div>
+</div>
+
 <section id="adminTab" class="tab-panel" style="display:none;">
 <style>
   .admin-wrap { max-width:1100px; margin:0 auto; }
@@ -4320,7 +4436,7 @@
       {id:'consultTab',label:'쇼룸상담'},{id:'reservationTab',label:'예약관리'},
       {id:'cardScanTab',label:'명함스캐닝'},{id:'contactsTab',label:'연락처'},
       {id:'floorplanTab',label:'면적분석'},{id:'memoTab',label:'메모장'},
-      {id:'noticeTab',label:'공지게시판'}
+      {id:'noticeTab',label:'공지게시판'},{id:'smsTab',label:'문자발송'}
     ];
 
     window.loadEmployees = async function() {
@@ -4349,10 +4465,11 @@
                     <td>${r.joinDate||''}</td>
                     <td><span class="admin-status-badge ${status}">${status}</span></td>
                     <td>
-                      <details>
-                        <summary id="emp-summary-${ri}" style="cursor:pointer;font-size:11px;color:#7b5fd9;font-weight:700;">탭 설정 (${allowed.length}개)</summary>
-                        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;">${checkboxes}</div>
-                      </details>
+                      <button onclick="openTabPermModal('${r.id}',${ri})"
+                        style="padding:5px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                        탭 설정 (${allowed.length}개)
+                      </button>
+                      <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
                     </td>
                     <td>
                       <select id="emp-role-${ri}" onchange="markEmpDirty('${r.id}',${ri})" style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;">
@@ -4378,27 +4495,17 @@
       const savedEl = document.getElementById(`emp-saved-${rowIdx}`);
       if (saveBtn) saveBtn.style.display = 'inline-block';
       if (savedEl) savedEl.style.display = 'none';
-      // summary 텍스트 업데이트
-      const row = document.getElementById(`emp-row-${rowIdx}`);
-      if (row) {
-        const checked_tabs = Array.from(row.querySelectorAll('input[type=checkbox]:checked')).length;
-        const summary = document.getElementById(`emp-summary-${rowIdx}`);
-        if (summary) summary.textContent = `탭 설정 (${checked_tabs}개)`;
-      }
     };
 
     // 저장 버튼 클릭 → 앱스스크립트로 전송
     window.saveEmpSettings = async function(empId, rowIdx) {
-      const row = document.getElementById(`emp-row-${rowIdx}`);
       const saveBtn = document.getElementById(`emp-save-${rowIdx}`);
       const savedEl = document.getElementById(`emp-saved-${rowIdx}`);
-      if (!row) return;
 
-      // 체크된 탭 수집
-      const checkboxes = row.querySelectorAll('input[type=checkbox]');
-      const checkedTabs = Array.from(checkboxes)
-        .map((cb, i) => cb.checked ? ALL_TABS[i]?.id : null)
-        .filter(Boolean);
+      // hidden input에서 허용탭 읽기
+      const tabsInput = document.getElementById(`emp-tabs-${rowIdx}`);
+      const tabsVal = tabsInput ? tabsInput.value : '';
+      const checkedTabs = tabsVal ? tabsVal.split(',').filter(Boolean) : [];
       const allowedTabs = checkedTabs.length === ALL_TABS.length ? 'ALL' : checkedTabs.join(',');
 
       // 권한(role) 수집
@@ -4422,6 +4529,66 @@
         alert('오류: ' + e.message);
         if (saveBtn) { saveBtn.textContent = '저장'; saveBtn.disabled = false; }
       }
+    };
+
+    // ── 허용탭 모달 ──
+    let _tabPermRowIdx = null;
+    let _tabPermEmpId = null;
+
+    window.openTabPermModal = function(empId, rowIdx) {
+      _tabPermEmpId = empId;
+      _tabPermRowIdx = rowIdx;
+      const tabsInput = document.getElementById(`emp-tabs-${rowIdx}`);
+      const current = tabsInput ? tabsInput.value.split(',').filter(Boolean) : [];
+      const nameEl = document.querySelector(`#emp-row-${rowIdx} td:nth-child(2) strong`);
+      document.getElementById('tabPermModalTitle').textContent = `탭 권한 설정 — ${nameEl ? nameEl.textContent : empId}`;
+      document.getElementById('tabPermList').innerHTML = ALL_TABS.map(t => {
+        const isOn = current.includes(t.id);
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9f9f9;border-radius:8px;">
+            <span style="font-size:13px;font-weight:700;color:#333;">${t.label}</span>
+            <div style="display:flex;gap:6px;" data-tabid="${t.id}" data-state="${isOn?'on':'off'}">
+              <button onclick="setTabPerm('${t.id}',true)"
+                style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
+                  background:${isOn?'#7b5fd9':'#eee'};color:${isOn?'#fff':'#888'};">ON</button>
+              <button onclick="setTabPerm('${t.id}',false)"
+                style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
+                  background:${!isOn?'#e74c3c':'#eee'};color:${!isOn?'#fff':'#888'};">OFF</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('tabPermModal').style.display = 'flex';
+    };
+
+    window.setTabPerm = function(tabId, isOn) {
+      const group = document.querySelector(`[data-tabid="${tabId}"]`);
+      if (!group) return;
+      group.dataset.state = isOn ? 'on' : 'off';
+      const [onBtn, offBtn] = group.querySelectorAll('button');
+      if (onBtn) { onBtn.style.background = isOn ? '#7b5fd9' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
+      if (offBtn) { offBtn.style.background = !isOn ? '#e74c3c' : '#eee'; offBtn.style.color = !isOn ? '#fff' : '#888'; }
+    };
+
+    window.closeTabPermModal = function() {
+      document.getElementById('tabPermModal').style.display = 'none';
+    };
+
+    window.saveTabPermFromModal = function() {
+      const allowedTabs = ALL_TABS.filter(t => {
+        const group = document.querySelector(`[data-tabid="${t.id}"]`);
+        return group && group.dataset.state === 'on';
+      }).map(t => t.id);
+
+      const tabsInput = document.getElementById(`emp-tabs-${_tabPermRowIdx}`);
+      if (tabsInput) tabsInput.value = allowedTabs.join(',');
+
+      // 버튼 텍스트 업데이트
+      const btn = document.querySelector(`#emp-row-${_tabPermRowIdx} button[onclick*="openTabPermModal"]`);
+      if (btn) btn.textContent = `탭 설정 (${allowedTabs.length}개)`;
+
+      markEmpDirty(_tabPermEmpId, _tabPermRowIdx);
+      closeTabPermModal();
     };
 
     // ── 정보 수정 신청 ──
@@ -4519,6 +4686,118 @@
         if (data.status === 'ok') loadInfoRequests();
         else alert('오류: ' + (data.message || ''));
       } catch(e) { alert('오류: ' + e.message); }
+    };
+
+    window.resolveInfoRequest = async function(rowIdx) {
+      if (!confirm('처리 완료로 변경하시겠습니까?')) return;
+      try {
+        const res = await fetch(`${ERP_URL}?action=resolveInfoRequest&rowIdx=${rowIdx}`);
+        const data = await res.json();
+        if (data.status === 'ok') loadInfoRequests();
+        else alert('오류: ' + (data.message || ''));
+      } catch(e) { alert('오류: ' + e.message); }
+    };
+
+    // ── 문자발송 탭 ──
+    const SMS_TEMPLATE_KEYS = { confirm: 'sms_tmpl_confirm', cancel: 'sms_tmpl_cancel', today: 'sms_tmpl_today' };
+
+    // 템플릿 로드 (앱스스크립트에서, 없으면 localStorage 폴백)
+    window.loadSmsTemplates = async function() {
+      try {
+        const res = await fetch(`${ERP_URL}?action=getSmsTemplates`);
+        const data = await res.json();
+        if (data.status === 'ok' && data.templates) {
+          ['confirm','cancel','today'].forEach(k => {
+            const el = document.getElementById(`smsTemplate_${k}`);
+            if (el && data.templates[k]) el.value = data.templates[k];
+            updateSmsCharCount(k);
+          });
+          return;
+        }
+      } catch(e) {}
+      // 폴백: localStorage
+      ['confirm','cancel','today'].forEach(k => {
+        const saved = localStorage.getItem(SMS_TEMPLATE_KEYS[k]);
+        if (saved) { const el = document.getElementById(`smsTemplate_${k}`); if (el) el.value = saved; }
+        updateSmsCharCount(k);
+      });
+    };
+
+    window.updateSmsCharCount = function(key) {
+      const el = document.getElementById(`smsTemplate_${key}`);
+      const cnt = document.getElementById(`smsCount_${key}`);
+      if (el && cnt) cnt.textContent = `${el.value.length}자`;
+    };
+
+    window.saveSmsTemplate = async function(key) {
+      const el = document.getElementById(`smsTemplate_${key}`);
+      const savedEl = document.getElementById(`smsSaved_${key}`);
+      if (!el) return;
+      const text = el.value;
+      // localStorage 저장 (즉시 반영)
+      localStorage.setItem(SMS_TEMPLATE_KEYS[key], text);
+      // 앱스스크립트에도 저장
+      try {
+        const params = new URLSearchParams({ action: 'saveSmsTemplate', key, text });
+        const res = await fetch(`${ERP_URL}?${params}`);
+        const data = await res.json();
+      } catch(e) {}
+      if (savedEl) {
+        savedEl.style.display = 'inline';
+        setTimeout(() => { savedEl.style.display = 'none'; }, 2500);
+      }
+    };
+
+    // ── 문자 발송 공통 함수 (알리고 API 연동 전 골격) ──
+    // TODO: 알리고 API 연동 후 아래 함수 내부만 채우면 됨
+    window.sendSMS = async function(phone, name, schedule, counselor, templateKey) {
+      const tmplEl = document.getElementById(`smsTemplate_${templateKey}`);
+      const savedTmpl = localStorage.getItem(SMS_TEMPLATE_KEYS[templateKey]);
+      let tmpl = (tmplEl ? tmplEl.value : null) || savedTmpl || '';
+      if (!tmpl || !phone) return { ok: false, reason: '템플릿 또는 연락처 없음' };
+
+      // 변수 치환
+      const msg = tmpl
+        .replace(/{이름}/g, name || '')
+        .replace(/{일정}/g, schedule || '')
+        .replace(/{상담자}/g, counselor || '')
+        .replace(/{연락처}/g, phone || '');
+
+      // 📌 알리고 API 연동 후 여기에 실제 발송 로직 추가
+      // const aligoRes = await fetch('https://apis.aligo.in/send/', { ... });
+
+      // 발송 내역 기록
+      try {
+        const typeLabel = { confirm: '예약확정', cancel: '예약취소', today: '당일안내' }[templateKey] || templateKey;
+        await fetch(`${ERP_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result: 'API미연동' })}`);
+      } catch(e) {}
+
+      console.log(`[문자발송] ${templateKey} → ${phone}: ${msg}`);
+      return { ok: true, msg };
+    };
+
+    window.loadSmsLog = async function() {
+      const tbody = document.getElementById('smsLogBody');
+      if (!tbody) return;
+      try {
+        const res = await fetch(`${ERP_URL}?action=getSmsLog`);
+        const data = await res.json();
+        if (!data.rows || !data.rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="admin-empty">내역이 없습니다.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.rows.map(r => `
+          <tr>
+            <td>${r.sentAt||''}</td>
+            <td>${r.type||''}</td>
+            <td>${r.name||''}</td>
+            <td>${r.phone||''}</td>
+            <td><span style="color:${r.result==='성공'?'#1a7a45':'#e74c3c'};font-weight:700;">${r.result||''}</span></td>
+          </tr>
+        `).join('');
+      } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="admin-empty">오류: ${e.message}</td></tr>`;
+      }
     };
 
     // ── 세션 확인 및 자동 로그인 ──
@@ -4841,6 +5120,7 @@ function setTab(tabId) {
     loadEmployees();
     if (typeof loadInfoRequests === 'function') loadInfoRequests();
   }
+  if (tabId === 'smsTab' && typeof loadSmsTemplates === 'function') loadSmsTemplates();
   resetViewportZoom();
   closeHamburger();
 }
@@ -4850,7 +5130,7 @@ const TAB_LABELS = {
   pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
-  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자'
+  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송'
 };
 const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 
