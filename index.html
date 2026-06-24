@@ -1839,17 +1839,33 @@
       <span id="monthlyNoticeSaved" style="display:none;font-size:12px;color:#1a7a45;font-weight:700;">✅ 저장됨</span>
     </div>
 
-    <!-- 월 선택 버튼 -->
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
-      <span style="font-size:12px;color:#999;font-weight:600;align-self:center;margin-right:4px;">월 선택:</span>
-      <div id="monthBtnGroup" style="display:flex;flex-wrap:wrap;gap:6px;">
-        <!-- JS로 렌더링 -->
+    <!-- 월 달력 선택기 -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <span style="font-size:12px;color:#999;font-weight:600;">월 선택:</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="changeNoticeYear(-1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">‹</button>
+        <span id="noticeYear" style="font-size:14px;font-weight:700;color:#333;min-width:48px;text-align:center;"></span>
+        <button onclick="changeNoticeYear(1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;flex:1;max-width:360px;">
+        <button onclick="selectNoticeMonth(1)" id="mBtn_1" class="notice-m-btn">1월</button>
+        <button onclick="selectNoticeMonth(2)" id="mBtn_2" class="notice-m-btn">2월</button>
+        <button onclick="selectNoticeMonth(3)" id="mBtn_3" class="notice-m-btn">3월</button>
+        <button onclick="selectNoticeMonth(4)" id="mBtn_4" class="notice-m-btn">4월</button>
+        <button onclick="selectNoticeMonth(5)" id="mBtn_5" class="notice-m-btn">5월</button>
+        <button onclick="selectNoticeMonth(6)" id="mBtn_6" class="notice-m-btn">6월</button>
+        <button onclick="selectNoticeMonth(7)" id="mBtn_7" class="notice-m-btn">7월</button>
+        <button onclick="selectNoticeMonth(8)" id="mBtn_8" class="notice-m-btn">8월</button>
+        <button onclick="selectNoticeMonth(9)" id="mBtn_9" class="notice-m-btn">9월</button>
+        <button onclick="selectNoticeMonth(10)" id="mBtn_10" class="notice-m-btn">10월</button>
+        <button onclick="selectNoticeMonth(11)" id="mBtn_11" class="notice-m-btn">11월</button>
+        <button onclick="selectNoticeMonth(12)" id="mBtn_12" class="notice-m-btn">12월</button>
       </div>
     </div>
 
-    <!-- 선택한 월 표시 + 텍스트 입력 -->
+    <!-- 선택한 월 + 텍스트 입력 -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <span id="selectedMonthLabel" style="font-size:15px;font-weight:800;color:#222;">1월</span>
+      <span id="selectedMonthLabel" style="font-size:15px;font-weight:800;color:#222;"></span>
       <span style="font-size:11.5px;color:#aaa;">휴무안내 내용을 입력하세요.</span>
     </div>
     <textarea id="monthlyNoticeEditor"
@@ -1857,6 +1873,16 @@
       placeholder="예: 매주 일요일 / 공휴일 - 현충일(6/6)"></textarea>
   </div>
 </div>
+
+<style>
+.notice-m-btn {
+  padding:6px 4px;border-radius:6px;border:1px solid #ddd;background:#fff;
+  color:#555;font-size:12px;font-weight:700;cursor:pointer;text-align:center;
+  transition:all .12s;
+}
+.notice-m-btn:hover { background:#f3f1fb; border-color:#c4b5f5; }
+.notice-m-btn.active { background:#7b5fd9; color:#fff; border-color:#7b5fd9; }
+</style>
 
 </section>
 
@@ -4807,40 +4833,43 @@
     };
 
     // ── 월별 휴무안내 편집 ──
-    let _monthlyData = {}; // { '1': '텍스트', '2': '텍스트', ... }
-    let _selectedMonth = '1';
+    let _monthlyData = {};
+    let _selectedMonth = String(new Date().getMonth() + 1);
+    let _noticeYear = new Date().getFullYear();
 
-    // 월 버튼 렌더링
-    function renderMonthBtns() {
-      const group = document.getElementById('monthBtnGroup');
-      if (!group) return;
-      group.innerHTML = Array.from({length:12}, (_,i) => i+1).map(m => `
-        <button onclick="selectNoticeMonth('${m}')" id="mBtn_${m}"
-          style="padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:${_selectedMonth===String(m)?'#7b5fd9':'#fff'};
-            color:${_selectedMonth===String(m)?'#fff':'#555'};font-size:12px;font-weight:700;cursor:pointer;">
-          ${m}월
-        </button>
-      `).join('');
+    function updateMonthBtns() {
+      for (let m = 1; m <= 12; m++) {
+        const btn = document.getElementById(`mBtn_${m}`);
+        if (btn) btn.classList.toggle('active', String(m) === _selectedMonth);
+      }
+      const yearEl = document.getElementById('noticeYear');
+      if (yearEl) yearEl.textContent = _noticeYear + '년';
+      const label = document.getElementById('selectedMonthLabel');
+      if (label) label.textContent = `${_noticeYear}년 ${_selectedMonth}월`;
     }
 
-    window.selectNoticeMonth = function(m) {
-      // 현재 월 내용 저장
+    window.changeNoticeYear = function(delta) {
       const ed = document.getElementById('monthlyNoticeEditor');
-      if (ed) _monthlyData[_selectedMonth] = ed.value;
-      // 월 전환
+      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
+      _noticeYear += delta;
+      const key = `${_noticeYear}_${_selectedMonth}`;
+      if (ed) ed.value = _monthlyData[key] || '';
+      updateMonthBtns();
+    };
+
+    window.selectNoticeMonth = function(m) {
+      const ed = document.getElementById('monthlyNoticeEditor');
+      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
       _selectedMonth = String(m);
-      const label = document.getElementById('selectedMonthLabel');
-      if (label) label.textContent = `${m}월`;
-      if (ed) ed.value = _monthlyData[_selectedMonth] || '';
-      renderMonthBtns();
+      const key = `${_noticeYear}_${_selectedMonth}`;
+      if (ed) ed.value = _monthlyData[key] || '';
+      updateMonthBtns();
     };
 
     window.saveMonthlyNotice = async function() {
-      // 현재 편집 중인 내용도 저장
       const ed = document.getElementById('monthlyNoticeEditor');
-      if (ed) _monthlyData[_selectedMonth] = ed.value;
+      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
       const savedEl = document.getElementById('monthlyNoticeSaved');
-      // 전체 월 데이터를 JSON으로 직렬화해서 저장
       const noticeJson = JSON.stringify(_monthlyData);
       try {
         const params = new URLSearchParams({ action: 'saveMonthlyNotice', notice: noticeJson });
@@ -4860,22 +4889,19 @@
           try {
             _monthlyData = JSON.parse(data.notice);
           } catch(e) {
-            // 구 형식(HTML 문자열) 폴백
-            _monthlyData = { '1': data.notice };
+            _monthlyData = {};
           }
           const ed = document.getElementById('monthlyNoticeEditor');
-          if (ed) ed.value = _monthlyData[_selectedMonth] || '';
+          const key = `${_noticeYear}_${_selectedMonth}`;
+          if (ed) ed.value = _monthlyData[key] || '';
         }
       } catch(e) {}
-      renderMonthBtns();
-      const label = document.getElementById('selectedMonthLabel');
-      if (label) label.textContent = `${_selectedMonth}월`;
-    };
+      updateMonthBtns();
+    }
 
-    // 에디터 input 시 실시간 캐시 (미리보기 없음)
     document.addEventListener('input', function(e) {
       if (e.target.id === 'monthlyNoticeEditor') {
-        _monthlyData[_selectedMonth] = e.target.value;
+        _monthlyData[`${_noticeYear}_${_selectedMonth}`] = e.target.value;
       }
     });
 
