@@ -1844,7 +1844,7 @@
       <span style="font-size:12px;color:#999;font-weight:600;">월 선택:</span>
       <div style="display:flex;align-items:center;gap:6px;">
         <button onclick="changeNoticeYear(-1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:16px;font-weight:700;color:#555;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&lt;</button>
-        <span id="noticeYear" style="font-size:14px;font-weight:700;color:#333;min-width:60px;text-align:center;"></span>
+        <span id="noticeYear" style="font-size:14px;font-weight:700;color:#333;min-width:60px;text-align:center;">2026년</span>
         <button onclick="changeNoticeYear(1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:16px;font-weight:700;color:#555;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&gt;</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;flex:1;max-width:360px;">
@@ -4836,6 +4836,18 @@
     let _monthlyData = {};
     let _selectedMonth = String(new Date().getMonth() + 1);
     let _noticeYear = new Date().getFullYear();
+
+    // 변수 선언 즉시 DOM 초기화 (비동기 로드 전에도 연도/월 표시)
+    (function initNoticePicker() {
+      const yearEl = document.getElementById('noticeYear');
+      if (yearEl) yearEl.textContent = _noticeYear + '년';
+      for (let m = 1; m <= 12; m++) {
+        const btn = document.getElementById(`mBtn_${m}`);
+        if (btn) btn.classList.toggle('active', String(m) === _selectedMonth);
+      }
+      const label = document.getElementById('selectedMonthLabel');
+      if (label) label.textContent = `${_noticeYear}년 ${_selectedMonth}월`;
+    })();
 
     function updateMonthBtns() {
       for (let m = 1; m <= 12; m++) {
