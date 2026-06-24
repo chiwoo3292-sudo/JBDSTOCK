@@ -1973,6 +1973,20 @@
       padding: 18px 16px 48px;
       box-shadow: none;
     }
+    /* 모든 그리드 행을 1열로 */
+    .dw-form-page .dw-field-row {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+    }
+    /* 라벨 위, 값 아래 구조 유지 */
+    .dw-form-page .dw-field {
+      width: 100% !important;
+    }
+    /* 날짜+시간 가로 배치는 모바일에서도 유지 */
+    .dw-form-page .dw-inline-2 {
+      display: flex;
+      gap: 8px;
+    }
   }
 
   .dw-form-header { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
@@ -2276,7 +2290,14 @@
     <div class="dw-field-row" style="grid-template-columns: 1fr 1.4fr 1fr;">
       <div class="dw-field">
         <label>시공 예정일</label>
-        <input type="date" id="cfWorkDate" style="max-width:160px;">
+        <div style="position:relative;display:inline-flex;align-items:center;border:1px solid #ddd;border-radius:8px;padding:0 10px;height:38px;background:#fff;gap:6px;width:100%;box-sizing:border-box;">
+          <input type="text" id="cfWorkDate" placeholder="" maxlength="10"
+            style="border:none;outline:none;font-size:13px;background:transparent;width:100%;min-width:0;"
+            oninput="formatDateInput(this)">
+          <input type="date" id="cfWorkDatePicker" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
+          <span onclick="document.getElementById('cfWorkDatePicker').showPicker?document.getElementById('cfWorkDatePicker').showPicker():document.getElementById('cfWorkDatePicker').click()"
+            style="cursor:pointer;font-size:15px;color:#888;flex-shrink:0;">📆</span>
+        </div>
       </div>
       <div class="dw-field">
         <label>공사 기간</label>
@@ -2437,7 +2458,11 @@
   document.addEventListener('change', function(e) {
     if (e.target.id === 'cfDatePicker') {
       const txt = document.getElementById('cfDate');
-      if (txt) txt.value = e.target.value; // YYYY-MM-DD 형식
+      if (txt) txt.value = e.target.value;
+    }
+    if (e.target.id === 'cfWorkDatePicker') {
+      const txt = document.getElementById('cfWorkDate');
+      if (txt) txt.value = e.target.value;
     }
   });
 
