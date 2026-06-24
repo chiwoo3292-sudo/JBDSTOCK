@@ -2007,6 +2007,10 @@
     .dw-form-page {
         padding: 18px 16px 48px !important;
     }
+    /* 관리자 직원목록 모바일: 테이블 헤더 숨김 (카드형으로 대체) */
+    #adminEmpThead { display: none; }
+    #adminEmpTable { border: none !important; }
+    #adminEmpTable td { border: none !important; padding: 0 !important; }
   }
 
   /* ===== 등록/상세 폼 - PC: 중앙 모달 / 모바일: 전체화면 ===== */
@@ -3941,8 +3945,8 @@
       <button class="admin-btn" onclick="alert('선택된 직원 수정 추후 구현 예정')">✏ 수정</button>
       <button class="admin-btn" onclick="alert('비밀번호 초기화 추후 구현 예정')">🔑 비밀번호 초기화</button>
     </div>
-    <table class="admin-table">
-      <thead>
+    <table class="admin-table" id="adminEmpTable">
+      <thead id="adminEmpThead">
         <tr>
           <th>아이디</th>
           <th>이름</th>
@@ -4510,17 +4514,57 @@
             const tbody = document.getElementById('adminEmpList');
             if (!tbody) return;
             if (!data.rows || !data.rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="admin-empty">직원 없음</td></tr>'; return; }
-            tbody.innerHTML = data.rows.map((r, ri) => {
+
+            const isMobile = window.innerWidth <= 768;
+
+            if (isMobile) {
+              // 모바일: 카드형 렌더링
+              tbody.innerHTML = data.rows.map((r, ri) => {
+                const status = r.leaveDate ? '퇴직' : '재직';
+                const statusColor = r.leaveDate ? '#e74c3c' : '#1a7a45';
+                const statusBg = r.leaveDate ? '#fdecea' : '#d1f0e0';
+                const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
+                  ? ALL_TABS.map(t=>t.id)
+                  : String(r.allowedTabs).split(',').map(s=>s.trim());
+                return `<tr><td colspan="8" style="padding:0;border:none;">
+                  <div id="emp-row-${ri}" style="background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 16px;margin:6px 0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                      <div>
+                        <span style="font-size:15px;font-weight:800;color:#222;">${r.name||''}</span>
+                        <span style="font-size:12px;color:#888;margin-left:6px;">${r.dept||''} · ${r.title||''}</span>
+                      </div>
+                      <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusBg};color:${statusColor};">${status}</span>
+                    </div>
+                    <div style="font-size:11.5px;color:#999;margin-bottom:10px;">
+                      ID: ${r.id||'-'} ${r.joinDate ? '· 입사: '+r.joinDate : ''}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <button onclick="openTabPermModal('${r.id}',${ri})"
+                        style="padding:6px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                        탭 설정 (${allowed.length}개)
+                      </button>
+                      <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
+                      <select id="emp-role-${ri}" onchange="markEmpDirty('${r.id}',${ri})"
+                        style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #ddd;background:#fff;">
+                        <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
+                        <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
+                      </select>
+                      <button id="emp-save-${ri}" onclick="saveEmpSettings('${r.id}',${ri})"
+                        style="display:none;padding:6px 12px;background:#7b5fd9;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                        저장
+                      </button>
+                      <span id="emp-saved-${ri}" style="display:none;font-size:12px;color:#1a7a45;font-weight:700;">✅ 저장됨</span>
+                    </div>
+                  </div>
+                </td></tr>`;
+              }).join('');
+            } else {
+              // PC: 기존 테이블 방식
+              tbody.innerHTML = data.rows.map((r, ri) => {
                 const status = r.leaveDate ? '퇴직' : '재직';
                 const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
                   ? ALL_TABS.map(t=>t.id)
                   : String(r.allowedTabs).split(',').map(s=>s.trim());
-                const checkboxes = ALL_TABS.map(t => `
-                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;">
-                    <input type="checkbox" ${allowed.includes(t.id)?'checked':''}
-                      onchange="markEmpDirty('${r.id}',${ri})">
-                    ${t.label}
-                  </label>`).join('');
                 return `<tr id="emp-row-${ri}">
                     <td>${r.id||''}</td>
                     <td><strong>${r.name||''}</strong></td>
@@ -4549,7 +4593,8 @@
                       <span id="emp-saved-${ri}" style="display:none;font-size:11px;color:#1a7a45;font-weight:700;">✅ 저장됨</span>
                     </td>
                 </tr>`;
-            }).join('');
+              }).join('');
+            }
         } catch(e) { console.error(e); }
     };
 
@@ -7822,4 +7867,4 @@ if ('serviceWorker' in navigator) {
 </section><!-- /#mainSection -->
 
 </body>
-  </html>
+            </html>
