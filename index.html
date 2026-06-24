@@ -2068,9 +2068,11 @@
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div class="dw-counselor-list" id="csCounselorList" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
           <div style="position:relative;display:inline-block;">
-            <button type="button" onclick="toggleCounselorDropdown()" 
-              style="width:30px;height:30px;border-radius:50%;border:2px solid #7b5fd9;background:#fff;color:#7b5fd9;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">＋</button>
-            <div id="cfCounselorDropdown" style="display:none;position:absolute;top:36px;left:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);min-width:160px;z-index:100;overflow:hidden;">
+            <button type="button" onclick="toggleCounselorDropdown()"
+              style="display:flex;align-items:center;gap:4px;padding:5px 12px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#444;font-size:13px;font-weight:600;cursor:pointer;">
+              + 추가
+            </button>
+            <div id="cfCounselorDropdown" style="display:none;position:absolute;top:36px;left:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);min-width:160px;z-index:1000;overflow:hidden;">
               <div id="cfCounselorOptions" style="max-height:200px;overflow-y:auto;">
                 <div style="padding:10px;color:#aaa;font-size:12px;">로딩 중...</div>
               </div>
@@ -2084,15 +2086,19 @@
       <div class="dw-field">
         <label>일정</label>
         <div style="display:flex;align-items:center;gap:6px;">
-          <div style="position:relative;display:inline-flex;align-items:center;border:1px solid #ddd;border-radius:8px;padding:0 10px;height:38px;background:#fff;gap:6px;">
-            <span onclick="document.getElementById('cfDate').showPicker?document.getElementById('cfDate').showPicker():document.getElementById('cfDate').focus()" style="cursor:pointer;font-size:16px;">📅</span>
-            <input type="date" id="cfDate" style="border:none;outline:none;font-size:13px;background:transparent;cursor:pointer;width:120px;">
+          <div style="position:relative;display:inline-flex;align-items:center;border:1px solid #ddd;border-radius:8px;padding:0 10px;height:38px;background:#fff;gap:6px;flex:1;">
+            <input type="text" id="cfDate" placeholder="YYYY-MM-DD" maxlength="10"
+              style="border:none;outline:none;font-size:13px;background:transparent;width:100%;min-width:0;"
+              oninput="formatDateInput(this)">
+            <input type="date" id="cfDatePicker" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
+            <span onclick="document.getElementById('cfDatePicker').showPicker?document.getElementById('cfDatePicker').showPicker():document.getElementById('cfDatePicker').click()"
+              style="cursor:pointer;font-size:15px;color:#888;flex-shrink:0;">📆</span>
           </div>
           <div style="position:relative;display:inline-block;">
             <input type="text" id="cfTime" placeholder="09:00" maxlength="5"
               style="width:80px;height:38px;border:1px solid #ddd;border-radius:8px;padding:0 10px;font-size:13px;text-align:center;cursor:pointer;"
               onfocus="showTimeDropdown()" oninput="showTimeDropdown()" autocomplete="off">
-            <div id="cfTimeDropdown" style="display:none;position:absolute;top:42px;left:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:200;max-height:200px;overflow-y:auto;min-width:90px;">
+            <div id="cfTimeDropdown" style="display:none;position:absolute;top:42px;left:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:1000;max-height:200px;overflow-y:auto;min-width:90px;">
             </div>
           </div>
         </div>
@@ -2338,6 +2344,21 @@
       `).join('');
     });
   }
+
+  // ── 날짜 피커 → 텍스트 인풋 동기화 ──
+  window.formatDateInput = function(input) {
+    let v = input.value.replace(/[^0-9]/g, '');
+    if (v.length > 4) v = v.slice(0,4) + '-' + v.slice(4);
+    if (v.length > 7) v = v.slice(0,7) + '-' + v.slice(7);
+    input.value = v.slice(0, 10);
+  };
+
+  document.addEventListener('change', function(e) {
+    if (e.target.id === 'cfDatePicker') {
+      const txt = document.getElementById('cfDate');
+      if (txt) txt.value = e.target.value; // YYYY-MM-DD 형식
+    }
+  });
 
   // ── 시간 드롭다운 (09:00 ~ 17:30, 30분 간격) ──
   const TIME_SLOTS = [];
