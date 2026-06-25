@@ -4593,8 +4593,16 @@ function csDateInputValue(val) {
         const params = new URLSearchParams({ action: 'updateEmployee', id: _tabPermEmpId, allowedTabs: finalTabs, role });
         const res = await fetch(`${ERP_URL}?${params}`);
         const data = await res.json();
-        showAdminToast(data.status === 'ok' ? '✅ 탭 권한 저장됨' : '❌ ' + (data.message||'오류'), data.status !== 'ok');
-      } catch(e) { showAdminToast('❌ 오류: ' + e.message, true); }
+        if (data.status === 'ok') {
+          showAdminToast('✅ 탭 권한 저장됨');
+        } else {
+          showAdminToast('❌ 저장 실패: ' + (data.message||''), true);
+          alert('탭 권한 저장 실패: ' + (data.message||'서버 오류'));
+        }
+      } catch(e) {
+        showAdminToast('❌ 오류: ' + e.message, true);
+        alert('탭 권한 저장 오류: ' + e.message);
+      }
     };
 
     // ── 정보 수정 신청 ──
@@ -5191,18 +5199,36 @@ function setTab(tabId) {
   });
   localStorage.setItem('baram_last_tab', tabId);
   if (tabId === 'reservationTab' && typeof loadReservations === 'function') {
-    loadReservations();
+    // 예약목록 + 월별휴무안내 병렬 로드
+    Promise.all([
+      loadReservations(),
+      typeof loadMonthlyNoticeEditor === 'function' ? loadMonthlyNoticeEditor() : Promise.resolve()
+    ]);
     const badge = document.getElementById('rsvPendingBadge');
     if (badge) badge.style.display = 'none';
-    if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
   }
-  if (tabId === 'consultTab' && typeof loadConsults === 'function') loadConsults();
+  if (tabId === 'consultTab' && typeof loadConsults === 'function') {
+    // 쇼룸상담 목록 + 직원맵 병렬 로드
+    Promise.all([
+      loadConsults(),
+      typeof loadAllStaffMap === 'function' ? loadAllStaffMap() : Promise.resolve()
+    ]);
+  }
   if (tabId === 'noticeTab' && typeof loadNotices === 'function') loadNotices();
   if (tabId === 'adminTab' && typeof loadEmployees === 'function') {
-    loadEmployees();
-    if (typeof loadInfoRequests === 'function') loadInfoRequests();
+    // 직원목록 + 수정신청목록 병렬 로드
+    Promise.all([
+      loadEmployees(),
+      typeof loadInfoRequests === 'function' ? loadInfoRequests() : Promise.resolve()
+    ]);
   }
-  if (tabId === 'smsTab' && typeof loadSmsTemplates === 'function') loadSmsTemplates();
+  if (tabId === 'smsTab' && typeof loadSmsTemplates === 'function') {
+    // SMS 템플릿 + 발송내역 병렬 로드
+    Promise.all([
+      loadSmsTemplates(),
+      typeof loadSmsLog === 'function' ? loadSmsLog() : Promise.resolve()
+    ]);
+  }
   resetViewportZoom();
   closeHamburger();
 }
