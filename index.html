@@ -2480,7 +2480,7 @@
   // 날짜 필터 (외부 변수 참조)
   function getCsDateFilter() { return typeof csDateFilter !== 'undefined' ? csDateFilter : null; } // 상담자 목록 (이름+직함 문자열 배열)
 
-  // ── 직원 목록 실시간 로드 (영업부서만) ──
+  // ── 직원 목록 실시간 로드 (전 직원) ──
   let _staffListCache = null;
   let _allStaffMapCache = null; // 전 직원 이름→직급 맵
 
@@ -2525,9 +2525,8 @@
       const res = await fetch(`${ERP_URL}?action=getEmployees`);
       const data = await res.json();
       const allActive = (data.rows || []).filter(r => !r.leaveDate);
-      const salesStaff = allActive.filter(r => String(r.dept||'').includes('영업'));
-      _staffListCache = (salesStaff.length > 0 ? salesStaff : allActive)
-        .map(r => `${r.name} ${r.title}`);
+      // 전 직원 표시 (영업 필터 제거)
+      _staffListCache = allActive.map(r => `${r.name} ${r.title}`.trim());
     } catch(e) {
       _staffListCache = [];
     }
@@ -3660,21 +3659,21 @@ function csDateInputValue(val) {
 </div>
 
 <!-- 직원 추가/수정 모달 -->
-<div id="empModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;width:90%;max-width:420px;padding:26px 24px 22px;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+<div id="empModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:center;justify-content:center;overflow-y:auto;">
+  <div style="background:#fff;border-radius:14px;width:90%;max-width:460px;padding:26px 24px 22px;box-shadow:0 8px 40px rgba(0,0,0,0.18);margin:20px auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <h3 id="empModalTitle" style="font-size:15px;font-weight:800;color:#222;margin:0;">직원 추가</h3>
       <button onclick="closeEmpModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;">✕</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div>
-        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">아이디 <span style="color:#e74c3c;">*</span></label>
-        <input id="empModalId" type="text" placeholder="로그인 아이디 (영문/숫자)"
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">이름 <span style="color:#e74c3c;">*</span></label>
+        <input id="empModalName" type="text" placeholder="홍길동"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div>
-        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">이름 <span style="color:#e74c3c;">*</span></label>
-        <input id="empModalName" type="text" placeholder="홍길동"
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">아이디 <span style="color:#e74c3c;">*</span></label>
+        <input id="empModalId" type="text" placeholder="로그인 아이디 (영문/숫자)"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -3694,8 +3693,25 @@ function csDateInputValue(val) {
         <input id="empModalJoinDate" type="date"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
-      <div style="background:#f8f7fc;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">사내 이메일</label>
+        <input id="empModalEmail" type="email" placeholder="example@company.com"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">잔여 연차</label>
+        <input id="empModalAnnualLeave" type="number" placeholder="0" min="0" max="99"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <!-- 추가 시: 초기 비밀번호 안내 -->
+      <div id="empModalPwHint" style="background:#f8f7fc;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
         🔒 초기 비밀번호: <strong style="color:#7b5fd9;">0000</strong>
+      </div>
+      <!-- 수정 시: 비밀번호 초기화 버튼 -->
+      <div id="empModalPwReset" style="display:none;">
+        <button onclick="doResetPasswordFromModal()" style="width:100%;padding:9px;border:1px solid #e74c3c;border-radius:8px;background:#fff;color:#e74c3c;font-size:13px;font-weight:700;cursor:pointer;">
+          🔑 비밀번호 0000으로 초기화
+        </button>
       </div>
     </div>
     <div id="empModalMsg" style="font-size:12px;min-height:18px;margin-top:10px;"></div>
@@ -3737,20 +3753,19 @@ function csDateInputValue(val) {
     <div class="admin-toolbar">
       <button class="admin-btn primary" onclick="openEmpModal('add')">＋ 직원 추가</button>
       <button class="admin-btn" onclick="openEmpModal('edit')" id="empEditBtn">✏ 수정</button>
-      <button class="admin-btn" onclick="doResetPassword()" id="empResetBtn">🔑 비밀번호 초기화</button>
+      <button class="admin-btn danger" onclick="doDeleteEmp()" id="empDeleteBtn" style="background:#fff;color:#e74c3c;border:1px solid #e74c3c;">🗑 삭제</button>
     </div>
     <table class="admin-table" id="adminEmpTable">
       <thead id="adminEmpThead">
         <tr>
-          <th>아이디</th>
           <th>이름</th>
+          <th>아이디</th>
           <th>부서</th>
           <th>직급</th>
           <th>입사일</th>
           <th>재직상태</th>
           <th>허용탭</th>
-          <th>권한</th>
-          
+          <th style="width:70px;">권한</th>
         </tr>
       </thead>
       <tbody id="adminEmpList">
@@ -3767,7 +3782,7 @@ function csDateInputValue(val) {
       <thead>
         <tr>
           <th style="width:60px;">번호</th>
-          <th style="width:80px;">신청자</th>
+          <th style="width:110px;">신청자</th>
           <th>신청 내용</th>
           <th style="width:140px;">신청 시각</th>
           <th style="width:80px;">상태</th>
@@ -4309,22 +4324,33 @@ function csDateInputValue(val) {
             if (!tbody) return;
             if (!data.rows || !data.rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="admin-empty">직원 없음</td></tr>'; return; }
 
+            // 직급 순서 정의 (높은 직급 먼저)
+            const TITLE_ORDER = ['대표이사','CEO','부회장','회장','사장','부사장','전무','상무','이사','본부장','실장','부장','차장','과장','팀장','대리','주임','사원','인턴'];
+            const getTitleRank = (title) => {
+              const t = String(title||'');
+              const idx = TITLE_ORDER.findIndex(o => t.includes(o));
+              return idx === -1 ? 999 : idx;
+            };
+            const sorted = [...data.rows].sort((a,b) => getTitleRank(a.title) - getTitleRank(b.title));
+
             const isMobile = window.innerWidth <= 768;
 
             if (isMobile) {
               // 모바일: 카드형 렌더링
-              tbody.innerHTML = data.rows.map((r, ri) => {
-                const status = r.leaveDate ? '퇴직' : '재직';
+              tbody.innerHTML = sorted.map((r, ri) => {
+                const status = r.leaveDate ? '퇴직' : '재직 중';
                 const statusColor = r.leaveDate ? '#e74c3c' : '#1a7a45';
                 const statusBg = r.leaveDate ? '#fdecea' : '#d1f0e0';
                 const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
                   ? ALL_TABS.map(t=>t.id)
                   : String(r.allowedTabs).split(',').map(s=>s.trim());
+                const roleLabel = (r.role||'staff').toUpperCase();
                 return `<tr><td colspan="8" style="padding:0;border:none;">
                   <div id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')"
                     style="background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 16px;margin:6px 0;cursor:pointer;transition:all .1s;">
                     <div id="emp-card-${ri}" class="emp-card"
-                      data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}" data-joindate="${r.joinDate||''}">
+                      data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}"
+                      data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}">
                       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
                           <span class="emp-card-name" style="font-size:15px;font-weight:800;color:#222;">${r.name||''}</span>
@@ -4339,31 +4365,32 @@ function csDateInputValue(val) {
                         </button>
                         <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
                         <select id="emp-role-${ri}" onclick="event.stopPropagation()" onchange="markEmpDirty(\'${r.id}\',${ri})"
-                          style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #ddd;background:#fff;">
-                          <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
-                          <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
+                          style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid #ddd;background:#fff;font-weight:700;width:72px;">
+                          <option value="staff" ${(r.role||'staff')==='staff'?'selected':''}>STAFF</option>
+                          <option value="admin" ${r.role==='admin'?'selected':''}>ADMIN</option>
                         </select>
-
                       </div>
                     </div>
                   </div>
                 </td></tr>`;
               }).join('');
             } else {
-              // PC: 기존 테이블 방식
-              tbody.innerHTML = data.rows.map((r, ri) => {
-                const status = r.leaveDate ? '퇴직' : '재직';
+              // PC: 테이블 방식 (이름 첫째, 직급 정렬)
+              tbody.innerHTML = sorted.map((r, ri) => {
+                const status = r.leaveDate ? '퇴직' : '재직 중';
+                const statusClass = r.leaveDate ? '퇴직' : '재직';
                 const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
                   ? ALL_TABS.map(t=>t.id)
                   : String(r.allowedTabs).split(',').map(s=>s.trim());
                 return `<tr id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')" style="cursor:pointer;"
-                    data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}" data-joindate="${r.joinDate||''}">
-                    <td>${r.id||''}</td>
+                    data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}"
+                    data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}">
                     <td><strong>${r.name||''}</strong></td>
+                    <td style="color:#aaa;font-size:12px;">${r.id||''}</td>
                     <td>${r.dept||''}</td>
                     <td>${r.title||''}</td>
                     <td>${r.joinDate||''}</td>
-                    <td><span class="admin-status-badge ${status}">${status}</span></td>
+                    <td><span class="admin-status-badge ${statusClass}">${status}</span></td>
                     <td>
                       <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
                         style="padding:5px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
@@ -4372,12 +4399,12 @@ function csDateInputValue(val) {
                       <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
                     </td>
                     <td>
-                      <select id="emp-role-${ri}" onclick="event.stopPropagation()" onchange="markEmpDirty(\'${r.id}\',${ri})" style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;">
-                        <option value="staff" ${r.role==='staff'?'selected':''}>staff</option>
-                        <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
+                      <select id="emp-role-${ri}" onclick="event.stopPropagation()" onchange="markEmpDirty(\'${r.id}\',${ri})"
+                        style="font-size:11px;padding:3px 4px;border-radius:4px;border:1px solid #ddd;font-weight:700;width:68px;">
+                        <option value="staff" ${(r.role||'staff')==='staff'?'selected':''}>STAFF</option>
+                        <option value="admin" ${r.role==='admin'?'selected':''}>ADMIN</option>
                       </select>
                     </td>
-
                 </tr>`;
               }).join('');
             }
@@ -4439,6 +4466,8 @@ function csDateInputValue(val) {
       }
       const row = document.getElementById(`emp-row-${idx}`);
       if (row) row.style.background = '#f3f1fb';
+      // 6번: 선택 시 상세정보 바로 표시 (수정 모달 열기)
+      openEmpModal('edit');
     };
 
     // ── 직원 추가/수정 모달 ──
@@ -4450,40 +4479,35 @@ function csDateInputValue(val) {
       const title = document.getElementById('empModalTitle');
       const idInput = document.getElementById('empModalId');
       const msg = document.getElementById('empModalMsg');
+      const pwHint = document.getElementById('empModalPwHint');
+      const pwReset = document.getElementById('empModalPwReset');
       if (msg) msg.textContent = '';
 
       if (mode === 'edit') {
-        if (_selectedEmpIdx === null) { alert('수정할 직원을 먼저 선택해주세요.'); return; }
+        if (_selectedEmpIdx === null) { alert('직원을 먼저 선택해주세요.'); return; }
         title.textContent = '직원 정보 수정';
-        idInput.disabled = true;
-        idInput.style.background = '#f5f5f5';
-        // 현재 직원 데이터 채우기
-        const nameEl = document.querySelector(`#emp-row-${_selectedEmpIdx} strong`) ||
-                       document.querySelector(`#emp-card-${_selectedEmpIdx} .emp-card-name`);
+        if (idInput) { idInput.disabled = true; idInput.style.background = '#f5f5f5'; }
+        if (pwHint) pwHint.style.display = 'none';
+        if (pwReset) pwReset.style.display = 'block';
+        // data 속성에서 읽기
         const row = document.getElementById(`emp-row-${_selectedEmpIdx}`);
-        if (row) {
-          const cells = row.querySelectorAll('td');
+        const card = document.getElementById(`emp-card-${_selectedEmpIdx}`);
+        const src = card || row;
+        if (src) {
           document.getElementById('empModalId').value = _selectedEmpId || '';
-          // 카드형(모바일)은 data 속성에서 읽기
-          const card = document.getElementById(`emp-card-${_selectedEmpIdx}`);
-          if (card) {
-            document.getElementById('empModalName').value = card.dataset.name || '';
-            document.getElementById('empModalDept').value = card.dataset.dept || '';
-            document.getElementById('empModalTitle').value = card.dataset.title || '';
-            document.getElementById('empModalJoinDate').value = card.dataset.joindate || '';
-          } else if (cells.length >= 5) {
-            document.getElementById('empModalId').value = cells[0]?.textContent || '';
-            document.getElementById('empModalName').value = cells[1]?.textContent || '';
-            document.getElementById('empModalDept').value = cells[2]?.textContent || '';
-            document.getElementById('empModalTitle').value = cells[3]?.textContent || '';
-            document.getElementById('empModalJoinDate').value = cells[4]?.textContent || '';
-          }
+          document.getElementById('empModalName').value = src.dataset.name || '';
+          document.getElementById('empModalDept').value = src.dataset.dept || '';
+          document.getElementById('empModalTitle').value = src.dataset.title || '';
+          document.getElementById('empModalJoinDate').value = src.dataset.joindate || '';
+          document.getElementById('empModalEmail').value = src.dataset.email || '';
+          document.getElementById('empModalAnnualLeave').value = src.dataset.annualleave || '';
         }
       } else {
         title.textContent = '직원 추가';
-        idInput.disabled = false;
-        idInput.style.background = '';
-        ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate']
+        if (idInput) { idInput.disabled = false; idInput.style.background = ''; }
+        if (pwHint) pwHint.style.display = 'block';
+        if (pwReset) pwReset.style.display = 'none';
+        ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate','empModalEmail','empModalAnnualLeave']
           .forEach(fieldId => { const el = document.getElementById(fieldId); if(el) el.value = ''; });
       }
       modal.style.display = 'flex';
@@ -4499,6 +4523,8 @@ function csDateInputValue(val) {
       const dept = document.getElementById('empModalDept').value.trim();
       const title = document.getElementById('empModalTitle').value.trim();
       const joinDate = document.getElementById('empModalJoinDate').value;
+      const email = document.getElementById('empModalEmail').value.trim();
+      const annualLeave = document.getElementById('empModalAnnualLeave').value;
       const msg = document.getElementById('empModalMsg');
 
       if (!name) { msg.style.color='#e74c3c'; msg.textContent='이름을 입력해주세요.'; return; }
@@ -4507,7 +4533,7 @@ function csDateInputValue(val) {
       msg.style.color='#888'; msg.textContent='저장 중...';
       try {
         const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
-        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate });
+        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, annualLeave });
         const res = await fetch(`${ERP_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
@@ -4520,7 +4546,37 @@ function csDateInputValue(val) {
       } catch(e) { msg.style.color='#e74c3c'; msg.textContent='❌ 오류: ' + e.message; }
     };
 
-    // ── 비밀번호 초기화 ──
+    // ── 비밀번호 초기화 (모달 내부) ──
+    window.doResetPasswordFromModal = async function() {
+      if (!_selectedEmpId) { alert('직원을 먼저 선택해주세요.'); return; }
+      if (!confirm(`[${_selectedEmpId}] 직원의 비밀번호를 0000으로 초기화하시겠습니까?`)) return;
+      const msg = document.getElementById('empModalMsg');
+      try {
+        const res = await fetch(`${ERP_URL}?${new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId })}`);
+        const data = await res.json();
+        if (data.status === 'ok') { msg.style.color='#1a7a45'; msg.textContent='✅ 비밀번호가 0000으로 초기화되었습니다.'; }
+        else { msg.style.color='#e74c3c'; msg.textContent='❌ ' + (data.message||'오류'); }
+      } catch(e) { msg.style.color='#e74c3c'; msg.textContent='❌ 오류: ' + e.message; }
+    };
+
+    // ── 직원 삭제 ──
+    window.doDeleteEmp = async function() {
+      if (_selectedEmpId === null) { alert('삭제할 직원을 먼저 선택해주세요.'); return; }
+      const row = document.getElementById(`emp-row-${_selectedEmpIdx}`);
+      const name = row ? (row.dataset.name || _selectedEmpId) : _selectedEmpId;
+      if (!confirm(`[${name}] 직원을 삭제하시겠습니까?\n※ 실제 삭제는 구글시트에서 직접 처리해주세요.`)) return;
+      // 퇴직 처리 (leaveDate 오늘로 설정)
+      try {
+        const today = new Date().toISOString().slice(0,10);
+        const params = new URLSearchParams({ action: 'updateEmployeeLeave', id: _selectedEmpId, leaveDate: today });
+        const res = await fetch(`${ERP_URL}?${params}`);
+        const data = await res.json();
+        if (data.status === 'ok') { showAdminToast('✅ 퇴직 처리되었습니다.'); loadEmployees(); }
+        else { alert('❌ ' + (data.message||'오류')); }
+      } catch(e) { alert('❌ 오류: ' + e.message); }
+    };
+
+    // ── 비밀번호 초기화 (구버전 호환) ──
     window.doResetPassword = async function() {
       if (_selectedEmpId === null) { alert('비밀번호를 초기화할 직원을 먼저 선택해주세요.'); return; }
       if (!confirm(`[${_selectedEmpId}] 직원의 비밀번호를 0000으로 초기화하시겠습니까?`)) return;
@@ -4947,40 +5003,61 @@ function csDateInputValue(val) {
         const memoArea = document.getElementById('workMemo');
         if (!memoArea) return;
 
-        // 1. 최초 저장 데이터 로드
-        memoArea.value = localStorage.getItem('baram_work_memo') || '';
+        let _memoSaveTimer = null;
 
-        // 타이핑 시 글씨를 쓰고 있는 '줄'을 감지해서 항상 내 눈높이(모니터 중간)에 맞춰주는 특수 마법 함수
+        // 현재 로그인 직원 ID 가져오기
+        function getCurrentUserId() {
+          const user = JSON.parse(sessionStorage.getItem('baram_user') || localStorage.getItem('baram_user') || 'null');
+          return user ? (user.id || 'guest') : 'guest';
+        }
+
+        // 1. 서버에서 메모 로드 (직원별)
+        async function loadMemo() {
+          const uid = getCurrentUserId();
+          // 로컬 캐시 먼저 표시
+          memoArea.value = localStorage.getItem(`memo_${uid}`) || '';
+          try {
+            const res = await fetch(`${ERP_URL}?action=getMemo&userId=${encodeURIComponent(uid)}`);
+            const data = await res.json();
+            if (data.status === 'ok' && data.memo !== undefined) {
+              memoArea.value = data.memo;
+              localStorage.setItem(`memo_${uid}`, data.memo);
+            }
+          } catch(e) { /* 로컬 캐시 유지 */ }
+        }
+
+        // 2. 서버에 메모 저장 (디바운스 2초)
+        async function saveMemo() {
+          const uid = getCurrentUserId();
+          const content = memoArea.value;
+          localStorage.setItem(`memo_${uid}`, content);
+          try {
+            const params = new URLSearchParams({ action: 'saveMemo', userId: uid, memo: content });
+            await fetch(`${ERP_URL}?${params}`);
+          } catch(e) { /* 로컬에는 저장됨 */ }
+        }
+
         const keepEyesLevel = () => {
-            // 메모 탭이 숨겨져 있을 때는 스크롤 보정을 완전히 정지 (비밀번호 화면 등 튕김 차단)
             const panel = document.getElementById('memoTab');
             if (!panel || panel.style.display === 'none') return;
-
-            // 현재 사용자가 글자를 입력하고 있는 커서의 줄 위치 계산
             const cursorPosition = memoArea.selectionStart;
             const textUpToCursor = memoArea.value.substring(0, cursorPosition);
             const currentLineNum = textUpToCursor.split('\n').length;
-            const totalLines = memoArea.value.split('\n').length;
-
-            // 줄바꿈이 일어났거나 긴 글 하단을 수정 중일 때
-            const lineHeight = 24; // 글자 크기 대비 1줄당 대략적인 높이(px)
+            const lineHeight = 24;
             const currentCursorTop = currentLineNum * lineHeight;
             const memoVisibleHeight = memoArea.clientHeight;
-
-            // 커서가 입력창 내에서 현재 보여지는 스크롤 화면의 하단 구역(70% 지점)을 넘어가려고 하면
             if (currentCursorTop > memoArea.scrollTop + (memoVisibleHeight * 0.7)) {
-                // 커서 줄이 메모창의 정중앙에 배치되도록 메모장 내부 스크롤을 실시간으로 슥 올려줍니다.
                 memoArea.scrollTop = currentCursorTop - (memoVisibleHeight / 2);
             }
         };
 
-        // 2. 글자 입력할 때마다 저장 및 눈높이 추적 실행
         memoArea.addEventListener('input', () => {
-            localStorage.setItem('baram_work_memo', memoArea.value);
             keepEyesLevel();
+            // 디바운스: 2초 후 자동 저장
+            clearTimeout(_memoSaveTimer);
+            _memoSaveTimer = setTimeout(saveMemo, 2000);
         });
 
-        // 방향키 이동, 엔터, 지우기, 마우스 클릭 시에도 완벽하게 내 시선을 추적합니다.
         memoArea.addEventListener('click', keepEyesLevel);
         memoArea.addEventListener('keyup', (e) => {
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace'].includes(e.key)) {
@@ -4988,18 +5065,22 @@ function csDateInputValue(val) {
             }
         });
 
-        // 3. 상단 탭 버튼 클릭하여 메모장 켜질 때 스크롤 초기 세팅
-
-        // 전체 삭제 기능 연동
         const clearBtn = document.getElementById('clearMemo');
         if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
+            clearBtn.addEventListener('click', async () => {
                 if (confirm('메모장의 모든 내용을 정말로 삭제하시겠습니까?')) {
                     memoArea.value = '';
-                    localStorage.removeItem('baram_work_memo');
+                    await saveMemo();
                 }
             });
         }
+
+        // 메모장 탭 진입 시 로드
+        document.addEventListener('tabChanged', (e) => {
+          if (e.detail === 'memoTab') loadMemo();
+        });
+        // 초기 로드 (이미 메모탭이 열려있을 경우)
+        if (document.getElementById('memoTab').style.display !== 'none') loadMemo();
     })();
     </script>
 
@@ -5227,6 +5308,9 @@ function setTab(tabId) {
       loadEmployees(),
       typeof loadInfoRequests === 'function' ? loadInfoRequests() : Promise.resolve()
     ]);
+  }
+  if (tabId === 'memoTab') {
+    document.dispatchEvent(new CustomEvent('tabChanged', { detail: 'memoTab' }));
   }
   if (tabId === 'smsTab' && typeof loadSmsTemplates === 'function') {
     // SMS 템플릿 + 발송내역 병렬 로드
