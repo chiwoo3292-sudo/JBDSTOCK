@@ -4131,10 +4131,13 @@ function csDateInputValue(val) {
     function applyTabPermissions(allowedTabs, role) {
         if (role === 'admin') return; // 관리자는 전부 허용
         if (!allowedTabs || allowedTabs === 'ALL') return;
-        const allowed = String(allowedTabs).split(',').map(s => s.trim());
+        const allowed = String(allowedTabs).split(',').map(s => s.trim()).filter(Boolean);
+        if (allowed.length === 0) return; // 빈 값이면 전부 허용
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
             if (tab === 'myInfoTab' || tab === 'adminTab') return;
+            // 저장된 탭 목록에 없는 탭은 기본 허용 (신규 탭 추가 시 자동 노출)
+            // 명시적으로 OFF된 탭만 숨김 → 탭 설정 모달에서 OFF한 것들만 숨겨야 함
             if (!allowed.includes(tab)) btn.style.display = 'none';
         });
     }
@@ -4334,6 +4337,18 @@ function csDateInputValue(val) {
             const sorted = [...data.rows].sort((a,b) => getTitleRank(a.title) - getTitleRank(b.title));
 
             const isMobile = window.innerWidth <= 768;
+            const allTabIds = ALL_TABS.map(t => t.id);
+
+            // 허용탭 계산: 저장된 목록에 없는 신규탭은 기본 ON
+            function resolveAllowed(allowedTabs) {
+              if (!allowedTabs || allowedTabs === 'ALL') return allTabIds;
+              const saved = String(allowedTabs).split(',').map(s=>s.trim()).filter(Boolean);
+              // 저장된 탭 + 신규 탭(저장 목록에 없는 것) 모두 포함
+              // 단, 명시적으로 제거된 탭만 빼야 함 → 저장 당시 ALL_TABS 수와 비교
+              // 구버전(9개) 저장값이면 신규탭 추가로 자동 허용
+              const newTabs = allTabIds.filter(id => !saved.includes(id));
+              return [...saved, ...newTabs];
+            }
 
             if (isMobile) {
               // 모바일: 카드형 렌더링
@@ -4341,9 +4356,7 @@ function csDateInputValue(val) {
                 const status = r.leaveDate ? '퇴직' : '재직 중';
                 const statusColor = r.leaveDate ? '#e74c3c' : '#1a7a45';
                 const statusBg = r.leaveDate ? '#fdecea' : '#d1f0e0';
-                const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
-                  ? ALL_TABS.map(t=>t.id)
-                  : String(r.allowedTabs).split(',').map(s=>s.trim());
+                const allowed = resolveAllowed(r.allowedTabs);
                 const roleLabel = (r.role||'staff').toUpperCase();
                 return `<tr><td colspan="8" style="padding:0;border:none;">
                   <div id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')"
@@ -4379,9 +4392,7 @@ function csDateInputValue(val) {
               tbody.innerHTML = sorted.map((r, ri) => {
                 const status = r.leaveDate ? '퇴직' : '재직 중';
                 const statusClass = r.leaveDate ? '퇴직' : '재직';
-                const allowed = (r.allowedTabs === 'ALL' || !r.allowedTabs)
-                  ? ALL_TABS.map(t=>t.id)
-                  : String(r.allowedTabs).split(',').map(s=>s.trim());
+                const allowed = resolveAllowed(r.allowedTabs);
                 return `<tr id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')" style="cursor:pointer;"
                     data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}"
                     data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}">
@@ -4597,9 +4608,13 @@ function csDateInputValue(val) {
       _tabPermEmpId = empId;
       _tabPermRowIdx = rowIdx;
       const tabsInput = document.getElementById(`emp-tabs-${rowIdx}`);
-      const current = tabsInput ? tabsInput.value.split(',').filter(Boolean) : [];
-      const nameEl = document.querySelector(`#emp-row-${rowIdx} td:nth-child(2) strong`);
-      document.getElementById('tabPermModalTitle').textContent = `탭 권한 설정 — ${nameEl ? nameEl.textContent : empId}`;
+      const savedVal = tabsInput ? tabsInput.value : '';
+      // savedVal이 비어있거나 ALL이면 전부 ON
+      const isAll = !savedVal || savedVal === 'ALL';
+      const current = isAll ? ALL_TABS.map(t=>t.id) : savedVal.split(',').filter(Boolean).map(s=>s.trim());
+      const nameEl = document.querySelector(`#emp-row-${rowIdx} strong`) ||
+                     document.querySelector(`#emp-row-${rowIdx} td:first-child`);
+      document.getElementById('tabPermModalTitle').textContent = `탭 권한 설정 — ${nameEl ? nameEl.textContent.trim() : empId}`;
       document.getElementById('tabPermList').innerHTML = ALL_TABS.map(t => {
         const isOn = current.includes(t.id);
         return `
