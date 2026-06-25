@@ -590,7 +590,7 @@
       <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
       <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
       <button type="button" class="tab-btn" data-tab="consultTab">쇼룸상담</button>
-      <button type="button" class="tab-btn" id="reservationTabBtn" data-tab="reservationTab">예약관리<span id="rsvPendingBadge" style="display:none;margin-left:4px;background:#e74c3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;">N</span></button>
+      <button type="button" class="tab-btn" id="reservationTabBtn" data-tab="reservationTab">예약관리<span id="rsvPendingBadge" style="display:none;margin-left:4px;background:#e74c3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;">N</span></button>
       <button type="button" class="tab-btn" data-tab="cardScanTab">명함스캐닝</button>
       <button type="button" class="tab-btn" data-tab="contactsTab">연락처</button>
       <button type="button" class="tab-btn" data-tab="floorplanTab">면적분석</button>
@@ -5325,8 +5325,14 @@ function setTab(tabId) {
       loadReservations(),
       typeof loadMonthlyNoticeEditor === 'function' ? loadMonthlyNoticeEditor() : Promise.resolve()
     ]);
+    // 예약관리 탭 진입 시 N뱃지 숨김
     const badge = document.getElementById('rsvPendingBadge');
     if (badge) badge.style.display = 'none';
+  } else {
+    // 다른 탭으로 이동 시 대기 건 있으면 N뱃지 다시 표시
+    if (typeof window._triggerRsvCheck === 'function') {
+      setTimeout(window._triggerRsvCheck, 500);
+    }
   }
   if (tabId === 'consultTab' && typeof loadConsults === 'function') {
     // 쇼룸상담 목록 + 직원맵 병렬 로드
@@ -7583,7 +7589,10 @@ if ('serviceWorker' in navigator) {
       const badge = document.getElementById('rsvPendingBadge');
       if (badge) {
         if (pending.length > 0) {
-          badge.style.display = 'inline-flex';
+          // 예약관리 탭이 현재 열려있지 않을 때만 N뱃지 표시
+          const rsvTab = document.getElementById('reservationTab');
+          const isRsvOpen = rsvTab && rsvTab.style.display !== 'none';
+          badge.style.display = isRsvOpen ? 'none' : 'inline-flex';
         } else {
           badge.style.display = 'none';
         }
