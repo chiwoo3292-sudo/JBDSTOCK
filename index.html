@@ -1555,7 +1555,6 @@
 
 <script>
 (function(){
-  const RSV_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
   const DEFAULT_SLOTS = [
     '10:00~10:30','10:30~11:00','11:00~11:30','11:30~12:00',
     '12:00~12:30','12:30~13:00','13:00~13:30','13:30~14:00',
@@ -1575,7 +1574,7 @@
   window.loadReservations = async function() {
     document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
     try {
-      const res = await fetch(`${RSV_URL}?action=getReservations`);
+      const res = await fetch(`${ERP_URL}?action=getReservations`);
       const data = await res.json();
       if (data.status === 'ok') {
         allReservations = data.rows || [];
@@ -1733,7 +1732,7 @@
     if (!confirm(`[${selectedRsv.name}] 예약을 "${newStatus}" 처리하시겠습니까?`)) return;
     document.getElementById('rsvActionMsg').textContent = '처리 중...';
     try {
-      const res = await fetch(`${RSV_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
+      const res = await fetch(`${ERP_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
       const data = await res.json();
       if (data.status === 'ok') {
         selectedRsv.status = newStatus;
@@ -1771,7 +1770,7 @@
     slotState = {};
     DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
     try {
-      const res = await fetch(`${RSV_URL}?action=getSlots&date=${date}`);
+      const res = await fetch(`${ERP_URL}?action=getSlots&date=${date}`);
       const data = await res.json();
       if (data.status === 'ok' && data.closedSlots) {
         data.closedSlots.forEach(s => slotState[s] = 'closed');
@@ -1806,7 +1805,7 @@
     document.getElementById('slotMsg').textContent = '저장 중...';
     try {
       const closedStr = closedSlots.length > 0 ? closedSlots.join(',') : '';
-      const res = await fetch(`${RSV_URL}?action=saveSlots&date=${encodeURIComponent(date)}&closedSlots=${encodeURIComponent(closedStr)}`);
+      const res = await fetch(`${ERP_URL}?action=saveSlots&date=${encodeURIComponent(date)}&closedSlots=${encodeURIComponent(closedStr)}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('slotMsg').textContent = '✅ 저장 완료!';
@@ -2466,8 +2465,6 @@
 
 <script>
 (function(){
-  const CS_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
-
   let allConsults = [];
   let selectedConsult = null;
   let csCurrentFilter = '전체';
@@ -2485,7 +2482,7 @@
   async function loadAllStaffMap() {
     if (_allStaffMapCache) return _allStaffMapCache;
     try {
-      const res = await fetch(`${CS_URL}?action=getEmployees`);
+      const res = await fetch(`${ERP_URL}?action=getEmployees`);
       const data = await res.json();
       _allStaffMapCache = {};
       (data.rows || []).forEach(r => {
@@ -2519,7 +2516,7 @@
   async function loadStaffList() {
     if (_staffListCache) return _staffListCache;
     try {
-      const res = await fetch(`${CS_URL}?action=getEmployees`);
+      const res = await fetch(`${ERP_URL}?action=getEmployees`);
       const data = await res.json();
       const allActive = (data.rows || []).filter(r => !r.leaveDate);
       const salesStaff = allActive.filter(r => String(r.dept||'').includes('영업'));
@@ -2665,7 +2662,7 @@
   window.loadConsults = async function() {
     document.getElementById('csTableBody').innerHTML = '<tr class="dw-empty-row"><td colspan="8">불러오는 중...</td></tr>';
     try {
-      const res = await fetch(`${CS_URL}?action=getConsults`);
+      const res = await fetch(`${ERP_URL}?action=getConsults`);
       const data = await res.json();
       if (data.status === 'ok') {
         allConsults = data.rows || [];
@@ -2712,15 +2709,7 @@
 
   // setCsFilter/setDateFilter 후 배지 업데이트
   const _origSetCsFilter = window.setCsFilter;
-  window.setCsFilter = function(el) {
-    if (_origSetCsFilter) _origSetCsFilter(el);
-    updateActiveFilterBadges();
-  };
   const _origSetDateFilter = window.setDateFilter;
-  window.setDateFilter = function(el) {
-    if (_origSetDateFilter) _origSetDateFilter(el);
-    updateActiveFilterBadges();
-  };
 
   window.toggleSort = function(field) {
     if (csSort.field === field) {
@@ -2974,254 +2963,7 @@
     document.body.classList.add('overlay-open');
   };
 
-  window.buildConsultFormHtml = function buildConsultFormHtml(r) {
-    const STAFF_OPTIONS = (window.STAFF_LIST || []).map(s => `<option value="${s.name} ${s.title}">${s.name} ${s.title}</option>`).join('');
-    const isEdit = !!r;
-    const v = (key, def='') => r ? (r[key]||def) : def;
-    return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
-    <title>${isEdit ? v('name') + ' - 수정' : '쇼룸 상담 등록'}</title>
-    <style>
-      *{box-sizing:border-box;} body{font-family:'Apple SD Gothic Neo',sans-serif;max-width:900px;margin:0 auto;padding:32px 24px;color:#333;font-size:13px;}
-      h2{font-size:18px;font-weight:800;color:#222;margin-bottom:24px;}
-      .sh{font-size:13px;font-weight:800;color:#7b5fd9;margin:22px 0 12px;border-bottom:1px solid #e8e4f7;padding-bottom:6px;}
-      .g2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:14px;}
-      .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:14px;}
-      .f label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:5px;}
-      .f input,.f select,.f textarea{width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;}
-      .f textarea{min-height:90px;resize:vertical;}
-      .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
-      .chip{background:#f3f1fb;color:#5b3fc0;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;}
-      .chip .x{cursor:pointer;}
-      .cbrow{display:flex;gap:18px;flex-wrap:wrap;}
-      .cbrow label{display:flex;align-items:center;gap:5px;cursor:pointer;}
-      .cbox{display:none;margin-top:10px;background:#f9f8fd;border:1px solid #e8e4f7;border-radius:8px;padding:12px;}
-      .cbox.show{display:block;}
-      .cbox label{font-size:12px;font-weight:700;color:#7b5fd9;margin-bottom:5px;display:block;}
-      .rg{display:flex;gap:16px;align-items:center;}
-      .rg label{display:flex;align-items:center;gap:5px;cursor:pointer;}
-      .foot{display:flex;justify-content:center;gap:10px;margin-top:28px;}
-      .bc{background:#a98c5d;color:#fff;border:none;border-radius:6px;padding:11px 36px;font-size:14px;font-weight:700;cursor:pointer;}
-      .bx{background:#fff;color:#555;border:1px solid #ddd;border-radius:6px;padding:11px 24px;font-size:14px;font-weight:700;cursor:pointer;}
-      .msg{text-align:center;font-size:12px;margin-top:10px;color:#555;}
-    </style></head><body>
-    <h2>${isEdit ? '쇼룸 상담 수정' : '쇼룸 상담 등록'}</h2>
-    <div class="sh">예약정보</div>
-    <div class="f" style="margin-bottom:12px;"><label>상담자</label>
-      <div class="chips" id="chipList"></div>
-      <button type="button" onclick="openStaffPicker()" style="padding:8px 16px;background:#f3f1fb;color:#7b5fd9;border:1px solid #e0d8f7;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:auto;">＋ 추가</button>
-    </div>
-    <div class="g2">
-      <div class="f"><label>일정</label><input type="date" id="fDate" value="${v('date')}"></div>
-      <div class="f"><label>시간</label><input type="text" id="fTime" value="${v('time')}"></div>
-    </div>
-    <div class="g2">
-      <div class="f"><label>방문여부</label><select id="fRevisit" onchange="checkRevisit()"><option value="신규">신규</option><option value="재방문">재방문</option></select></div>
-      <div class="f"><label>처리상태</label><select id="fStatus"><option value="예약">예약</option><option value="상담완료">상담완료</option><option value="샘플수령">샘플수령</option><option value="미방문">미방문</option><option value="전화상담">전화상담</option></select></div>
-    </div>
-    <!-- 재방문 검색창 (14번) -->
-    <div id="revisitSearchBox" style="display:none;background:#f9f8fd;border:1px solid #e0d8f7;border-radius:10px;padding:14px;margin-bottom:14px;">
-      <div style="font-size:12px;font-weight:700;color:#7b5fd9;margin-bottom:8px;">🔍 기존 방문 이력 검색</div>
-      <input type="text" id="revisitSearchInput" placeholder="이름 또는 연락처 입력" oninput="searchRevisit()" style="margin-bottom:8px;">
-      <div id="revisitSearchResults" style="max-height:160px;overflow-y:auto;"></div>
-    </div>
-    <div class="sh">고객정보</div>
-    <div class="g2">
-      <div class="f"><label>유형</label><select id="fType"><option value="">선택안함</option><option value="개인 소비자">개인 소비자</option><option value="인테리어업체">인테리어업체</option><option value="건축사무소">건축사무소</option><option value="건설사">건설사</option></select></div>
-      <div class="f"><label>성함 *</label><input type="text" id="fName" value="${v('name')}"></div>
-    </div>
-    <div class="g2">
-      <div class="f"><label>연락처</label><input type="text" id="fPhone" value="${v('phone')}"></div>
-      <div class="f"><label>업체명</label><input type="text" id="fCompany" value="${v('company')}"></div>
-    </div>
-    <div class="g2">
-      <div class="f"><label>방문인원</label><input type="text" id="fVisitCount" value="${v('visitCount')}"></div>
-      <div class="f"><label>공간유형</label><select id="fSpaceType"><option value="">선택안함</option><option value="아파트">아파트</option><option value="빌라">빌라</option><option value="주택">주택</option><option value="상가/상업공간">상가/상업공간</option><option value="사무실">사무실</option><option value="오피스텔">오피스텔</option></select></div>
-    </div>
-    <div class="g3">
-      <div class="f"><label>현장주소</label><input type="text" id="fAddress" value="${v('address')}"></div>
-      <div class="f"><label>평형</label><input type="text" id="fSize" value="${v('size')}"></div>
-      <div class="f"><label>엘리베이터</label><div class="rg"><label><input type="radio" name="fElev" value="유" checked> 유</label><label><input type="radio" name="fElev" value="무"> 무</label></div></div>
-    </div>
-    <div class="g3">
-      <div class="f"><label>시공예정일</label><input type="date" id="fWorkDate" value="${v('workDate')}"></div>
-      <div class="f"><label>공사기간</label><input type="text" id="fWorkPeriod" value="${v('workPeriod')}"></div>
-      <div class="f"><label>시공예정시기</label><input type="text" id="fWorkTiming" value="${(window.fmtWorkTiming||function(v){return v||'';})(v('workTiming'))}"></div>
-    </div>
-    <div class="f" style="margin-bottom:14px;"><label>관심제품</label><input type="text" id="fProducts" value="${v('products')}"></div>
-    <div class="sh">상담 내역</div>
-    <div class="g2">
-      <div class="f"><label>단가안내</label><select id="fPriceInfo"><option value="">선택안함</option><option value="소비자가 안내">소비자가 안내</option><option value="업체가 안내">업체가 안내</option></select></div>
-    </div>
-    <div class="f" style="margin-bottom:12px;"><label>요청사항</label>
-      <div class="cbrow" style="display:flex;gap:18px;flex-wrap:wrap;">
-        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqSample" onchange="toggleC('fReqSample','fSampleBox')"> 쪽샘플 전달</label>
-        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqCard" onchange="toggleC('fReqCard','fCardBox')"> 명함 전달</label>
-        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqQuote"> 견적서 요청</label>
-        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="fReqRevisit"> 재방문 예정</label>
-      </div>
-      <div class="cbox" id="fSampleBox"><label>샘플 제공목록</label><input type="text" id="fSampleList" value="${v('sampleGiven')}"></div>
-      <div class="cbox" id="fCardBox"><label>명함 전달 담당자</label><select id="fCardStaff"><option value="">담당자 선택</option></select></div>
-    </div>
-    <div class="f"><label>전달사항</label><textarea id="fMemo">${v('memo')||v('content')}</textarea></div>
-    <div class="foot"><button class="bc" onclick="submitForm()">확인</button><button class="bx" onclick="window.close()">취소</button></div>
-    <div class="msg" id="fMsg"></div>
-    <script>
-      const POLL_URL='https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
-      const ROW_INDEX=${isEdit ? r._rowIndex : 0};
-      let chips=${JSON.stringify(isEdit ? (v('counselor')).split(',').map(s=>s.trim()).filter(Boolean) : [])};
-      let staffList = [];
-      let consultHistory = [];
-
-      // 직원 목록 실시간 로드
-      async function loadStaff() {
-        try {
-          const res = await fetch(POLL_URL+'?action=getEmployees');
-          const data = await res.json();
-          staffList = (data.rows||[]).filter(r=>!r.leaveDate);
-          // 명함전달 드롭박스 채우기
-          const sel = document.getElementById('fCardStaff');
-          if (sel) {
-            sel.innerHTML = '<option value="">담당자 선택</option>' +
-              staffList.map(s=>\`<option value="\${s.name} \${s.title}">\${s.name} \${s.title}</option>\`).join('');
-            ${isEdit && v('cardGiven') ? `sel.value='${v('cardGiven')}';` : ''}
-          }
-        } catch(e) { console.error('직원 로드 실패', e); }
-      }
-
-      // 상담 이력 로드 (재방문 검색용)
-      async function loadConsultHistory() {
-        try {
-          const res = await fetch(POLL_URL+'?action=getConsults');
-          const data = await res.json();
-          consultHistory = data.rows || [];
-        } catch(e) {}
-      }
-
-      // 상담자 선택 팝업
-      function openStaffPicker() {
-        const w = window.open('', '_blank', 'width=400,height=500');
-        const opts = staffList.map((s,i) =>
-          \`<div onclick="window.opener.addCounselorFromPicker('\${s.name} \${s.title}');window.close();"
-            style="padding:14px 20px;border-bottom:1px solid #eee;cursor:pointer;font-size:14px;font-weight:600;"
-            onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
-            \${s.name} <span style="color:#7b5fd9;font-size:12px;">\${s.title}</span>
-          </div>\`
-        ).join('');
-        w.document.write(\`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>상담자 선택</title></head>
-          <body style="margin:0;font-family:sans-serif;">
-          <div style="padding:16px 20px;border-bottom:2px solid #333;font-size:15px;font-weight:800;">상담자 선택</div>
-          \${opts || '<div style="padding:20px;color:#aaa;text-align:center;">등록된 직원이 없습니다</div>'}
-          </body></html>\`);
-        w.document.close();
-      }
-      window.addCounselorFromPicker = function(name) {
-        if (!chips.includes(name)) { chips.push(name); renderChips(); }
-      };
-
-      // 재방문 검색
-      function checkRevisit() {
-        const box = document.getElementById('revisitSearchBox');
-        if (box) box.style.display = document.getElementById('fRevisit').value === '재방문' ? 'block' : 'none';
-      }
-      function searchRevisit() {
-        const q = document.getElementById('revisitSearchInput').value.trim().toLowerCase();
-        const results = document.getElementById('revisitSearchResults');
-        if (!q) { results.innerHTML = ''; return; }
-        const matched = consultHistory.filter(r =>
-          (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
-        ).slice(0, 10);
-        if (!matched.length) { results.innerHTML = '<div style="padding:8px;color:#aaa;font-size:12px;">검색 결과 없음</div>'; return; }
-        results.innerHTML = matched.map((r,i) => \`
-          <div ondblclick="applyRevisitData(\${i})" onclick="this.style.background='#e8e4f7'"
-            style="padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13px;"
-            onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
-            <strong>\${r.name||''}</strong> <span style="color:#888;font-size:12px;">\${r.phone||''}</span>
-            <br><span style="color:#aaa;font-size:11px;">\${r.date||''} · \${r.company||''}</span>
-          </div>
-        \`).join('');
-        window._revisitMatched = matched;
-      }
-      window.applyRevisitData = function(idx) {
-        const r = window._revisitMatched[idx];
-        if (!r) return;
-        if (document.getElementById('fName')) document.getElementById('fName').value = r.name||'';
-        if (document.getElementById('fPhone')) document.getElementById('fPhone').value = r.phone||'';
-        if (document.getElementById('fCompany')) document.getElementById('fCompany').value = r.company||'';
-        if (document.getElementById('fAddress')) document.getElementById('fAddress').value = r.address||'';
-        if (document.getElementById('fSize')) document.getElementById('fSize').value = r.size||'';
-        if (document.getElementById('fSpaceType')) document.getElementById('fSpaceType').value = r.spaceType||'';
-        if (document.getElementById('fWorkDate')) document.getElementById('fWorkDate').value = r.workDate||'';
-        if (document.getElementById('fProducts')) document.getElementById('fProducts').value = r.products||'';
-        if (document.getElementById('fType')) document.getElementById('fType').value = r.visitorType||'';
-        document.getElementById('revisitSearchBox').style.display = 'none';
-        alert(\`\${r.name} 님의 기존 데이터를 불러왔습니다!\`);
-      };
-
-      function renderChips(){document.getElementById('chipList').innerHTML=chips.map((c,i)=>\`<span class="chip">\${c}<span class="x" onclick="removeChip(\${i})">✕</span></span>\`).join('');}
-      function removeChip(i){chips.splice(i,1);renderChips();}
-      function toggleC(cb,box){document.getElementById(box).classList.toggle('show',document.getElementById(cb).checked);}
-
-      // 초기값
-      document.getElementById('fRevisit').value='${v('revisit','신규')}';
-      document.getElementById('fStatus').value='${v('status','예약')}';
-      document.getElementById('fType').value='${v('visitorType')}';
-      document.getElementById('fSpaceType').value='${v('spaceType')}';
-      document.getElementById('fPriceInfo').value='${v('priceInfo')}';
-      ${isEdit && r.elevator==='무' ? "document.querySelector('input[name=fElev][value=무]').checked=true;" : ''}
-      ${isEdit && v('sampleGiven') ? "document.getElementById('fReqSample').checked=true;document.getElementById('fSampleBox').classList.add('show');" : ''}
-      ${isEdit && v('cardGiven') ? `document.getElementById('fReqCard').checked=true;document.getElementById('fCardBox').classList.add('show');` : ''}
-      ${isEdit && v('reqQuote')==='Y' ? "document.getElementById('fReqQuote').checked=true;" : ''}
-      ${isEdit && v('revisitConsult')==='재방문예정' ? "document.getElementById('fReqRevisit').checked=true;" : ''}
-      checkRevisit();
-      renderChips();
-
-      // 직원 + 이력 로드
-      loadStaff();
-      loadConsultHistory();
-      async function submitForm(){
-        const name=document.getElementById('fName').value.trim();
-        if(!name){alert('성함을 입력해주세요.');return;}
-        document.getElementById('fMsg').textContent='저장 중...';
-        const reqSample=document.getElementById('fReqSample').checked;
-        const reqCard=document.getElementById('fReqCard').checked;
-        const params=new URLSearchParams({
-          action:ROW_INDEX?'saveConsult':'createConsult',
-          rowIndex:ROW_INDEX||'',
-          date:document.getElementById('fDate').value,
-          time:document.getElementById('fTime').value,
-          visitorType:document.getElementById('fType').value,
-          visitStatus:document.getElementById('fRevisit').value,
-          statusField:document.getElementById('fStatus').value,
-          name,phone:document.getElementById('fPhone').value.trim(),
-          company:document.getElementById('fCompany').value.trim(),
-          visitCount:document.getElementById('fVisitCount').value.trim(),
-          spaceType:document.getElementById('fSpaceType').value,
-          address:document.getElementById('fAddress').value.trim(),
-          size:document.getElementById('fSize').value.trim(),
-          elevator:document.querySelector('input[name=fElev]:checked').value,
-          workDate:document.getElementById('fWorkDate').value,
-          workPeriod:document.getElementById('fWorkPeriod').value.trim(),
-          workTiming:document.getElementById('fWorkTiming').value.trim(),
-          products:document.getElementById('fProducts').value.trim(),
-          priceInfo:document.getElementById('fPriceInfo').value,
-          reqSample:reqSample?(document.getElementById('fSampleList').value.trim()||'제공'):'',
-          reqCard:reqCard?(document.getElementById('fCardStaff').value||'전달'):'',
-          reqQuote:document.getElementById('fReqQuote').checked?'Y':'N',
-          reqRevisit:document.getElementById('fReqRevisit').checked?'재방문예정':'',
-          counselor:chips.join(', '),
-          content:document.getElementById('fMemo').value.trim(),
-        });
-        try{
-          const res=await fetch(POLL_URL+'?'+params);
-          const data=await res.json();
-          if(data.status==='ok'){document.getElementById('fMsg').textContent='✅ 저장 완료!';setTimeout(()=>window.close(),800);}
-          else{document.getElementById('fMsg').textContent='❌ '+(data.message||'저장 실패');}
-        }catch(e){document.getElementById('fMsg').textContent='❌ 오류: '+e.message;}
-      }
-    <\/script></body></html>`;
-  }
-
-  function csDateInputValue(val) {
+function csDateInputValue(val) {
     if (!val) return '';
     const s = String(val).trim();
     // ISO 형식 "2026-07-06T15:00:00.000Z" → "2026-07-06"
@@ -3467,7 +3209,7 @@
     document.getElementById('cfMsg').textContent = '저장 중...';
     try {
       const params = new URLSearchParams(payload);
-      const res = await fetch(`${CS_URL}?${params}`);
+      const res = await fetch(`${ERP_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('cfMsg').textContent = '✅ 저장 완료!';
@@ -3568,12 +3310,11 @@
 
 <script>
 (function(){
-  const NOTICE_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
   let notices = [];
 
   window.loadNotices = async function() {
     try {
-      const res = await fetch(`${NOTICE_URL}?action=getNotices`);
+      const res = await fetch(`${ERP_URL}?action=getNotices`);
       const data = await res.json();
       notices = data.rows || [];
       renderNotices();
@@ -3620,7 +3361,7 @@
     document.getElementById('noticeSaveMsg').textContent = '등록 중...';
     try {
       const params = new URLSearchParams({ action:'saveNotice', title, content, category, author });
-      const res = await fetch(`${NOTICE_URL}?${params}`);
+      const res = await fetch(`${ERP_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('noticeSaveMsg').textContent = '✅ 등록 완료!';
@@ -4003,7 +3744,7 @@
           <th>재직상태</th>
           <th>허용탭</th>
           <th>권한</th>
-          <th>저장</th>
+          
         </tr>
       </thead>
       <tbody id="adminEmpList">
@@ -4943,15 +4684,6 @@
     };
 
     // ── 관리자: 처리 완료 ──
-    window.resolveInfoRequest = async function(rowIdx) {
-      if (!confirm('처리 완료로 변경하시겠습니까?')) return;
-      try {
-        const res = await fetch(`${ERP_URL}?action=resolveInfoRequest&rowIdx=${rowIdx}`);
-        const data = await res.json();
-        if (data.status === 'ok') loadInfoRequests();
-        else alert('오류: ' + (data.message || ''));
-      } catch(e) { alert('오류: ' + e.message); }
-    };
 
     window.resolveInfoRequest = async function(rowIdx) {
       if (!confirm('처리 완료로 변경하시겠습니까?')) return;
@@ -5037,7 +4769,6 @@
         await fetch(`${ERP_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result: 'API미연동' })}`);
       } catch(e) {}
 
-      console.log(`[문자발송] ${templateKey} → ${phone}: ${msg}`);
       return { ok: true, msg };
     };
 
@@ -7367,7 +7098,6 @@ async function saveInvoicePdf() {
     emptyEl.style.display = 'none';
     try {
         const rows = await fetchSheetJson(SHEET_CONFIG.CONTACTS);
-        console.log('[연락처] raw rows:', rows);
         allContacts = rows
             .filter(row => row && row.c)
             .map(row => ({
@@ -7379,7 +7109,6 @@ async function saveInvoicePdf() {
                 date:     getCellVal(row.c[5]),
             }))
             .filter(r => r.company || r.name || r.mobile || r.phone);
-        console.log('[연락처] parsed allContacts:', allContacts);
         renderContacts(allContacts);
     } catch(e) {
         console.error('loadContacts 오류:', e);
@@ -7596,7 +7325,6 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js')
       .then(reg => {
-        console.log('[PWA] Service Worker 등록 완료:', reg.scope);
 
         // 새 버전 감지 → 업데이트 알림
         reg.addEventListener('updatefound', () => {
@@ -7682,13 +7410,8 @@ if ('serviceWorker' in navigator) {
 
 <script>
 (function(){
-  const RSV_POLL_URL = document.querySelector('[id^="reservationTab"]') ?
-    (function(){ const s = document.querySelector('script[src*="AKfyc"]'); return null; })() : null;
-
   // ── 5. 예약 알림 배너 + Web Push (1분 polling) ──
   let lastKnownRsvCount = -1;
-  const POLL_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
-
   // Web Push 권한 요청
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
@@ -7702,7 +7425,7 @@ if ('serviceWorker' in navigator) {
 
   async function checkNewReservations() {
     try {
-      const res = await fetch(`${POLL_URL}?action=getReservations`);
+      const res = await fetch(`${ERP_URL}?action=getReservations`);
       const data = await res.json();
       if (data.status !== 'ok') return;
       const pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
@@ -7746,7 +7469,7 @@ if ('serviceWorker' in navigator) {
   // 5분마다 체크
   setInterval(checkNewReservations, 5 * 60000);
   // 초기 1회 (5초 후)
-  setTimeout(checkNewReservations, 5000);
+  setTimeout(checkNewReservations, 30000); // 페이지 로드 30초 후 첫 체크
 
   // ── 6. 삭제 기능 ──
   window.deleteCheckedConsults = async function() {
@@ -7768,7 +7491,7 @@ if ('serviceWorker' in navigator) {
 
     try {
       const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
-      const res = await fetch(`${POLL_URL}?${params}`);
+      const res = await fetch(`${ERP_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         alert('삭제 완료!');
@@ -7806,7 +7529,7 @@ if ('serviceWorker' in navigator) {
         reqRevisit: r.revisitConsult||'', reqQuote: r.reqQuote||'',
         workTiming: r.workTiming||'', workPeriod: r.workPeriod||'',
       });
-      await fetch(`${POLL_URL}?${params}`);
+      await fetch(`${ERP_URL}?${params}`);
     } catch(e) { console.error('자동저장 실패:', e); }
   };
 
@@ -7826,7 +7549,7 @@ if ('serviceWorker' in navigator) {
     document.body.appendChild(notif);
 
     try {
-      const res = await fetch(`${POLL_URL}?action=importFromDaouSheet`);
+      const res = await fetch(`${ERP_URL}?action=importFromDaouSheet`);
       const data = await res.json();
       if (data.status === 'ok') {
         notif.textContent = `✅ ${data.count}건 변환 완료!`;
@@ -7989,7 +7712,7 @@ if ('serviceWorker' in navigator) {
           action: 'bulkImportConsults',
           data: JSON.stringify(chunk),
         });
-        const res = await fetch(`${POLL_URL}?${params}`);
+        const res = await fetch(`${ERP_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           imported += data.count || chunk.length;
