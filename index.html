@@ -1495,9 +1495,9 @@
   .slot-date-row input[type="date"] { flex:1; height:38px; padding:0 12px; border:1px solid #ddd; border-radius:10px; font-size:13px; font-family:inherit; }
   .slot-date-row button { height:38px; padding:0 16px; white-space:nowrap; border-radius:10px; }
   .slot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .slot-cell { border:1px solid #ddd; border-radius:10px; padding:10px 8px; text-align:center; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; color:#333; background:#fff; }
-  .slot-cell.closed { background:#f8d7da; border-color:#dc3545; color:#842029; }
-  .slot-cell:hover { border-color:#111; }
+  .slot-cell { border:1px solid #ddd; border-radius:10px; padding:10px 8px; text-align:center; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; color:#1a7a45; background:#d1f0e0; border-color:#a8dfc0; }
+  .slot-cell.closed { background:#fdecea; border-color:#f5b7b1; color:#c0392b; }
+  .slot-cell:hover { filter:brightness(0.95); }
   .slot-legend { display:flex; gap:12px; font-size:11px; color:#888; margin-top:10px; }
   .slot-legend span { display:flex; align-items:center; gap:4px; }
   .slot-legend .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
@@ -4128,6 +4128,10 @@ function csDateInputValue(val) {
         } else if (lastTab && document.getElementById(lastTab) && typeof setTab === 'function') {
             setTab(lastTab);
         }
+        // 로그인 직후 예약 대기 N뱃지 즉시 체크 (3초 후)
+        setTimeout(() => {
+          if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
+        }, 3000);
     }
 
     // 허용탭 제어
@@ -7613,8 +7617,8 @@ if ('serviceWorker' in navigator) {
 
   // 5분마다 체크
   setInterval(checkNewReservations, 5 * 60000);
-  // 초기 1회 (5초 후)
-  setTimeout(checkNewReservations, 30000); // 페이지 로드 30초 후 첫 체크
+  // 로그인 후 즉시 첫 체크 (unlock 함수에서 호출)
+  window._triggerRsvCheck = checkNewReservations;
 
   // ── 6. 삭제 기능 ──
   window.deleteCheckedConsults = async function() {
