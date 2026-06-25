@@ -1553,6 +1553,12 @@
   </div>
 </div>
 
+<!-- 전역 URL 변수 (모든 스크립트 블록에서 접근 가능) -->
+<script>
+  var ERP_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbycqipsEpR-JzkRdeMhqtYRxfGej3RXvJjyNGDr3oGlMjnXqV8RNEOFFAhoLofm1qvR/exec';
+</script>
+
 <script>
 (function(){
   const DEFAULT_SLOTS = [
@@ -4032,7 +4038,7 @@ function csDateInputValue(val) {
     const USER_KEY = 'baram_user';
     const LOGIN_TYPE_KEY = 'baram_login_type';
     const AUTH_TIMEOUT = 8 * 60 * 60 * 1000;
-    const ERP_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
+    // ERP_URL은 전역으로 선언됨 (상단 참조)
 
     const lockSection = document.getElementById('lockSection');
     const mainSection = document.getElementById('mainSection');
@@ -5634,9 +5640,8 @@ async function loadTooltipMap() {
 }
 
 // ============================================================
-//  Apps Script 웹앱 URL
+//  Apps Script 웹앱 URL (전역 선언됨 - 상단 참조)
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbycqipsEpR-JzkRdeMhqtYRxfGej3RXvJjyNGDr3oGlMjnXqV8RNEOFFAhoLofm1qvR/exec';
 
 // ============================================================
 //  재고현황 실시간 시계
