@@ -4340,15 +4340,10 @@ function csDateInputValue(val) {
             const isMobile = window.innerWidth <= 768;
             const allTabIds = ALL_TABS.map(t => t.id);
 
-            // 허용탭 계산: 저장된 목록에 없는 신규탭은 기본 ON
+            // 허용탭 계산: 저장된 값 그대로 사용 (자동 추가 없음)
             function resolveAllowed(allowedTabs) {
               if (!allowedTabs || allowedTabs === 'ALL') return allTabIds;
-              const saved = String(allowedTabs).split(',').map(s=>s.trim()).filter(Boolean);
-              // 저장된 탭 + 신규 탭(저장 목록에 없는 것) 모두 포함
-              // 단, 명시적으로 제거된 탭만 빼야 함 → 저장 당시 ALL_TABS 수와 비교
-              // 구버전(9개) 저장값이면 신규탭 추가로 자동 허용
-              const newTabs = allTabIds.filter(id => !saved.includes(id));
-              return [...saved, ...newTabs];
+              return String(allowedTabs).split(',').map(s=>s.trim()).filter(Boolean);
             }
 
             if (isMobile) {
