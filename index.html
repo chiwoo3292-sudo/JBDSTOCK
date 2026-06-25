@@ -5041,14 +5041,17 @@ function csDateInputValue(val) {
           } catch(e) { /* 로컬 캐시 유지 */ }
         }
 
-        // 2. 서버에 메모 저장 (디바운스 2초)
+        // 2. 서버에 메모 저장 (POST - 내용이 길어도 안전)
         async function saveMemo() {
           const uid = getCurrentUserId();
           const content = memoArea.value;
           localStorage.setItem(`memo_${uid}`, content);
           try {
-            const params = new URLSearchParams({ action: 'saveMemo', userId: uid, memo: content });
-            await fetch(`${ERP_URL}?${params}`);
+            await fetch(ERP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({ action: 'saveMemo', userId: uid, memo: content })
+            });
           } catch(e) { /* 로컬에는 저장됨 */ }
         }
 
