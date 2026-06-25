@@ -3684,7 +3684,7 @@ function csDateInputValue(val) {
         </div>
         <div>
           <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">직급</label>
-          <input id="empModalTitle" type="text" placeholder="사원"
+          <input id="empModalRank" type="text" placeholder="사원"
             style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
         </div>
       </div>
@@ -4497,7 +4497,7 @@ function csDateInputValue(val) {
           document.getElementById('empModalId').value = _selectedEmpId || '';
           document.getElementById('empModalName').value = src.dataset.name || '';
           document.getElementById('empModalDept').value = src.dataset.dept || '';
-          document.getElementById('empModalTitle').value = src.dataset.title || '';
+          document.getElementById('empModalRank').value = src.dataset.title || '';
           document.getElementById('empModalJoinDate').value = src.dataset.joindate || '';
           document.getElementById('empModalEmail').value = src.dataset.email || '';
           document.getElementById('empModalAnnualLeave').value = src.dataset.annualleave || '';
@@ -4521,7 +4521,7 @@ function csDateInputValue(val) {
       const id = document.getElementById('empModalId').value.trim().toLowerCase();
       const name = document.getElementById('empModalName').value.trim();
       const dept = document.getElementById('empModalDept').value.trim();
-      const title = document.getElementById('empModalTitle').value.trim();
+      const title = document.getElementById('empModalRank').value.trim();
       const joinDate = document.getElementById('empModalJoinDate').value;
       const email = document.getElementById('empModalEmail').value.trim();
       const annualLeave = document.getElementById('empModalAnnualLeave').value;
