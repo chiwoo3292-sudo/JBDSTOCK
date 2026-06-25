@@ -3668,49 +3668,54 @@ function csDateInputValue(val) {
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">이름 <span style="color:#e74c3c;">*</span></label>
-        <input id="empModalName" type="text" placeholder="홍길동"
+        <input id="empModalName" type="text"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">아이디 <span style="color:#e74c3c;">*</span></label>
-        <input id="empModalId" type="text" placeholder="로그인 아이디 (영문/숫자)"
+        <input id="empModalId" type="text"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
           <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">부서</label>
-          <input id="empModalDept" type="text" placeholder="영업"
+          <input id="empModalDept" type="text"
             style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
         </div>
         <div>
           <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">직급</label>
-          <input id="empModalRank" type="text" placeholder="사원"
+          <input id="empModalRank" type="text"
             style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
         </div>
       </div>
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">입사일</label>
         <input id="empModalJoinDate" type="date"
-          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;">
       </div>
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">사내 이메일</label>
-        <input id="empModalEmail" type="email" placeholder="example@company.com"
+        <input id="empModalEmail" type="email"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div>
-        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">잔여 연차</label>
-        <input id="empModalAnnualLeave" type="number" placeholder="0" min="0" max="99"
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">
+          사용 연차 <span style="font-size:11px;color:#aaa;font-weight:500;" id="empModalLeaveCalc"></span>
+        </label>
+        <input id="empModalAnnualLeave" type="number" min="0" max="99"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <!-- 추가 시: 초기 비밀번호 안내 -->
       <div id="empModalPwHint" style="background:#f8f7fc;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
         🔒 초기 비밀번호: <strong style="color:#7b5fd9;">0000</strong>
       </div>
-      <!-- 수정 시: 비밀번호 초기화 버튼 -->
-      <div id="empModalPwReset" style="display:none;">
-        <button onclick="doResetPasswordFromModal()" style="width:100%;padding:9px;border:1px solid #e74c3c;border-radius:8px;background:#fff;color:#e74c3c;font-size:13px;font-weight:700;cursor:pointer;">
+      <!-- 수정 시: 비밀번호 초기화 + 삭제 버튼 -->
+      <div id="empModalPwReset" style="display:none;display:flex;flex-direction:column;gap:8px;">
+        <button onclick="doResetPasswordFromModal()" style="width:100%;padding:9px;border:1px solid #e67e22;border-radius:8px;background:#fff;color:#e67e22;font-size:13px;font-weight:700;cursor:pointer;">
           🔑 비밀번호 0000으로 초기화
+        </button>
+        <button onclick="doDeleteEmpFromModal()" style="width:100%;padding:9px;border:1px solid #e74c3c;border-radius:8px;background:#fff;color:#e74c3c;font-size:13px;font-weight:700;cursor:pointer;">
+          🗑 이 직원 삭제 (퇴직 처리)
         </button>
       </div>
     </div>
@@ -3752,8 +3757,6 @@ function csDateInputValue(val) {
     <div class="admin-section-title">👥 직원 목록</div>
     <div class="admin-toolbar">
       <button class="admin-btn primary" onclick="openEmpModal('add')">＋ 직원 추가</button>
-      <button class="admin-btn" onclick="openEmpModal('edit')" id="empEditBtn">✏ 수정</button>
-      <button class="admin-btn danger" onclick="doDeleteEmp()" id="empDeleteBtn" style="background:#fff;color:#e74c3c;border:1px solid #e74c3c;">🗑 삭제</button>
     </div>
     <table class="admin-table" id="adminEmpTable">
       <thead id="adminEmpThead">
@@ -4129,15 +4132,13 @@ function csDateInputValue(val) {
 
     // 허용탭 제어
     function applyTabPermissions(allowedTabs, role) {
-        if (role === 'admin') return; // 관리자는 전부 허용
-        if (!allowedTabs || allowedTabs === 'ALL') return;
+        if (role === 'admin') return;
+        if (allowedTabs === 'ALL' || allowedTabs === undefined || allowedTabs === null) return;
         const allowed = String(allowedTabs).split(',').map(s => s.trim()).filter(Boolean);
-        if (allowed.length === 0) return; // 빈 값이면 전부 허용
+        // 빈 문자열('')이면 allowed가 [] → 전부 숨김
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
             if (tab === 'myInfoTab' || tab === 'adminTab') return;
-            // 저장된 탭 목록에 없는 탭은 기본 허용 (신규 탭 추가 시 자동 노출)
-            // 명시적으로 OFF된 탭만 숨김 → 탭 설정 모달에서 OFF한 것들만 숨겨야 함
             if (!allowed.includes(tab)) btn.style.display = 'none';
         });
     }
@@ -4499,7 +4500,7 @@ function csDateInputValue(val) {
         title.textContent = '직원 정보 수정';
         if (idInput) { idInput.disabled = true; idInput.style.background = '#f5f5f5'; }
         if (pwHint) pwHint.style.display = 'none';
-        if (pwReset) pwReset.style.display = 'block';
+        if (pwReset) pwReset.style.display = 'flex';
         // data 속성에서 읽기
         const row = document.getElementById(`emp-row-${_selectedEmpIdx}`);
         const card = document.getElementById(`emp-card-${_selectedEmpIdx}`);
@@ -4511,7 +4512,21 @@ function csDateInputValue(val) {
           document.getElementById('empModalRank').value = src.dataset.title || '';
           document.getElementById('empModalJoinDate').value = src.dataset.joindate || '';
           document.getElementById('empModalEmail').value = src.dataset.email || '';
-          document.getElementById('empModalAnnualLeave').value = src.dataset.annualleave || '';
+          const usedLeave = parseInt(src.dataset.annualleave || '0');
+          document.getElementById('empModalAnnualLeave').value = usedLeave;
+          // 연차 계산 표시
+          const calcEl = document.getElementById('empModalLeaveCalc');
+          if (calcEl && src.dataset.joindate) {
+            const join = new Date(src.dataset.joindate);
+            const now = new Date();
+            const months = (now.getFullYear()-join.getFullYear())*12 + (now.getMonth()-join.getMonth());
+            const years = Math.floor(months/12);
+            let generated = 0;
+            if (months < 12) generated = Math.min(months, 11);
+            else generated = Math.min(15 + Math.floor((years-1)/2), 25);
+            const remaining = Math.max(generated - usedLeave, 0);
+            calcEl.textContent = `(발생 ${generated}일 / 잔여 ${remaining}일)`;
+          } else if (calcEl) { calcEl.textContent = ''; }
         }
       } else {
         title.textContent = '직원 추가';
@@ -4570,21 +4585,23 @@ function csDateInputValue(val) {
       } catch(e) { msg.style.color='#e74c3c'; msg.textContent='❌ 오류: ' + e.message; }
     };
 
-    // ── 직원 삭제 ──
-    window.doDeleteEmp = async function() {
-      if (_selectedEmpId === null) { alert('삭제할 직원을 먼저 선택해주세요.'); return; }
-      const row = document.getElementById(`emp-row-${_selectedEmpIdx}`);
-      const name = row ? (row.dataset.name || _selectedEmpId) : _selectedEmpId;
-      if (!confirm(`[${name}] 직원을 삭제하시겠습니까?\n※ 실제 삭제는 구글시트에서 직접 처리해주세요.`)) return;
-      // 퇴직 처리 (leaveDate 오늘로 설정)
+    // ── 직원 삭제 (모달 내부) ──
+    window.doDeleteEmpFromModal = async function() {
+      if (!_selectedEmpId) return;
+      const name = document.getElementById('empModalName').value || _selectedEmpId;
+      if (!confirm(`[${name}] 직원을 퇴직 처리하시겠습니까?`)) return;
+      const msg = document.getElementById('empModalMsg');
       try {
         const today = new Date().toISOString().slice(0,10);
         const params = new URLSearchParams({ action: 'updateEmployeeLeave', id: _selectedEmpId, leaveDate: today });
         const res = await fetch(`${ERP_URL}?${params}`);
         const data = await res.json();
-        if (data.status === 'ok') { showAdminToast('✅ 퇴직 처리되었습니다.'); loadEmployees(); }
-        else { alert('❌ ' + (data.message||'오류')); }
-      } catch(e) { alert('❌ 오류: ' + e.message); }
+        if (data.status === 'ok') {
+          msg.style.color = '#1a7a45';
+          msg.textContent = '✅ 퇴직 처리되었습니다.';
+          setTimeout(() => { closeEmpModal(); loadEmployees(); }, 1000);
+        } else { msg.style.color='#e74c3c'; msg.textContent='❌ ' + (data.message||'오류'); }
+      } catch(e) { msg.style.color='#e74c3c'; msg.textContent='❌ 오류: ' + e.message; }
     };
 
     // ── 비밀번호 초기화 (구버전 호환) ──
@@ -4609,8 +4626,8 @@ function csDateInputValue(val) {
       _tabPermRowIdx = rowIdx;
       const tabsInput = document.getElementById(`emp-tabs-${rowIdx}`);
       const savedVal = tabsInput ? tabsInput.value : '';
-      // savedVal이 비어있거나 ALL이면 전부 ON
-      const isAll = !savedVal || savedVal === 'ALL';
+      // savedVal이 'ALL'이거나 미설정이면 전부 ON, 빈문자열('')이면 전부 OFF
+      const isAll = savedVal === 'ALL' || savedVal === undefined || savedVal === null;
       const current = isAll ? ALL_TABS.map(t=>t.id) : savedVal.split(',').filter(Boolean).map(s=>s.trim());
       const nameEl = document.querySelector(`#emp-row-${rowIdx} strong`) ||
                      document.querySelector(`#emp-row-${rowIdx} td:first-child`);
