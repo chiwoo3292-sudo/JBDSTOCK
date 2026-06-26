@@ -1755,7 +1755,7 @@
           }
         }
 
-        if (newStatus === '취소') {
+        if (newStatus === '취소' || newStatus === '예약') {
           selectedRsv = null;
           document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
           document.getElementById('rsvActionMsg').textContent = '';
