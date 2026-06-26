@@ -4998,13 +4998,14 @@ function csDateInputValue(val) {
 
     window.saveMonthlyNotice = async function() {
       const ed = document.getElementById('monthlyNoticeEditor');
-      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
-      // 빈 값 키 제거
-      Object.keys(_monthlyData).forEach(k => { if (!_monthlyData[k] || !_monthlyData[k].trim()) delete _monthlyData[k]; });
+      const key = `${_noticeYear}_${_selectedMonth}`;
+      const value = ed ? ed.value : '';
+      if (ed) _monthlyData[key] = value;
+      // 빈값이면 로컬에서도 삭제
+      if (!value.trim()) delete _monthlyData[key];
       const savedEl = document.getElementById('monthlyNoticeSaved');
-      const noticeJson = JSON.stringify(_monthlyData);
       try {
-        const params = new URLSearchParams({ action: 'saveMonthlyNotice', notice: noticeJson });
+        const params = new URLSearchParams({ action: 'saveMonthlyNotice', key, value });
         const res = await fetch(`${ERP_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
@@ -5033,12 +5034,8 @@ function csDateInputValue(val) {
       try {
         const res = await fetch(`${ERP_URL}?action=getMonthlyNotice`);
         const data = await res.json();
-        if (data.status === 'ok' && data.notice) {
-          try {
-            _monthlyData = JSON.parse(data.notice);
-          } catch(e) {
-            _monthlyData = {};
-          }
+        if (data.status === 'ok' && data.notices) {
+          _monthlyData = data.notices;
           const ed = document.getElementById('monthlyNoticeEditor');
           const key = `${_noticeYear}_${_selectedMonth}`;
           if (ed) ed.value = _monthlyData[key] || '';
