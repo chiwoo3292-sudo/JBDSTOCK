@@ -1886,8 +1886,13 @@
 
     <!-- 텍스트 입력 -->
     <textarea id="monthlyNoticeEditor"
-      style="width:100%;min-height:100px;padding:14px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.8;box-sizing:border-box;"
-      placeholder="예: 매주 일요일 / 공휴일 - 현충일(6/6)"></textarea>
+      style="width:100%;min-height:100px;padding:14px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.8;box-sizing:border-box;"></textarea>
+
+    <!-- 저장된 내용 미리보기 -->
+    <div id="monthlyNoticePreview" style="display:none;margin-top:14px;padding:14px 16px;background:#faf8f5;border:1px solid #D9C9A8;border-radius:8px;">
+      <div style="font-size:11px;font-weight:700;color:#5E4630;margin-bottom:6px;">📋 현재 저장된 내용</div>
+      <div id="monthlyNoticePreviewText" style="font-size:13px;color:#333;line-height:1.8;white-space:pre-wrap;"></div>
+    </div>
   </div>
 </div>
 
@@ -4830,7 +4835,7 @@ function csDateInputValue(val) {
     // ── 문자발송 탭 ──
     const SMS_TEMPLATE_KEYS = { confirm: 'sms_tmpl_confirm', cancel: 'sms_tmpl_cancel', today: 'sms_tmpl_today' };
 
-    // 템플릿 로드 (앱스스크립트에서, 없으면 localStorage 폴백)
+    // 템플릿 로드 (앱스스크립트에서)
     window.loadSmsTemplates = async function() {
       try {
         const res = await fetch(`${ERP_URL}?action=getSmsTemplates`);
@@ -4841,15 +4846,8 @@ function csDateInputValue(val) {
             if (el && data.templates[k]) el.value = data.templates[k];
             updateSmsCharCount(k);
           });
-          return;
         }
       } catch(e) {}
-      // 폴백: localStorage
-      ['confirm','cancel','today'].forEach(k => {
-        const saved = localStorage.getItem(SMS_TEMPLATE_KEYS[k]);
-        if (saved) { const el = document.getElementById(`smsTemplate_${k}`); if (el) el.value = saved; }
-        updateSmsCharCount(k);
-      });
     };
 
     window.updateSmsCharCount = function(key) {
@@ -4863,9 +4861,7 @@ function csDateInputValue(val) {
       const savedEl = document.getElementById(`smsSaved_${key}`);
       if (!el) return;
       const text = el.value;
-      // localStorage 저장 (즉시 반영)
-      localStorage.setItem(SMS_TEMPLATE_KEYS[key], text);
-      // 앱스스크립트에도 저장
+      // 앱스스크립트에 저장
       try {
         const params = new URLSearchParams({ action: 'saveSmsTemplate', key, text });
         const res = await fetch(`${ERP_URL}?${params}`);
@@ -4878,31 +4874,34 @@ function csDateInputValue(val) {
     };
 
     // ── 알리고 API 설정 저장/불러오기 ──
-    const ALIGO_KEYS = { apiKey: 'aligo_api_key', userId: 'aligo_user_id', sender: 'aligo_sender' };
-
-    window.saveAligoSettings = function() {
-      localStorage.setItem(ALIGO_KEYS.apiKey, document.getElementById('aligoApiKey').value.trim());
-      localStorage.setItem(ALIGO_KEYS.userId, document.getElementById('aligoUserId').value.trim());
-      localStorage.setItem(ALIGO_KEYS.sender, document.getElementById('aligoSender').value.trim());
+    window.saveAligoSettings = async function() {
+      const apiKey = document.getElementById('aligoApiKey').value.trim();
+      const userId = document.getElementById('aligoUserId').value.trim();
+      const sender = document.getElementById('aligoSender').value.trim();
+      try {
+        const params = new URLSearchParams({ action: 'saveAligoSettings', apiKey, userId, sender });
+        await fetch(`${ERP_URL}?${params}`);
+      } catch(e) {}
       const el = document.getElementById('aligoSaved');
       if (el) { el.style.display = 'inline'; setTimeout(() => el.style.display = 'none', 2500); }
     };
 
-    function loadAligoSettings() {
-      const apiKey = localStorage.getItem(ALIGO_KEYS.apiKey) || '';
-      const userId = localStorage.getItem(ALIGO_KEYS.userId) || '';
-      const sender = localStorage.getItem(ALIGO_KEYS.sender) || '';
-      if (document.getElementById('aligoApiKey')) document.getElementById('aligoApiKey').value = apiKey;
-      if (document.getElementById('aligoUserId')) document.getElementById('aligoUserId').value = userId;
-      if (document.getElementById('aligoSender')) document.getElementById('aligoSender').value = sender;
+    async function loadAligoSettings() {
+      try {
+        const res = await fetch(`${ERP_URL}?action=getAligoSettings`);
+        const data = await res.json();
+        if (data.status === 'ok' && data.settings) {
+          if (document.getElementById('aligoApiKey')) document.getElementById('aligoApiKey').value = data.settings.apiKey || '';
+          if (document.getElementById('aligoUserId')) document.getElementById('aligoUserId').value = data.settings.userId || '';
+          if (document.getElementById('aligoSender')) document.getElementById('aligoSender').value = data.settings.sender || '';
+        }
+      } catch(e) {}
     }
 
-    // ── 문자 발송 공통 함수 (알리고 API 연동 전 골격) ──
-    // TODO: 알리고 API 연동 후 아래 함수 내부만 채우면 됨
+    // ── 문자 발송 공통 함수 ──
     window.sendSMS = async function(phone, name, schedule, counselor, templateKey) {
       const tmplEl = document.getElementById(`smsTemplate_${templateKey}`);
-      const savedTmpl = localStorage.getItem(SMS_TEMPLATE_KEYS[templateKey]);
-      let tmpl = (tmplEl ? tmplEl.value : null) || savedTmpl || '';
+      let tmpl = tmplEl ? tmplEl.value : '';
       if (!tmpl || !phone) return { ok: false, reason: '템플릿 또는 연락처 없음' };
 
       // 변수 치환
@@ -4912,10 +4911,17 @@ function csDateInputValue(val) {
         .replace(/{상담자}/g, counselor || '')
         .replace(/{연락처}/g, phone || '');
 
-      // 알리고 API 설정 불러오기
-      const apiKey = localStorage.getItem(ALIGO_KEYS.apiKey) || '';
-      const userId = localStorage.getItem(ALIGO_KEYS.userId) || '';
-      const sender = localStorage.getItem(ALIGO_KEYS.sender) || '';
+      // 알리고 API 설정 불러오기 (앱스스크립트)
+      let apiKey = '', userId = '', sender = '';
+      try {
+        const settingsRes = await fetch(`${ERP_URL}?action=getAligoSettings`);
+        const settingsData = await settingsRes.json();
+        if (settingsData.status === 'ok' && settingsData.settings) {
+          apiKey = settingsData.settings.apiKey || '';
+          userId = settingsData.settings.userId || '';
+          sender = settingsData.settings.sender || '';
+        }
+      } catch(e) {}
 
       let result = 'API미연동';
       if (apiKey && userId && sender) {
@@ -4977,6 +4983,7 @@ function csDateInputValue(val) {
       const key = `${_noticeYear}_${_selectedMonth}`;
       if (ed) ed.value = _monthlyData[key] || '';
       updateMonthBtns();
+      updateNoticePreview();
     };
 
     window.selectNoticeMonth = function(m) {
@@ -4986,6 +4993,7 @@ function csDateInputValue(val) {
       const key = `${_noticeYear}_${_selectedMonth}`;
       if (ed) ed.value = _monthlyData[key] || '';
       updateMonthBtns();
+      updateNoticePreview();
     };
 
     window.saveMonthlyNotice = async function() {
@@ -4999,9 +5007,25 @@ function csDateInputValue(val) {
         const data = await res.json();
         if (data.status === 'ok') {
           if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
+          updateNoticePreview();
         } else { alert('저장 실패: ' + (data.message||'')); }
       } catch(e) { alert('오류: ' + e.message); }
     };
+
+    function updateNoticePreview() {
+      const key = `${_noticeYear}_${_selectedMonth}`;
+      const text = _monthlyData[key] || '';
+      const preview = document.getElementById('monthlyNoticePreview');
+      const previewText = document.getElementById('monthlyNoticePreviewText');
+      if (preview && previewText) {
+        if (text.trim()) {
+          previewText.textContent = text;
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
+        }
+      }
+    }
 
     async function loadMonthlyNoticeEditor() {
       try {
@@ -5016,6 +5040,7 @@ function csDateInputValue(val) {
           const ed = document.getElementById('monthlyNoticeEditor');
           const key = `${_noticeYear}_${_selectedMonth}`;
           if (ed) ed.value = _monthlyData[key] || '';
+          updateNoticePreview();
         }
       } catch(e) {}
       updateMonthBtns();
