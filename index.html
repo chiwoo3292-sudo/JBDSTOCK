@@ -4999,6 +4999,8 @@ function csDateInputValue(val) {
     window.saveMonthlyNotice = async function() {
       const ed = document.getElementById('monthlyNoticeEditor');
       if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
+      // 빈 값 키 제거
+      Object.keys(_monthlyData).forEach(k => { if (!_monthlyData[k] || !_monthlyData[k].trim()) delete _monthlyData[k]; });
       const savedEl = document.getElementById('monthlyNoticeSaved');
       const noticeJson = JSON.stringify(_monthlyData);
       try {
