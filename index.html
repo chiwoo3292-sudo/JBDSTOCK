@@ -3174,8 +3174,12 @@ function csDateInputValue(val) {
   };
 
   // 모달 배경 클릭 시 닫기
+  let _csOverlayMouseDownTarget = null;
+  document.getElementById('csFormOverlay').addEventListener('mousedown', function(e) {
+    _csOverlayMouseDownTarget = e.target;
+  });
   document.getElementById('csFormOverlay').addEventListener('click', function(e) {
-    if (e.target === this) window.closeConsultForm();
+    if (e.target === this && _csOverlayMouseDownTarget === this) window.closeConsultForm();
   });
 
   // ── 저장 (신규 등록 + 기존 수정 겸용) ──
