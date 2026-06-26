@@ -26,6 +26,7 @@
 <!-- KoPubWorld 돋움체 & Century Gothic 대체 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Tinos:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap');
   /* GmarketSans Bold(700) → font-weight:900으로 매핑하여 기존 CSS(font-weight:900) 그대로 사용 */
@@ -45,14 +46,14 @@
 .grid-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
   .grid-tabs .quick-preview-trigger .secondary { width: 100%; min-height: 44px; padding: 0 4px; border: 1px solid #d8d8d8; border-radius: 8px; background: #fff; color: #444; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:'Noto Sans KR', sans-serif; background:#f5f5f5; color:#111; }
+  body { margin:0; font-family:'Pretendard','Noto Sans KR', sans-serif; background:#F1EADF; color:#2E251D; }
   [spellcheck], input, textarea, td, th, select { -webkit-spellcheck: false; }
   td, th { -webkit-user-modify: read-only; }
   .wrap { max-width:1880px; margin:0 auto; padding:10px; }
   .tabs-wrap { 
     position:sticky; top:0; z-index:500;
     display:flex; align-items:center; gap:8px; margin-bottom:14px;
-    background:#fff; padding:8px 0 8px;
+    background:#FBF7EF; padding:8px 0 8px;
     box-shadow:0 1px 4px rgba(0,0,0,0.06);
   }
   .hamburger-btn { min-width:36px; height:36px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
@@ -60,18 +61,18 @@
   .tabs { display:flex; gap:8px; align-items:center; overflow-x:auto; flex:1; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; user-select:none; }
   .tabs::-webkit-scrollbar { display:none; }
   .tabs.dragging { cursor:grabbing; }
-  .tab-btn { min-height:36px; padding:0 14px; border:1px solid #d8d8d8; border-radius:999px; background:#fff; color:#444; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
-  .tab-btn.active { background:#111; color:#fff; border-color:#111; }
+  .tab-btn { min-height:36px; padding:0 14px; border:1px solid #E2D6C2; border-radius:999px; background:#fff; color:#8A7B68; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .tab-btn.active { background:#5E4630; color:#F3ECDF; border-color:#5E4630; }
   .user-info-badge { 
     flex-shrink:0; display:flex; align-items:center; justify-content:center;
     width:36px; height:36px; border-radius:50%;
-    background:#7b5fd9; color:#fff;
+    background:#5E4630; color:#fff;
     font-size:15px; font-weight:800; cursor:pointer; 
     border:none; position:relative; margin-left:auto;
     transition:transform .12s ease, box-shadow .12s ease;
-    box-shadow:0 1px 3px rgba(123,95,217,0.35);
+    box-shadow:0 1px 3px rgba(94,70,48,0.30);
   }
-  .user-info-badge:hover { transform:translateY(-1px); box-shadow:0 3px 8px rgba(123,95,217,0.45); }
+  .user-info-badge:hover { transform:translateY(-1px); box-shadow:0 3px 8px rgba(94,70,48,0.42); }
   .user-info-badge.guest { background:#aaa; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
   .user-info-badge.guest:hover { box-shadow:0 3px 8px rgba(0,0,0,0.2); }
   /* 드롭다운 헤더(이름/직급 표시) */
@@ -87,7 +88,7 @@
   .hamburger-menu-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; min-height:auto; padding:0; }
   .hamburger-menu-item { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f5f5f5; cursor:pointer; font-size:13.5px; font-weight:600; color:#333; }
   .hamburger-menu-item:hover { background:#f9f9f9; }
-  .hamburger-menu-item input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:#7b5fd9; }
+  .hamburger-menu-item input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:#5E4630; }
   .hamburger-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:99997; }
   .hamburger-overlay.open { display:block; }
 
@@ -100,19 +101,19 @@
   .tab-panel { display:none; }
   .tab-panel.active { display:block; }
   .layout { display:grid; grid-template-columns:1.3fr 1fr; gap:18px; }
-  .card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:18px; }
-  .title { margin:0 0 14px; font-size:16px; font-weight:700; }
+  .card { background:#fff; border:1px solid #ECE3D3; border-radius:16px; padding:18px; }
+  .title { margin:0 0 14px; font-size:17px; font-weight:700; font-family:'Noto Serif KR',serif; color:#2E251D; letter-spacing:-.01em; }
   .topbar { display:grid; grid-template-columns:auto minmax(180px, 280px); justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
   .product-add { display:grid; grid-template-columns:minmax(220px, 240px) auto; gap:8px; align-items:center; }
-  select, input[type="text"], input[type="number"], textarea { font-family:inherit; font-size:13px; border:1px solid #ddd; border-radius:12px; background:#fff; }
+  select, input[type="text"], input[type="number"], textarea { font-family:inherit; font-size:13px; border:1px solid #E2D6C2; border-radius:10px; background:#FBF7EF; }
   select, input[type="text"], input[type="number"] { height:38px; padding:0 12px; width:100%; }
   textarea { width:100%; min-height:380px; padding:12px; line-height:1.6; resize:vertical; }
-  button { min-height:35px; padding:0 14px; border:1px solid #111; border-radius:12px; background:#111; color:#fff; font-size:12px; font-weight:700; cursor:pointer; }
-  button.secondary { background:#fff; color:#111; border-color:#ddd; }
+  button { min-height:35px; padding:0 14px; border:1px solid #5E4630; border-radius:10px; background:#5E4630; color:#F3ECDF; font-size:12px; font-weight:700; cursor:pointer; }
+  button.secondary { background:#fff; color:#5E4630; border-color:#D8CBB8; }
   .scroll { max-height:730px; overflow:auto; border:1px solid #eee; border-radius:14px; }
   table { width:100%; border-collapse:collapse; }
-  th, td { padding:9px 10px; border-bottom:1px solid #eee; text-align:left; vertical-align:top; font-size:13px; line-height:1.45; }
-  th { background:#fafafa; color:#444; font-size:12px; position:sticky; top:0; z-index:1; }
+  th, td { padding:11px 10px; border-bottom:1px solid #F0E8DA; text-align:left; vertical-align:top; font-size:13px; line-height:1.45; font-variant-numeric:tabular-nums; }
+  th { background:#FBF7EF; color:#9A8B79; font-size:11.5px; font-weight:600; position:sticky; top:0; z-index:1; border-bottom:1.5px solid #D8CBB8; }
   td.name, td.spec-left, td.spec-right { white-space:nowrap; }
   td.price { white-space:nowrap; }
   .muted { color:#777; font-size:12px; }
@@ -166,7 +167,7 @@
 
 .stock-table-wrapper { overflow-x: auto; margin-top: 10px; border-radius: 12px; border: 1px solid #e0e0e0; }
 #stockTable { width: 100%; border-collapse: collapse; font-size: 14px; }
-#stockTable th { background-color: #f8f9fa; color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center; vertical-align: middle; position: sticky; top: 0; z-index: 10; }
+#stockTable th { background-color: #FBF7EF; color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center; vertical-align: middle; position: sticky; top: 0; z-index: 10; }
 #stockTable td { padding: 11px 8px; border-bottom: 1px solid #eee; text-align: center; }
 
 /* 품번 열 좌측 고정 (모바일 가로스크롤 시 품번 고정) */
@@ -174,7 +175,7 @@
 #stockTable td:first-child {
   position: sticky !important;
   left: 0 !important;
-  background-color: #f8f9fa !important;
+  background-color: #FBF7EF !important;
   border-right: 2px solid #ccc !important;
   min-width: 70px !important;
 }
@@ -190,11 +191,11 @@
   left: auto !important;
   transform: none !important;
 }
-#stockTable tr.bg-group-gray td:first-child { background-color: #f7f8fa !important; }
+#stockTable tr.bg-group-gray td:first-child { background-color: #FAF6EF !important; }
 #stockTable tr.bg-group-white td:first-child { background-color: #ffffff !important; }
 
 /* 품번 그룹 교차 배경 */
-#stockTable tr.bg-group-gray { background-color: #f7f8fa; }
+#stockTable tr.bg-group-gray { background-color: #FAF6EF; }
 #stockTable tr.bg-group-white { background-color: #ffffff; }
 
 /* 품번 그룹 첫 행 — 위쪽에 굵은 구분선 */
@@ -550,7 +551,7 @@
 
 
 <!-- ==================== 잠금 섹션 ==================== -->
-<section id="lockSection" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#111; z-index:99999; display:none; align-items:center; justify-content:center; overflow:hidden;">
+<section id="lockSection" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#2A211A; z-index:99999; display:none; align-items:center; justify-content:center; overflow:hidden;">
     <div style="text-align:center; width:90%; max-width:380px;">
         <div style="width:120px;height:120px;margin:0 auto 16px;">
           <img src="https://github.com/chiwoo3292-sudo/JBDSTOCK/blob/main/%EC%A7%80%EB%B3%B5%EB%93%9D%EB%A7%88%EB%A3%A8%EB%A9%94%EC%9D%B8%EB%A1%9C%EA%B3%A0.jpg?raw=true" style="width:100%;height:100%;object-fit:contain;">
@@ -561,7 +562,7 @@
         <div id="loginSection">
           <input type="text" id="loginId" placeholder="아이디" style="width:100%; height:44px; padding:0 16px; font-size:14px; border:none; border-radius:10px; box-sizing:border-box; margin-bottom:8px; background:rgba(255,255,255,0.12); color:#fff; outline:none;">
           <input type="password" id="loginPw" placeholder="비밀번호" style="width:100%; height:44px; padding:0 16px; font-size:14px; border:none; border-radius:10px; box-sizing:border-box; margin-bottom:10px; background:rgba(255,255,255,0.12); color:#fff; outline:none;">
-          <button id="loginBtn" style="width:100%; height:44px; background:#7b5fd9; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:16px;">로그인</button>
+          <button id="loginBtn" style="width:100%; height:44px; background:#5E4630; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:16px;">로그인</button>
           <p id="loginError" style="margin:0 0 16px; font-size:12px; color:#ff6b6b; display:none; font-weight:bold;">❌ 아이디 또는 비밀번호가 올바르지 않습니다.</p>
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
             <div style="flex:1; height:1px; background:rgba(255,255,255,0.2);"></div>
@@ -1260,7 +1261,7 @@
             <div class="inv-contact">
               <div class="inv-contact-title">CONTACT</div>
               서울시 강남구 언주로 133길 25 지복득마루<br>
-              T&nbsp;&nbsp; 02 576 7736&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp; jibokdeukmaru@naver.com&nbsp;&nbsp;&nbsp;&nbsp; www.jibokdeukmaru.com
+              T&nbsp;&nbsp; 02 576 7736&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp; <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4b21222924202f2e3e20262a393e0b252a3d2e3965282426">[email&#160;protected]</a>&nbsp;&nbsp;&nbsp;&nbsp; www.jibokdeukmaru.com
             </div>
           </div>
           <div class="inv-account-wrap">
@@ -1554,7 +1555,7 @@
 </div>
 
 <!-- 전역 URL 변수 (모든 스크립트 블록에서 접근 가능) -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   var ERP_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbycqipsEpR-JzkRdeMhqtYRxfGej3RXvJjyNGDr3oGlMjnXqV8RNEOFFAhoLofm1qvR/exec';
 </script>
@@ -1846,10 +1847,10 @@
 
     <!-- 헤더: 제목 + 저장 버튼 한 줄 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-size:14px;font-weight:800;color:#7b5fd9;">월별 팝업메세지 안내</div>
+      <div style="font-size:14px;font-weight:800;color:#5E4630;">월별 팝업메세지 안내</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="monthlyNoticeSaved" style="display:none;font-size:11px;color:#1a7a45;font-weight:700;">✅ 저장됨</span>
-        <button onclick="saveMonthlyNotice()" style="padding:6px 14px;background:#7b5fd9;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
+        <button onclick="saveMonthlyNotice()" style="padding:6px 14px;background:#5E4630;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
       </div>
     </div>
 
@@ -1896,8 +1897,8 @@
   color:#555;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
   flex-shrink:0;transition:all .12s;
 }
-.notice-m-btn:hover { background:#f3f1fb; border-color:#c4b5f5; }
-.notice-m-btn.active { background:#7b5fd9; color:#fff; border-color:#7b5fd9; }
+.notice-m-btn:hover { background:#F2EADC; border-color:#D9C9A8; }
+.notice-m-btn.active { background:#5E4630; color:#fff; border-color:#5E4630; }
 </style>
 
 </section>
@@ -1911,14 +1912,14 @@
 
   /* 헤더 */
   .dw-header { display:flex; align-items:center; gap:7px; margin-bottom:18px; }
-  .dw-header-icon { width:22px; height:22px; border-radius:5px; background:#7b5fd9; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; flex-shrink:0; }
+  .dw-header-icon { width:22px; height:22px; border-radius:5px; background:#5E4630; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; flex-shrink:0; }
   .dw-header h2 { font-size:17px; font-weight:700; color:#222; text-decoration:underline; text-underline-offset:4px; }
   .dw-header-spacer { flex:1; }
   .dw-refresh-btn { padding:6px 13px; font-size:12px; font-weight:700; border-radius:6px; background:#111; color:#fff; border:none; cursor:pointer; }
 
   /* 서브탭 */
   .dw-subtab-row { display:flex; align-items:flex-end; gap:6px; border-bottom:1px solid #e3e3e3; margin-bottom:16px; padding-bottom:0; }
-  .dw-subtab-row .dw-subtab-active { font-size:13.5px; font-weight:700; color:#7b5fd9; padding-bottom:10px; border-bottom:2px solid #7b5fd9; margin-bottom:-1px; }
+  .dw-subtab-row .dw-subtab-active { font-size:13.5px; font-weight:700; color:#5E4630; padding-bottom:10px; border-bottom:2px solid #5E4630; margin-bottom:-1px; }
   .dw-subtab-row .dw-subtab-badge { font-size:10px; color:#999; background:#f1f1f3; border-radius:4px; padding:2px 6px; margin-bottom:9px; }
 
   /* 검색줄 */
@@ -1960,14 +1961,14 @@
   table.dw-table thead th { position:relative; padding:10px 8px; text-align:center; font-weight:700; color:#555; background:#fafafa; border:1px solid #e0e0e0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
   table.dw-table tbody td { padding:11px 8px; text-align:center; border:1px solid #ebebeb; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   table.dw-table tbody tr { cursor:pointer; }
-  table.dw-table tbody tr:hover { background:#f8f7fc; }
+  table.dw-table tbody tr:hover { background:#F7F1E6; }
 
   .dw-col-resizer { position:absolute; right:-3px; top:0; width:6px; height:100%; cursor:col-resize; z-index:2; }
-  .dw-col-resizer:hover { background:#7b5fd9; opacity:0.4; }
+  .dw-col-resizer:hover { background:#5E4630; opacity:0.4; }
 
   /* 인라인 편집 */
   .cs-inline-input { border:none; background:transparent; font-size:13px; font-family:inherit; color:#333; width:100%; outline:none; cursor:text; }
-  .cs-inline-input:focus { background:#f3f1fb; border-radius:4px; padding:2px 4px; }
+  .cs-inline-input:focus { background:#F2EADC; border-radius:4px; padding:2px 4px; }
   .cs-inline-input::placeholder { color:transparent; }
 
   .dw-td-name { font-weight:500; }
@@ -2083,7 +2084,7 @@
   .dw-form-subtab { font-size:12px; color:#999; margin-bottom:22px; display:flex; gap:6px; align-items:center; }
   .dw-form-subtab .dw-subtab-badge { font-size:10px; color:#999; background:#f1f1f3; border-radius:4px; padding:2px 6px; }
 
-  .dw-section-h { font-size:14px; font-weight:700; color:#7b5fd9; margin:26px 0 14px; }
+  .dw-section-h { font-size:14px; font-weight:700; color:#5E4630; margin:26px 0 14px; }
   .dw-section-h:first-of-type { margin-top:0; }
 
   .dw-field-row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:24px; margin-bottom:18px; align-items:start; }
@@ -2097,7 +2098,7 @@
   .dw-field input[type=text], .dw-field input[type=date], .dw-field input[type=time], .dw-field input[type=number], .dw-field select, .dw-field textarea {
     width:100%; padding:9px 11px; border:1px solid #ddd; border-radius:6px; font-size:13px; font-family:inherit; color:#333; outline:none;
   }
-  .dw-field input:focus, .dw-field select:focus, .dw-field textarea:focus { border-color:#7b5fd9; }
+  .dw-field input:focus, .dw-field select:focus, .dw-field textarea:focus { border-color:#5E4630; }
   .dw-field textarea { min-height:110px; resize:vertical; }
 
   .dw-inline-2 { display:flex; gap:8px; }
@@ -2112,7 +2113,7 @@
   .dw-radio-group input[type=radio] { width:15px; height:15px; cursor:pointer; }
 
   .dw-counselor-list { display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
-  .dw-counselor-chip { display:inline-flex; align-items:center; gap:8px; background:#f3f1fb; color:#5b3fc0; border-radius:6px; padding:6px 10px; font-size:12.5px; font-weight:600; width:fit-content; }
+  .dw-counselor-chip { display:inline-flex; align-items:center; gap:8px; background:#F2EADC; color:#5b3fc0; border-radius:6px; padding:6px 10px; font-size:12.5px; font-weight:600; width:fit-content; }
   .dw-counselor-chip .x { cursor:pointer; color:#9a8bd6; font-weight:700; }
   .dw-add-counselor-btn { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#666; cursor:pointer; font-weight:600; background:none; border:none; padding:4px 0; }
 
@@ -2120,9 +2121,9 @@
   .dw-checkbox-row label { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#333; cursor:pointer; font-weight:400; white-space:nowrap; flex:0 0 auto; }
   .dw-checkbox-row input[type=checkbox] { width:15px; height:15px; cursor:pointer; }
 
-  .dw-conditional-box { margin-top:10px; padding:14px; background:#f9f8fd; border:1px solid #e8e4f7; border-radius:8px; display:none; }
+  .dw-conditional-box { margin-top:10px; padding:14px; background:#F7F1E6; border:1px solid #E7DAC4; border-radius:8px; display:none; }
   .dw-conditional-box.show { display:block; }
-  .dw-conditional-box label { font-size:12px; font-weight:600; color:#7b5fd9; margin-bottom:6px; display:block; }
+  .dw-conditional-box label { font-size:12px; font-weight:600; color:#5E4630; margin-bottom:6px; display:block; }
 
   .dw-author-readonly { font-size:13px; color:#999; }
 
@@ -2159,8 +2160,8 @@
   </div>
 
   <!-- 조건 패널 -->
-  <div id="csCondPanel" style="display:none;background:#f9f8fd;border:1px solid #e0d8f7;border-radius:10px;padding:14px 18px;margin-bottom:10px;">
-    <div style="font-size:12px;font-weight:800;color:#7b5fd9;margin-bottom:10px;">🔍 필터 조건 설정</div>
+  <div id="csCondPanel" style="display:none;background:#F7F1E6;border:1px solid #E2D6C2;border-radius:10px;padding:14px 18px;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:800;color:#5E4630;margin-bottom:10px;">🔍 필터 조건 설정</div>
     <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">
       <div>
         <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;">상태</div>
@@ -2194,7 +2195,7 @@
     <button class="dw-toolbar-item" onclick="openManualRegister()">✏ 등록</button>
     <button class="dw-toolbar-item" onclick="deleteCheckedConsults()">🗑 삭제</button>
     <button class="dw-toolbar-item" onclick="openCsvModal()">↑ 일괄 등록</button>
-    <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#7b5fd9;font-weight:700;">📥 다우 시트 변환</button>
+    <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#5E4630;font-weight:700;">📥 다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="alert('목록다운로드 기능은 추후 작업 예정입니다.')">↓ 목록 다운로드 ▾</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize" onchange="currentPage=1;renderConsultList()">
@@ -2290,8 +2291,8 @@
           <option value="신규">신규</option>
           <option value="재방문">재방문</option>
         </select>
-        <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#f9f8fd;border:1px solid #e0d8f7;border-radius:8px;padding:12px;">
-          <div style="font-size:12px;font-weight:700;color:#7b5fd9;margin-bottom:6px;">🔍 기존 방문 이력 검색</div>
+        <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#F7F1E6;border:1px solid #E2D6C2;border-radius:8px;padding:12px;">
+          <div style="font-size:12px;font-weight:700;color:#5E4630;margin-bottom:6px;">🔍 기존 방문 이력 검색</div>
           <input type="text" id="cfRevisitInput" oninput="searchRevisitOverlay()" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;">
           <div id="cfRevisitResults" style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:6px;"></div>
         </div>
@@ -2544,7 +2545,7 @@
       opts.innerHTML = _staffListCache.map(name => `
         <div onclick="addCounselorFromDropdown('${name}')"
           style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;"
-          onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+          onmouseover="this.style.background='#F2EADC'" onmouseout="this.style.background=''">
           ${name}
         </div>
       `).join('');
@@ -2560,7 +2561,7 @@
       opts.innerHTML = list.map(name => `
         <div onclick="addCounselorFromDropdown('${name}')"
           style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;"
-          onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+          onmouseover="this.style.background='#F2EADC'" onmouseout="this.style.background=''">
           ${name}
         </div>
       `).join('');
@@ -2611,7 +2612,7 @@
     dd.innerHTML = filtered.map(t => `
       <div onclick="selectTime('${t}')"
         style="padding:9px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;white-space:nowrap;"
-        onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+        onmouseover="this.style.background='#F2EADC'" onmouseout="this.style.background=''">
         ${t}
       </div>
     `).join('') || '<div style="padding:9px 14px;color:#aaa;font-size:12px;">없음</div>';
@@ -2706,7 +2707,7 @@
     if (!el) return;
     const badges = [];
     if (csCurrentFilter && csCurrentFilter !== '전체') {
-      badges.push(`<span style="background:#7b5fd9;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${csCurrentFilter} ✕</span>`);
+      badges.push(`<span style="background:#5E4630;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${csCurrentFilter} ✕</span>`);
     }
     if (csDateFilter) {
       const label = csDateFilter === 'today' ? '금일' : csDateFilter === '1day' ? '1일전' : '2일전';
@@ -2870,7 +2871,7 @@
     if (totalPages <= 1) { el.innerHTML = ''; return; }
 
     const btnStyle = 'padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#555;';
-    const activeBtnStyle = 'padding:4px 10px;border:1px solid #7b5fd9;border-radius:6px;background:#7b5fd9;font-size:12px;cursor:pointer;color:#fff;font-weight:700;';
+    const activeBtnStyle = 'padding:4px 10px;border:1px solid #5E4630;border-radius:6px;background:#5E4630;font-size:12px;cursor:pointer;color:#fff;font-weight:700;';
 
     let html = '';
     html += `<button style="${btnStyle}" onclick="gotoPage(1)" ${currentPage===1?'disabled':''}>«</button>`;
@@ -3058,11 +3059,11 @@ function csDateInputValue(val) {
     results.innerHTML = matched.map((r, i) => `
       <div ondblclick="applyRevisitOverlay(${allConsults.indexOf(r)})"
         style="padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13px;"
-        onmouseover="this.style.background='#f3f1fb'" onmouseout="this.style.background=''">
+        onmouseover="this.style.background='#F2EADC'" onmouseout="this.style.background=''">
         <strong>${r.name||''}</strong>
         <span style="color:#888;font-size:12px;margin-left:6px;">${r.phone||''}</span>
         <br><span style="color:#aaa;font-size:11px;">${r.date||''} · ${r.company||''}</span>
-        <span style="color:#7b5fd9;font-size:11px;margin-left:8px;">더블클릭 시 적용</span>
+        <span style="color:#5E4630;font-size:11px;margin-left:8px;">더블클릭 시 적용</span>
       </div>
     `).join('');
   };
@@ -3246,7 +3247,7 @@ function csDateInputValue(val) {
   .notice-wrap { max-width:900px; margin:0 auto; }
   .notice-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .notice-header h2 { font-size:17px; font-weight:800; margin:0; }
-  .notice-write-btn { padding:8px 18px; background:#7b5fd9; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .notice-write-btn { padding:8px 18px; background:#5E4630; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
   table.notice-table { width:100%; border-collapse:collapse; font-size:13px; }
   table.notice-table th { padding:10px 12px; background:#fafafa; border-top:2px solid #333; border-bottom:1px solid #ddd; font-weight:700; color:#555; text-align:center; }
   table.notice-table td { padding:11px 12px; border-bottom:1px solid #eee; color:#333; }
@@ -3263,7 +3264,7 @@ function csDateInputValue(val) {
   .notice-modal input[type=text], .notice-modal textarea, .notice-modal select { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; margin-bottom:12px; }
   .notice-modal textarea { min-height:180px; resize:vertical; }
   .notice-modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
-  .notice-btn-submit { background:#7b5fd9; color:#fff; border:none; border-radius:8px; padding:10px 24px; font-size:13px; font-weight:700; cursor:pointer; }
+  .notice-btn-submit { background:#5E4630; color:#fff; border:none; border-radius:8px; padding:10px 24px; font-size:13px; font-weight:700; cursor:pointer; }
   .notice-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; }
   .notice-detail-content { font-size:13px; line-height:1.8; color:#333; white-space:pre-wrap; background:#fafafa; border-radius:8px; padding:16px; min-height:100px; }
   .notice-detail-meta { font-size:12px; color:#aaa; margin-bottom:14px; }
@@ -3397,7 +3398,7 @@ function csDateInputValue(val) {
 
   /* 프로필 카드 */
   .myi-profile-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px 28px; margin-bottom:16px; display:flex; align-items:center; gap:22px; }
-  .myi-avatar { width:90px; height:90px; border-radius:12px; background:#e8e4f7; display:flex; align-items:center; justify-content:center; font-size:36px; color:#7b5fd9; font-weight:800; flex-shrink:0; overflow:hidden; }
+  .myi-avatar { width:90px; height:90px; border-radius:12px; background:#E7DAC4; display:flex; align-items:center; justify-content:center; font-size:36px; color:#5E4630; font-weight:800; flex-shrink:0; overflow:hidden; }
   .myi-avatar img { width:100%; height:100%; object-fit:cover; }
   .myi-profile-info { flex:1; }
   .myi-profile-info .myi-name { font-size:22px; font-weight:800; color:#222; margin:0 0 6px; }
@@ -3418,8 +3419,8 @@ function csDateInputValue(val) {
   .myi-row-val { color:#333; font-weight:600; }
 
   /* 근무현황 박스 */
-  .myi-tenure-box { background:#eef3fb; border-radius:10px; padding:14px 16px; margin-top:14px; display:flex; align-items:center; justify-content:space-between; }
-  .myi-tenure-label { font-size:12px; color:#7b5fd9; font-weight:700; margin-bottom:4px; }
+  .myi-tenure-box { background:#F2EADC; border-radius:10px; padding:14px 16px; margin-top:14px; display:flex; align-items:center; justify-content:space-between; }
+  .myi-tenure-label { font-size:12px; color:#5E4630; font-weight:700; margin-bottom:4px; }
   .myi-tenure-val { font-size:17px; font-weight:800; color:#2c3e70; }
 
   /* 연차 프로그레스 */
@@ -3435,9 +3436,9 @@ function csDateInputValue(val) {
   .myi-pw-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
   .myi-pw-grid { display:flex; flex-direction:column; gap:10px; }
   .myi-pw-grid input { padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; outline:none; }
-  .myi-pw-grid input:focus { border-color:#7b5fd9; }
-  .myi-pw-btn { background:#7b5fd9; color:#fff; border:none; border-radius:8px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer; }
-  .myi-pw-btn:hover { background:#6a4fc4; }
+  .myi-pw-grid input:focus { border-color:#5E4630; }
+  .myi-pw-btn { background:#5E4630; color:#fff; border:none; border-radius:8px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .myi-pw-btn:hover { background:#4A3526; }
   .myi-pw-msg { text-align:center; font-size:12px; color:#555; margin-top:6px; }
 
   /* 하단 버튼 */
@@ -3550,7 +3551,7 @@ function csDateInputValue(val) {
     <div id="infoRequestMsg" style="font-size:12px;margin-top:8px;min-height:18px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
       <button onclick="closeInfoRequestModal()" style="padding:10px 20px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="submitInfoRequest()" style="padding:10px 24px;border:none;border-radius:8px;background:#7b5fd9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">신청하기</button>
+      <button onclick="submitInfoRequest()" style="padding:10px 24px;border:none;border-radius:8px;background:#5E4630;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">신청하기</button>
     </div>
   </div>
 </div>
@@ -3568,14 +3569,14 @@ function csDateInputValue(val) {
   .sms-header { font-size:20px; font-weight:800; color:#222; margin-bottom:6px; }
   .sms-desc { font-size:13px; color:#888; margin-bottom:20px; }
   .sms-template-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
-  .sms-template-title { font-size:14px; font-weight:800; color:#7b5fd9; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .sms-template-title { font-size:14px; font-weight:800; color:#5E4630; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
   .sms-vars { font-size:11.5px; color:#aaa; margin-bottom:10px; }
-  .sms-vars span { background:#f3f1fb; color:#7b5fd9; border-radius:4px; padding:2px 7px; margin-right:4px; font-weight:700; }
+  .sms-vars span { background:#F2EADC; color:#5E4630; border-radius:4px; padding:2px 7px; margin-right:4px; font-weight:700; }
   .sms-textarea { width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; resize:vertical; box-sizing:border-box; line-height:1.7; }
   .sms-footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:12px; }
   .sms-char-count { font-size:12px; color:#aaa; }
-  .sms-save-btn { padding:9px 22px; border:none; border-radius:8px; background:#7b5fd9; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
-  .sms-save-btn:hover { background:#6a4fc3; }
+  .sms-save-btn { padding:9px 22px; border:none; border-radius:8px; background:#5E4630; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+  .sms-save-btn:hover { background:#4A3526; }
   .sms-saved-msg { font-size:12px; color:#1a7a45; font-weight:700; display:none; }
   .sms-send-log-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; }
   .sms-log-title { font-size:14px; font-weight:800; color:#222; margin-bottom:14px; }
@@ -3585,7 +3586,7 @@ function csDateInputValue(val) {
   <div class="sms-desc">문자 템플릿을 수정하고 저장하세요. 저장된 템플릿은 자동 발송 시 사용됩니다.</div>
 
   <!-- 알리고 API 설정 -->
-  <div class="sms-template-card" style="border-color:#d4c8f5;background:#faf9ff;">
+  <div class="sms-template-card" style="border-color:#D9C9A8;background:#faf9ff;">
     <div class="sms-template-title">🔑 알리고 API 설정</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
       <div>
@@ -3683,7 +3684,7 @@ function csDateInputValue(val) {
     <div id="tabPermList" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
       <button onclick="closeTabPermModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="saveTabPermFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#7b5fd9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
+      <button onclick="saveTabPermFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#5E4630;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
     </div>
   </div>
 </div>
@@ -3736,8 +3737,8 @@ function csDateInputValue(val) {
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <!-- 추가 시: 초기 비밀번호 안내 -->
-      <div id="empModalPwHint" style="background:#f8f7fc;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
-        🔒 초기 비밀번호: <strong style="color:#7b5fd9;">0000</strong>
+      <div id="empModalPwHint" style="background:#F7F1E6;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
+        🔒 초기 비밀번호: <strong style="color:#5E4630;">0000</strong>
       </div>
       <!-- 수정 시: 비밀번호 초기화 + 삭제 버튼 -->
       <div id="empModalPwReset" style="display:none;display:flex;flex-direction:column;gap:8px;">
@@ -3752,7 +3753,7 @@ function csDateInputValue(val) {
     <div id="empModalMsg" style="font-size:12px;min-height:18px;margin-top:10px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
       <button onclick="closeEmpModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="submitEmpModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#7b5fd9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+      <button onclick="submitEmpModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#5E4630;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
     </div>
   </div>
 </div>
@@ -3762,15 +3763,15 @@ function csDateInputValue(val) {
   .admin-wrap { max-width:1100px; margin:0 auto; }
   .admin-header { display:flex; align-items:center; gap:8px; margin-bottom:20px; }
   .admin-header h2 { font-size:17px; font-weight:700; color:#222; }
-  .admin-section-title { font-size:14px; font-weight:800; color:#7b5fd9; margin:0 0 14px; }
+  .admin-section-title { font-size:14px; font-weight:800; color:#5E4630; margin:0 0 14px; }
   .admin-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px; margin-bottom:20px; }
   .admin-toolbar { display:flex; gap:10px; margin-bottom:14px; }
   .admin-btn { padding:8px 16px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid #ddd; background:#fff; color:#555; }
-  .admin-btn.primary { background:#7b5fd9; color:#fff; border-color:#7b5fd9; }
+  .admin-btn.primary { background:#5E4630; color:#fff; border-color:#5E4630; }
   table.admin-table { width:100%; border-collapse:collapse; font-size:13px; }
   table.admin-table th { padding:10px 8px; background:#fafafa; border:1px solid #e5e5e5; font-weight:700; color:#555; text-align:center; }
   table.admin-table td { padding:10px 8px; border:1px solid #f0f0f0; text-align:center; color:#333; }
-  table.admin-table tbody tr:hover { background:#f8f7fc; }
+  table.admin-table tbody tr:hover { background:#F7F1E6; }
   .admin-empty { padding:40px; text-align:center; color:#aaa; font-size:13px; }
   .admin-status-badge { display:inline-block; padding:3px 10px; border-radius:5px; font-size:11.5px; font-weight:700; }
   .admin-status-badge.재직 { background:#d1f0e0; color:#1a7a45; }
@@ -4403,7 +4404,7 @@ function csDateInputValue(val) {
                       </div>
                       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
-                          style="padding:6px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                          style="padding:6px 12px;background:#F2EADC;color:#5E4630;border:1px solid #D9C9A8;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
                           탭 설정 (${allowed.length}개)
                         </button>
                         <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
@@ -4434,7 +4435,7 @@ function csDateInputValue(val) {
                     <td><span class="admin-status-badge ${statusClass}">${status}</span></td>
                     <td>
                       <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
-                        style="padding:5px 12px;background:#f3f1fb;color:#7b5fd9;border:1px solid #d4c8f5;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                        style="padding:5px 12px;background:#F2EADC;color:#5E4630;border:1px solid #D9C9A8;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
                         탭 설정 (${allowed.length}개)
                       </button>
                       <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
@@ -4502,11 +4503,11 @@ function csDateInputValue(val) {
       });
       const card = document.getElementById(`emp-card-${idx}`);
       if (card) {
-        card.style.outline = '2px solid #7b5fd9';
-        card.style.background = '#f9f7ff';
+        card.style.outline = '2px solid #5E4630';
+        card.style.background = '#F7F1E6';
       }
       const row = document.getElementById(`emp-row-${idx}`);
-      if (row) row.style.background = '#f3f1fb';
+      if (row) row.style.background = '#F2EADC';
       // 6번: 선택 시 상세정보 바로 표시 (수정 모달 열기)
       openEmpModal('edit');
     };
@@ -4669,7 +4670,7 @@ function csDateInputValue(val) {
             <div style="display:flex;gap:6px;" data-tabid="${t.id}" data-state="${isOn?'on':'off'}">
               <button onclick="setTabPerm('${t.id}',true)"
                 style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
-                  background:${isOn?'#7b5fd9':'#eee'};color:${isOn?'#fff':'#888'};">ON</button>
+                  background:${isOn?'#5E4630':'#eee'};color:${isOn?'#fff':'#888'};">ON</button>
               <button onclick="setTabPerm('${t.id}',false)"
                 style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
                   background:${!isOn?'#e74c3c':'#eee'};color:${!isOn?'#fff':'#888'};">OFF</button>
@@ -4685,7 +4686,7 @@ function csDateInputValue(val) {
       if (!group) return;
       group.dataset.state = isOn ? 'on' : 'off';
       const [onBtn, offBtn] = group.querySelectorAll('button');
-      if (onBtn) { onBtn.style.background = isOn ? '#7b5fd9' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
+      if (onBtn) { onBtn.style.background = isOn ? '#5E4630' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
       if (offBtn) { offBtn.style.background = !isOn ? '#e74c3c' : '#eee'; offBtn.style.color = !isOn ? '#fff' : '#888'; }
     };
 
@@ -4803,7 +4804,7 @@ function csDateInputValue(val) {
             </td>
             <td>
               ${r.resolved!=='Y' ? `<button onclick="resolveInfoRequest(${r.rowIdx})" 
-                style="padding:4px 8px;background:#7b5fd9;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
+                style="padding:4px 8px;background:#5E4630;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
                 완료
               </button>` : ''}
             </td>
@@ -7581,13 +7582,13 @@ if ('serviceWorker' in navigator) {
 <style>
   .rsv-alert-banner {
     position:fixed; bottom:24px; right:24px; z-index:9999;
-    background:#fff; border:1px solid #e0e0e0; border-left:4px solid #7b5fd9;
+    background:#fff; border:1px solid #e0e0e0; border-left:4px solid #5E4630;
     border-radius:10px; padding:16px 20px; box-shadow:0 4px 20px rgba(0,0,0,0.12);
     max-width:340px; transform:translateY(120%); transition:transform 0.35s ease;
     cursor:pointer;
   }
   .rsv-alert-banner.show { transform:translateY(0); }
-  .rsv-alert-title { font-size:13px; font-weight:800; color:#7b5fd9; margin-bottom:6px; }
+  .rsv-alert-title { font-size:13px; font-weight:800; color:#5E4630; margin-bottom:6px; }
   .rsv-alert-body { font-size:12.5px; color:#333; line-height:1.6; }
   .rsv-alert-close { position:absolute; top:10px; right:12px; background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; }
   .rsv-alert-time { font-size:11px; color:#999; margin-top:6px; }
@@ -7612,7 +7613,7 @@ if ('serviceWorker' in navigator) {
   .csv-preview th, .csv-preview td { padding:4px 8px; border:1px solid #ddd; font-size:11px; text-align:left; }
   .csv-preview th { background:#f0f0f0; font-weight:700; }
   .csv-modal-footer { display:flex; gap:8px; justify-content:center; }
-  .csv-btn-import { background:#7b5fd9; color:#fff; border:none; border-radius:8px; padding:10px 28px; font-size:13px; font-weight:700; cursor:pointer; }
+  .csv-btn-import { background:#5E4630; color:#fff; border:none; border-radius:8px; padding:10px 28px; font-size:13px; font-weight:700; cursor:pointer; }
   .csv-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; }
   .csv-msg { text-align:center; font-size:12px; margin-top:10px; color:#555; }
 </style>
@@ -7771,7 +7772,7 @@ if ('serviceWorker' in navigator) {
 
     // 진행 알림
     const notif = document.createElement('div');
-    notif.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#7b5fd9;color:#fff;padding:14px 20px;border-radius:10px;font-size:13px;font-weight:700;';
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#5E4630;color:#fff;padding:14px 20px;border-radius:10px;font-size:13px;font-weight:700;';
     notif.textContent = '다우 시트 변환 중...';
     document.body.appendChild(notif);
 
@@ -7918,7 +7919,7 @@ if ('serviceWorker' in navigator) {
           <span id="csvProgressCount">0 / ${total}건</span>
         </div>
         <div style="background:#eee;border-radius:999px;height:8px;overflow:hidden;">
-          <div id="csvProgressBar" style="background:#7b5fd9;height:100%;width:0%;transition:width 0.3s;border-radius:999px;"></div>
+          <div id="csvProgressBar" style="background:#5E4630;height:100%;width:0%;transition:width 0.3s;border-radius:999px;"></div>
         </div>
       </div>
     `;
