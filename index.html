@@ -5034,7 +5034,6 @@ function csDateInputValue(val) {
       try {
         const res = await fetch(`${ERP_URL}?action=getMonthlyNotice`);
         const data = await res.json();
-        console.log('월별휴무 응답:', JSON.stringify(data));
         if (data.status === 'ok') {
           if (data.notices) {
             _monthlyData = data.notices;
@@ -5043,11 +5042,10 @@ function csDateInputValue(val) {
           }
           const ed = document.getElementById('monthlyNoticeEditor');
           const key = `${_noticeYear}_${_selectedMonth}`;
-          console.log('찾는 키:', key, '데이터:', JSON.stringify(_monthlyData));
           if (ed) ed.value = _monthlyData[key] || '';
           updateNoticePreview();
         }
-      } catch(e) { console.error('월별휴무 오류:', e.message); }
+      } catch(e) {}
       updateMonthBtns();
     }
 
@@ -5737,7 +5735,7 @@ function initApp() {
   // 월별 휴무안내 항상 미리 로드
   setTimeout(() => {
     if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
-  }, 1000);
+  }, 3000);
 }
 // PRICE 시트에서 products 로드 후 앱 초기화
 async function startApp() {
