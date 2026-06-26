@@ -5728,6 +5728,10 @@ function initApp() {
   if (lastTab && document.getElementById(lastTab)) {
     setTab(lastTab);
   }
+  // 월별 휴무안내 항상 미리 로드
+  setTimeout(() => {
+    if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
+  }, 1000);
 }
 // PRICE 시트에서 products 로드 후 앱 초기화
 async function startApp() {
