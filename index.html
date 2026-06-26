@@ -1705,12 +1705,9 @@
       ['연락처', r.phone||'-'],
       ['업체명', r.company||'-'],
       ['현장주소', r.address||'-'],
-      ['공간유형', r.spaceType||'-'],
       ['평수', r.size||'-'],
-      ['층수', r.floor||'-'],
-      ['엘리베이터', r.elevator||'-'],
       ['시공예정일', fmtDateOnly(r.workDate)],
-      ['선호제품', r.products||'-'],
+      ['공사기간', r.workPeriod||'-'],
       ['전달사항', r.memo||'-'],
       ['처리상태', r.status||'대기'],
     ];
@@ -1745,20 +1742,26 @@
         const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
         if (idx !== -1) allReservations[idx].status = newStatus;
         renderRsvList();
-        renderRsvDetail(selectedRsv);
-        document.getElementById('rsvActionMsg').textContent = `✅ "${newStatus}" 처리 완료`;
 
-        // 문자 발송 (API 연동 후 자동 발송)
+        // 문자 발송 (취소 포함, selectedRsv 초기화 전에 처리)
         if (typeof sendSMS === 'function' && selectedRsv.phone) {
           const templateKey = newStatus === '예약' ? 'confirm' : newStatus === '취소' ? 'cancel' : null;
           if (templateKey) {
-            // csDateDisplay가 없을 경우 날짜 그대로 사용
             const dateFormatted = (typeof csDateDisplay === 'function')
               ? csDateDisplay(selectedRsv.date||'')
               : (selectedRsv.date||'');
             const schedule = `${dateFormatted} ${selectedRsv.time||''}`.trim();
             sendSMS(selectedRsv.phone, selectedRsv.name||'', schedule, selectedRsv.counselor||'', templateKey);
           }
+        }
+
+        if (newStatus === '취소') {
+          selectedRsv = null;
+          document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
+          document.getElementById('rsvActionMsg').textContent = '';
+        } else {
+          renderRsvDetail(selectedRsv);
+          document.getElementById('rsvActionMsg').textContent = `✅ "${newStatus}" 처리 완료`;
         }
       } else {
         document.getElementById('rsvActionMsg').textContent = '❌ 오류: ' + (data.message||'');
@@ -1884,12 +1887,6 @@
     <textarea id="monthlyNoticeEditor"
       style="width:100%;min-height:100px;padding:14px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.8;box-sizing:border-box;"
       placeholder="예: 매주 일요일 / 공휴일 - 현충일(6/6)"></textarea>
-
-    <!-- 저장된 내용 미리보기 -->
-    <div id="monthlyNoticePreview" style="display:none;margin-top:14px;padding:14px 16px;background:#f8f6ff;border:1px solid #d4c8f5;border-radius:8px;">
-      <div style="font-size:11px;font-weight:700;color:#7b5fd9;margin-bottom:6px;">📋 현재 저장된 내용</div>
-      <div id="monthlyNoticePreviewText" style="font-size:13px;color:#333;line-height:1.8;white-space:pre-wrap;"></div>
-    </div>
   </div>
 </div>
 
@@ -4914,7 +4911,6 @@ function csDateInputValue(val) {
       const key = `${_noticeYear}_${_selectedMonth}`;
       if (ed) ed.value = _monthlyData[key] || '';
       updateMonthBtns();
-      updateNoticePreview();
     };
 
     window.selectNoticeMonth = function(m) {
@@ -4924,7 +4920,6 @@ function csDateInputValue(val) {
       const key = `${_noticeYear}_${_selectedMonth}`;
       if (ed) ed.value = _monthlyData[key] || '';
       updateMonthBtns();
-      updateNoticePreview();
     };
 
     window.saveMonthlyNotice = async function() {
@@ -4938,25 +4933,9 @@ function csDateInputValue(val) {
         const data = await res.json();
         if (data.status === 'ok') {
           if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
-          updateNoticePreview();
         } else { alert('저장 실패: ' + (data.message||'')); }
       } catch(e) { alert('오류: ' + e.message); }
     };
-
-    function updateNoticePreview() {
-      const key = `${_noticeYear}_${_selectedMonth}`;
-      const text = _monthlyData[key] || '';
-      const preview = document.getElementById('monthlyNoticePreview');
-      const previewText = document.getElementById('monthlyNoticePreviewText');
-      if (preview && previewText) {
-        if (text.trim()) {
-          previewText.textContent = text;
-          preview.style.display = 'block';
-        } else {
-          preview.style.display = 'none';
-        }
-      }
-    }
 
     async function loadMonthlyNoticeEditor() {
       try {
@@ -4971,7 +4950,6 @@ function csDateInputValue(val) {
           const ed = document.getElementById('monthlyNoticeEditor');
           const key = `${_noticeYear}_${_selectedMonth}`;
           if (ed) ed.value = _monthlyData[key] || '';
-          updateNoticePreview();
         }
       } catch(e) {}
       updateMonthBtns();
