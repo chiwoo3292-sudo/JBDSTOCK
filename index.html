@@ -1888,6 +1888,12 @@
     <textarea id="monthlyNoticeEditor"
       style="width:100%;min-height:100px;padding:14px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.8;box-sizing:border-box;"
       placeholder="예: 매주 일요일 / 공휴일 - 현충일(6/6)"></textarea>
+
+    <!-- 미리보기 -->
+    <div id="noticePreviewBox" style="display:none;margin-top:14px;padding:14px 16px;background:#FBF7F2;border:1px solid #E8DCCB;border-radius:10px;">
+      <div style="font-size:11px;font-weight:700;color:#A07850;margin-bottom:8px;letter-spacing:.3px;">📋 미리보기</div>
+      <div id="noticePreviewContent" style="font-size:13px;color:#333;line-height:1.85;white-space:pre-wrap;"></div>
+    </div>
   </div>
 </div>
 
@@ -4977,6 +4983,7 @@ function csDateInputValue(val) {
       const key = `${_noticeYear}_${_selectedMonth}`;
       if (ed) ed.value = _monthlyData[key] || '';
       updateMonthBtns();
+      renderNoticePreview();
     };
 
     window.selectNoticeMonth = function(m) {
@@ -4986,6 +4993,7 @@ function csDateInputValue(val) {
       const key = `${_noticeYear}_${_selectedMonth}`;
       if (ed) ed.value = _monthlyData[key] || '';
       updateMonthBtns();
+      renderNoticePreview();
     };
 
     window.saveMonthlyNotice = async function() {
@@ -4999,9 +5007,24 @@ function csDateInputValue(val) {
         const data = await res.json();
         if (data.status === 'ok') {
           if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
+          renderNoticePreview();
         } else { alert('저장 실패: ' + (data.message||'')); }
       } catch(e) { alert('오류: ' + e.message); }
     };
+
+    function renderNoticePreview() {
+      const key = `${_noticeYear}_${_selectedMonth}`;
+      const text = (_monthlyData[key] || '').trim();
+      const box = document.getElementById('noticePreviewBox');
+      const content = document.getElementById('noticePreviewContent');
+      if (!box || !content) return;
+      if (text) {
+        content.textContent = text;
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
 
     async function loadMonthlyNoticeEditor() {
       try {
@@ -5019,6 +5042,7 @@ function csDateInputValue(val) {
         }
       } catch(e) {}
       updateMonthBtns();
+      renderNoticePreview();
     }
 
     document.addEventListener('input', function(e) {
