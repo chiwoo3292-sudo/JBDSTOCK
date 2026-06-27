@@ -8375,12 +8375,64 @@ if ('serviceWorker' in navigator) {
 
   function renderOrgEmpList(emps) {
     const list = document.getElementById('orgEmpList');
-    list.innerHTML = emps.map(e => `
-      <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:10px 12px;cursor:default;">
-        <div style="font-size:13px;font-weight:700;color:#222;">${e.name}</div>
-        <div style="font-size:11px;color:#aaa;margin-top:2px;">${e.dept||'-'} · ${e.title||'-'}</div>
-      </div>`).join('');
+    const DEPT_ORDER = ['회계', 'R&D', '영업', '물류'];
+    const head = emps.find(e => e.isHead);
+
+    let html = '';
+
+    // 대표
+    if (head) {
+      html += `<div style="background:#5E4630;color:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+        <div style="font-size:11px;opacity:.7;margin-bottom:2px;">대표</div>
+        <div style="font-size:13px;font-weight:800;">${head.name}</div>
+      </div>`;
+    }
+
+    // 부서별
+    DEPT_ORDER.forEach(dept => {
+      const members = emps.filter(e => e.dept === dept && !e.isHead);
+      if (members.length === 0) return;
+      const manager = members.find(e => e.isManager);
+      const staff   = members.filter(e => !e.isManager);
+      const deptId  = 'orgDept_' + dept.replace(/[^a-zA-Z0-9]/g, '_');
+
+      html += `
+        <!-- 부서 헤더 -->
+        <div onclick="toggleOrgDept('${deptId}')"
+          style="display:flex;align-items:center;justify-content:space-between;
+            background:#FBF7F2;border:1px solid #E8DCCB;border-radius:8px;
+            padding:9px 12px;cursor:pointer;margin-bottom:4px;user-select:none;">
+          <span style="font-size:13px;font-weight:800;color:#5E4630;">${dept}</span>
+          <span id="${deptId}_arrow" style="font-size:11px;color:#C8A97E;transition:transform .2s;">▼</span>
+        </div>
+        <!-- 부서 사원 목록 -->
+        <div id="${deptId}" style="display:none;flex-direction:column;gap:4px;margin-bottom:8px;padding-left:8px;">
+          ${manager ? `
+          <div style="background:#fff;border:1px solid #E8DCCB;border-radius:7px;padding:8px 12px;">
+            <div style="font-size:10px;color:#C8A97E;font-weight:700;margin-bottom:2px;">부서장</div>
+            <div style="font-size:13px;font-weight:700;color:#222;">${manager.name}</div>
+            <div style="font-size:11px;color:#aaa;">${manager.title||''}</div>
+          </div>` : ''}
+          ${staff.map(s => `
+          <div style="background:#fff;border:1px solid #eee;border-radius:7px;padding:8px 12px;">
+            <div style="font-size:13px;font-weight:600;color:#444;">${s.name}</div>
+            <div style="font-size:11px;color:#aaa;">${s.title||''}</div>
+          </div>`).join('')}
+        </div>`;
+    });
+
+    list.innerHTML = html;
   }
+
+  window.toggleOrgDept = function(deptId) {
+    const el    = document.getElementById(deptId);
+    const arrow = document.getElementById(deptId + '_arrow');
+    if (!el) return;
+    const isOpen = el.style.display === 'flex';
+    el.style.display    = isOpen ? 'none' : 'flex';
+    el.style.flexDirection = 'column';
+    if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+  };
 
   function renderOrgChart(emps) {
     const head = emps.find(e => e.isHead);
