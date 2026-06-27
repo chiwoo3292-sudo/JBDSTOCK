@@ -8329,7 +8329,7 @@ if ('serviceWorker' in navigator) {
     const scheduledDays = _allLeaves
       .filter(r => r.id === user.id && r.status === '확정' && String(r.endDate||'') >= today)
       .reduce((s, r) => s + parseFloat(r.days||0), 0);
-    const remain = Math.max(total - used - scheduledDays, 0);
+    const remain = Math.max(total - used, 0);
     document.getElementById('leaveTotal').textContent    = total + '일';
     document.getElementById('leaveUsed').textContent     = used + '일';
     const schedEl = document.getElementById('leaveScheduled');
