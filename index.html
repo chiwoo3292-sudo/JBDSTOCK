@@ -53,16 +53,16 @@
   .tabs-wrap { 
     position:sticky; top:0; z-index:500;
     display:flex; align-items:center; gap:8px; margin-bottom:14px;
-    background:#FBF7EF; padding:8px 12px;
+    background:#F1EADF; padding:8px 12px;
     border-bottom:1px solid #E2D6C2;
     box-shadow:0 1px 4px rgba(0,0,0,0.06);
   }
-  .hamburger-btn { min-width:36px; height:36px; border:1px solid #E2D6C2; border-radius:8px; background:#FBF7EF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
+  .hamburger-btn { min-width:36px; height:36px; border:1px solid #E2D6C2; border-radius:8px; background:#F1EADF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
   .hamburger-btn span { display:block; width:16px; height:2px; background:#8A7B68; border-radius:2px; }
   .tabs { display:flex; gap:8px; align-items:center; overflow-x:auto; flex:1; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; user-select:none; }
   .tabs::-webkit-scrollbar { display:none; }
   .tabs.dragging { cursor:grabbing; }
-  .tab-btn { min-height:36px; padding:0 14px; border:1px solid #E2D6C2; border-radius:999px; background:#FBF7EF; color:#8A7B68; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .tab-btn { min-height:36px; padding:0 14px; border:1px solid #E2D6C2; border-radius:999px; background:#F1EADF; color:#8A7B68; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .tab-btn.active { background:#5E4630; color:#F3ECDF; border-color:#5E4630; }
   .user-info-badge { 
     flex-shrink:0; display:flex; align-items:center; justify-content:center;
@@ -601,6 +601,7 @@
       <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
       <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" style="display:none;">조직도</button>
+      <button type="button" class="tab-btn" data-tab="approvalTab" id="approvalTabBtn" style="display:none;">결재대기<span id="approvalBadge" style="display:none;margin-left:4px;background:#e74c3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;">N</span></button>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;position:relative;" title="내 계정">
       <span id="userInitial">G</span>
@@ -4173,7 +4174,7 @@ function csDateInputValue(val) {
             fillMyInfo(userData);
             window._currentUser = userData;
             const orgBtn = document.getElementById('orgTabBtn');
-            if (orgBtn && (userData.role === 'admin' || userData.isManager || userData.isHead)) {
+            if (orgBtn && userData.role === 'admin') {
               orgBtn.style.display = '';
             }
             setTimeout(() => { initAfterLogin(userData); }, 100);
@@ -4211,19 +4212,45 @@ function csDateInputValue(val) {
         const empData = await empRes.json();
         if (empData.rows) window._allEmployees = empData.rows;
       } catch(e) {}
+
       if (userData.isManager || userData.isHead || userData.role === 'admin') {
+        const approvalBtn = document.getElementById('approvalTabBtn');
+        if (approvalBtn) approvalBtn.style.display = '';
+        await checkLeavePending(userData);
         if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
-        window._leaveBadgeTimer = setInterval(async () => {
-          try {
-            const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
-            const data = await res.json();
-            if (data.status === 'ok') {
-              const ev = new CustomEvent('leaveDataRefresh', { detail: data.rows });
-              document.dispatchEvent(ev);
-            }
-          } catch(e) {}
-        }, 30000);
+        window._leaveBadgeTimer = setInterval(() => checkLeavePending(userData), 30000);
       }
+    }
+
+    async function checkLeavePending(userData) {
+      try {
+        const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          const ev = new CustomEvent('leaveDataRefresh', { detail: data.rows });
+          document.dispatchEvent(ev);
+          updateApprovalBadge(userData, data.rows);
+        }
+      } catch(e) {}
+    }
+    window.checkLeavePending = checkLeavePending;
+
+    function updateApprovalBadge(userData, rows) {
+      const pending = (rows||[]).filter(r => {
+        if (r.id === userData.id) return false;
+        const approvers = String(r.approverIds||'').split(',').map(s=>s.trim());
+        if (!approvers.includes(String(userData.id))) return false;
+        if (userData.isHead)    return r.status === '대표승인대기';
+        if (userData.isManager) return r.status === '대기';
+        return false;
+      });
+      const count = pending.length;
+      const dot      = document.getElementById('leavePendingDot');
+      const badge    = document.getElementById('leavePendingCount');
+      const tabBadge = document.getElementById('approvalBadge');
+      if (dot)      dot.style.display   = count > 0 ? 'block' : 'none';
+      if (badge)  { badge.style.display = count > 0 ? 'inline' : 'none'; badge.textContent = count; }
+      if (tabBadge) { tabBadge.style.display = count > 0 ? 'inline-flex' : 'none'; tabBadge.textContent = count; }
     }
     // 허용탭 제어
     function applyTabPermissions(allowedTabs, role) {
@@ -5522,6 +5549,9 @@ function setTab(tabId) {
   }
   if (tabId === 'orgTab' && typeof loadOrgTab === 'function') {
     loadOrgTab();
+  }
+  if (tabId === 'approvalTab') {
+    renderApprovalTab();
   }
   resetViewportZoom();
   closeHamburger();
@@ -8509,7 +8539,10 @@ if ('serviceWorker' in navigator) {
 
   function renderOrgLeaveTable(emps) {
     const tbody = document.getElementById('orgLeaveBody');
-    tbody.innerHTML = emps.map(e => {
+    const TITLE_ORDER = ['대표이사','CEO','부회장','회장','사장','부사장','전무','상무','이사','본부장','실장','부장','차장','과장','팀장','대리','주임','사원','인턴'];
+    const getRank = t => { const i = TITLE_ORDER.findIndex(o => String(t||'').includes(o)); return i === -1 ? 99 : i; };
+    const sorted = [...emps].sort((a, b) => getRank(a.title) - getRank(b.title));
+    tbody.innerHTML = sorted.map(e => {
       const total  = calcAnnualLeaveClient(e.joinDate);
       const used   = parseFloat(e.usedLeave)||0;
       const remain = Math.max(total - used, 0);
@@ -8544,6 +8577,62 @@ if ('serviceWorker' in navigator) {
       const params = new URLSearchParams({ action:'updateEmployeeInfo', id, usedLeave: val });
       await fetch(`${RESERVE_URL}?${params}`);
     } catch(e) {}
+  };
+
+  // 결재대기 탭 렌더링
+  window.renderApprovalTab = async function() {
+    const user = window._currentUser;
+    const list = document.getElementById('approvalList');
+    if (!user || !list) return;
+    list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">불러오는 중...</div>';
+    try {
+      const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
+      const data = await res.json();
+      if (data.status !== 'ok') { list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">불러오기 실패</div>'; return; }
+      const rows = (data.rows||[]).filter(r => {
+        if (r.id === user.id) return false;
+        const approvers = String(r.approverIds||'').split(',').map(s=>s.trim());
+        return approvers.includes(String(user.id));
+      });
+      if (rows.length === 0) { list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">결재 대기 건이 없습니다.</div>'; return; }
+      const statusColor = s => s==='확정'?'#1a7a45':s==='반려'?'#c0392b':'#e67e22';
+      list.innerHTML = rows.map(r => {
+        const approverRole = user.isHead && r.status === '대표승인대기' ? 'head' : 'manager';
+        const canApprove   = (user.isManager && r.status === '대기') || (user.isHead && r.status === '대표승인대기');
+        return `<div style="background:#fff;border:1px solid #E8DCCB;border-radius:12px;padding:16px 18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div>
+              <span style="font-size:14px;font-weight:800;color:#222;">${r.name}</span>
+              <span style="font-size:12px;color:#aaa;margin-left:8px;">${r.dept||''}</span>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:${statusColor(r.status)};background:${r.status==='대기'?'#fff3cd':r.status==='반려'?'#fdecea':'#d1f0e0'};padding:3px 10px;border-radius:999px;">${r.status}</span>
+          </div>
+          <div style="font-size:13px;color:#555;margin-bottom:4px;">${r.leaveType} · ${r.days}일 · ${r.startDate} ~ ${r.endDate}</div>
+          ${r.reason ? `<div style="font-size:12px;color:#aaa;margin-bottom:10px;">${r.reason}</div>` : '<div style="margin-bottom:10px;"></div>'}
+          ${canApprove ? `<div style="display:flex;gap:8px;">
+            <button onclick="doApprove(${r.rowIdx},'approve','${approverRole}')" style="flex:1;padding:9px 0;background:#1a7a45;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">승인</button>
+            <button onclick="doApprove(${r.rowIdx},'reject','${approverRole}')" style="flex:1;padding:9px 0;background:#c0392b;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">반려</button>
+          </div>` : `<div style="font-size:12px;color:#bbb;">처리 완료</div>`}
+        </div>`;
+      }).join('');
+      // 뱃지 업데이트
+      updateApprovalBadge(user, data.rows);
+    } catch(e) { list.innerHTML = '<div style="color:#e74c3c;font-size:13px;text-align:center;padding:40px 0;">오류가 발생했습니다.</div>'; }
+  };
+
+  window.doApprove = async function(rowIdx, action, approverRole) {
+    const user = window._currentUser;
+    if (!user) return;
+    if (!confirm(action === 'approve' ? '승인하시겠습니까?' : '반려하시겠습니까?')) return;
+    try {
+      const params = new URLSearchParams({ action:'approveLeave', rowIdx, action, approverRole, approverId: user.id });
+      const res  = await fetch(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        renderApprovalTab();
+        checkLeavePending(user);
+      } else { alert('처리 실패: ' + (data.message||'')); }
+    } catch(e) { alert('오류: ' + e.message); }
   };
 
 })();
@@ -8624,16 +8713,21 @@ if ('serviceWorker' in navigator) {
     <div id="leaveSchedGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
   </div>
 
-  <!-- 결재 대기 (부서장/대표에게 보이는 영역) -->
-  <div id="leavePendingSection" style="display:none;padding:0 20px 20px;">
-    <div style="font-size:13px;font-weight:800;color:#222;margin-bottom:10px;padding-top:16px;border-top:1px solid #eee;">결재 대기</div>
-    <div id="leavePendingList" style="display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
+  <!-- 결재 대기 영역 제거 - 결재대기 탭으로 이전 -->
 </div>
 
 <!-- ================================================================ -->
 <!--  조직도 탭                                                         -->
 <!-- ================================================================ -->
+<section id="approvalTab" class="tab-panel" style="display:none;">
+<div style="max-width:900px;margin:24px auto;padding:0 16px;">
+  <div style="font-size:16px;font-weight:800;color:#222;margin-bottom:16px;">결재대기</div>
+  <div id="approvalList" style="display:flex;flex-direction:column;gap:12px;">
+    <div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">불러오는 중...</div>
+  </div>
+</div>
+</section>
+
 <section id="orgTab" class="tab-panel" style="display:none;">
 <div style="max-width:1200px;margin:24px auto;padding:0 16px;display:flex;gap:20px;min-height:600px;">
 
