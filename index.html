@@ -4141,13 +4141,12 @@ function csDateInputValue(val) {
         if (ls) ls.style.display = 'none';
     }
 
-    async function unlock(loginType, userData) {
+    function unlock(loginType, userData) {
         if (lockSection) lockSection.style.display = 'none';
         if (mainSection) mainSection.style.display = 'block';
         unlockBody();
         window.scrollTo(0, 0);
 
-        // 사용자 정보 표시
         const badge = document.getElementById('userInfoBadge');
         const userText = document.getElementById('userInfoText');
         const userSub = document.getElementById('userInfoSub');
@@ -4155,74 +4154,41 @@ function csDateInputValue(val) {
         if (badge) badge.style.display = 'flex';
 
         if (loginType === 'user' && userData) {
-            // 원형 아바타: 이름 첫 글자
             const nm = (userData.name || '').trim();
             if (userInitial) userInitial.textContent = nm ? nm.charAt(0) : '?';
             if (badge) badge.classList.remove('guest');
-            // 드롭다운 헤더: 전체 이름 + 직급
             if (userText) userText.textContent = nm || '사용자';
             if (userSub) userSub.textContent = userData.title || '';
             const myInfoItem = document.getElementById('userDropdownMyInfo');
             if (myInfoItem) myInfoItem.style.display = 'flex';
             const leaveItem = document.getElementById('userDropdownLeave');
             if (leaveItem) leaveItem.style.display = 'flex';
-            // 내 정보 탭 표시
             const myBtn = document.getElementById('myInfoTabBtn');
             if (myBtn) myBtn.style.display = '';
-            // 관리자면 관리자 탭 표시
             if (userData.role === 'admin') {
                 const adminBtn = document.getElementById('adminTabBtn');
                 if (adminBtn) adminBtn.style.display = '';
             }
-            // 허용탭 제어
             applyTabPermissions(userData.allowedTabs, userData.role);
-            // 내 정보 탭 데이터 채우기
             fillMyInfo(userData);
-            // 전역 현재 사용자 저장 (휴가신청 등에서 참조)
             window._currentUser = userData;
-            // 전체 직원목록 저장 (결재라인 자동 계산용)
-            try {
-              const empRes = await fetch(`${RESERVE_URL}?action=getEmployees`);
-              const empData = await empRes.json();
-              if (empData.rows) window._allEmployees = empData.rows;
-            } catch(e) {}
-            // 결재자면 30초마다 휴가 대기 뱃지 체크
-            if (userData.isManager || userData.isHead || userData.role === 'admin') {
-              if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
-              window._leaveBadgeTimer = setInterval(async () => {
-                try {
-                  const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
-                  const data = await res.json();
-                  if (data.status === 'ok') {
-                    window._leaveAllCache = data.rows || [];
-                    // IIFE 내부 _allLeaves 업데이트
-                    const ev = new CustomEvent('leaveDataRefresh', { detail: data.rows });
-                    document.dispatchEvent(ev);
-                  }
-                } catch(e) {}
-              }, 30000);
-            }
-            // 조직도 탭 표시 (관리자/부서장/대표)
             const orgBtn = document.getElementById('orgTabBtn');
             if (orgBtn && (userData.role === 'admin' || userData.isManager || userData.isHead)) {
               orgBtn.style.display = '';
             }
+            setTimeout(() => { initAfterLogin(userData); }, 100);
         } else {
-            // 게스트: 회색 원 + G
             if (userInitial) userInitial.textContent = 'G';
             if (badge) badge.classList.add('guest');
             if (userText) userText.textContent = '게스트';
             if (userSub) userSub.textContent = '게스트 접속';
             const myInfoItem = document.getElementById('userDropdownMyInfo');
             if (myInfoItem) myInfoItem.style.display = 'none';
-            // 게스트는 모든 탭 허용
         }
 
         const lastTab = localStorage.getItem('baram_last_tab');
         if (loginType === 'user') {
-            // 직원 로그인: 항상 예약관리 탭으로 시작
             if (typeof setTab === 'function') setTab('reservationTab');
-            // 스크립트 전체 파싱 완료 후 월별휴무안내 로드 보장
             setTimeout(() => {
               if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
             }, 300);
@@ -4234,12 +4200,31 @@ function csDateInputValue(val) {
               }, 300);
             }
         }
-        // 로그인 직후 예약 대기 N뱃지 즉시 체크 (3초 후)
         setTimeout(() => {
           if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
         }, 3000);
     }
 
+    async function initAfterLogin(userData) {
+      try {
+        const empRes = await fetch(`${RESERVE_URL}?action=getEmployees`);
+        const empData = await empRes.json();
+        if (empData.rows) window._allEmployees = empData.rows;
+      } catch(e) {}
+      if (userData.isManager || userData.isHead || userData.role === 'admin') {
+        if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
+        window._leaveBadgeTimer = setInterval(async () => {
+          try {
+            const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
+            const data = await res.json();
+            if (data.status === 'ok') {
+              const ev = new CustomEvent('leaveDataRefresh', { detail: data.rows });
+              document.dispatchEvent(ev);
+            }
+          } catch(e) {}
+        }, 30000);
+      }
+    }
     // 허용탭 제어
     function applyTabPermissions(allowedTabs, role) {
         if (role === 'admin') return;
