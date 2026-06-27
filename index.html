@@ -5692,6 +5692,7 @@ function openHamburger() {
   renderHamburgerItems();
   document.getElementById('hamburgerMenu').classList.add('open');
   document.getElementById('hamburgerOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 let _hamburgerEditMode = false;
@@ -5880,6 +5881,7 @@ function applyTabOrder() {
 function closeHamburger() {
   document.getElementById('hamburgerMenu').classList.remove('open');
   document.getElementById('hamburgerOverlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 window.toggleTabVisible = function(tabId, checked) {
@@ -9228,4 +9230,4 @@ if ('serviceWorker' in navigator) {
 
 
 </body>
-    </html>
+  </html>
