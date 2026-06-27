@@ -5901,15 +5901,28 @@ document.addEventListener('click', () => {
 window.goMyInfo = function() {
   document.getElementById('userDropdown').classList.remove('open');
   setTab('myInfoTab');
-  // 최신 직원 정보 다시 불러와서 명함 등 반영
   const user = window._currentUser;
   if (user) {
-    fetch(`${RESERVE_URL}?action=getEmployees`)
+    // nocache 파라미터로 캐시 우회
+    fetch(`${RESERVE_URL}?action=getEmployees&nocache=${Date.now()}`)
       .then(r => r.json())
       .then(data => {
         if (data.status === 'ok') {
           const me = (data.rows||[]).find(r => String(r.id) === String(user.id));
-          if (me) fillMyInfo(me);
+          if (me) {
+            // cardUrl 강제 반영
+            const cardWrap = document.getElementById('myiBusinessCardWrap');
+            const cardImg  = document.getElementById('myiBusinessCard');
+            if (cardWrap && cardImg) {
+              if (me.cardUrl) {
+                cardImg.src = me.cardUrl;
+                cardWrap.style.display = 'block';
+              } else {
+                cardWrap.style.display = 'none';
+              }
+            }
+            fillMyInfo(me);
+          }
         }
       }).catch(() => {});
   }
