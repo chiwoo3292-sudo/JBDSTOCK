@@ -54,7 +54,6 @@
     position:sticky; top:0; z-index:1000;
     display:flex; align-items:center; gap:8px; margin-bottom:14px;
     background:#F1EADF; padding:8px 12px;
-    border-bottom:1px solid #E2D6C2;
   }
   .hamburger-btn { min-width:36px; height:36px; border:1px solid #E2D6C2; border-radius:8px; background:#F1EADF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
   .hamburger-btn span { display:block; width:16px; height:2px; background:#8A7B68; border-radius:2px; }
@@ -93,7 +92,7 @@
   .hamburger-overlay.open { display:block; }
 
   /* 유저 드롭다운 메뉴 */
-  .user-dropdown { display:none; position:absolute; top:calc(100% + 8px); right:0; background:#fff; border:1px solid #eee; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); min-width:140px; z-index:9999; overflow:hidden; }
+  .user-dropdown { display:none; position:fixed; top:56px; right:12px; background:#fff; border:1px solid #eee; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); min-width:140px; z-index:99999; overflow:hidden; }
   .user-dropdown.open { display:block; }
   .user-dropdown-item { display:flex; align-items:center; gap:8px; padding:12px 16px; font-size:13px; font-weight:600; color:#333; cursor:pointer; }
   .user-dropdown-item:hover { background:#f5f5f5; }
@@ -4262,8 +4261,7 @@ function csDateInputValue(val) {
         const allowed = String(allowedTabs).split(',').map(s => s.trim()).filter(Boolean);
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
-            // 별도 권한 로직으로 관리하는 탭은 여기서 건드리지 않음
-            if (tab === 'myInfoTab' || tab === 'adminTab' || tab === 'approvalTab' || tab === 'orgTab') return;
+            if (tab === 'myInfoTab' || tab === 'adminTab' || tab === 'orgTab') return;
             if (!allowed.includes(tab)) btn.style.display = 'none';
         });
     }
@@ -5565,7 +5563,8 @@ const TAB_LABELS = {
   pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
-  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송', orgTab:'조직도'
+  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송', orgTab:'조직도',
+  approvalTab:'결재대기'
 };
 const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 
@@ -8530,17 +8529,21 @@ if ('serviceWorker' in navigator) {
   window.toggleOrgEmpPanel = function() {
     const panel   = document.getElementById('orgEmpPanel');
     const overlay = document.getElementById('orgEmpOverlay');
+    const handle  = document.getElementById('orgEmpHandle');
     if (!panel) return;
     const isOpen = panel.style.display === 'block';
     panel.style.display   = isOpen ? 'none' : 'block';
     overlay.style.display = isOpen ? 'none' : 'block';
+    if (handle) handle.style.display = isOpen ? 'flex' : 'none';
   };
 
   window.closeOrgEmpPanel = function() {
     const panel   = document.getElementById('orgEmpPanel');
     const overlay = document.getElementById('orgEmpOverlay');
+    const handle  = document.getElementById('orgEmpHandle');
     if (panel)   panel.style.display   = 'none';
     if (overlay) overlay.style.display = 'none';
+    if (handle)  handle.style.display  = 'flex';
   };
 
   window.loadOrgTab = async function() {
@@ -8649,15 +8652,30 @@ if ('serviceWorker' in navigator) {
   function renderOrgLeaveTable(emps) {
     const tbody = document.getElementById('orgLeaveBody');
     const TITLE_ORDER = ['대표이사','CEO','부회장','회장','사장','부사장','전무','상무','이사','본부장','실장','부장','차장','과장','팀장','대리','주임','사원','인턴'];
-    const getRank = t => { const i = TITLE_ORDER.findIndex(o => String(t||'').includes(o)); return i === -1 ? 99 : i; };
-    const sorted = [...emps].sort((a, b) => getRank(a.title) - getRank(b.title));
+    const DEPT_ORDER  = ['영업','회계','R&D','물류'];
+    const getRank  = t => { const i = TITLE_ORDER.findIndex(o => String(t||'').includes(o)); return i === -1 ? 99 : i; };
+    const getJoinMs = e => e.joinDate ? new Date(e.joinDate).getTime() : Infinity;
+
+    // 대표 먼저, 나머지 부서별 묶음 → 부서 내 근속일수 순
+    const head   = emps.filter(e => e.isHead);
+    const others = DEPT_ORDER.flatMap(dept =>
+      emps.filter(e => !e.isHead && e.dept === dept)
+          .sort((a, b) => {
+            const rd = getRank(a.title) - getRank(b.title);
+            return rd !== 0 ? rd : getJoinMs(a) - getJoinMs(b);
+          })
+    );
+    // 부서 없는 사람
+    const noDept = emps.filter(e => !e.isHead && !DEPT_ORDER.includes(e.dept));
+    const sorted = [...head, ...others, ...noDept];
+
     tbody.innerHTML = sorted.map(e => {
       const total  = calcAnnualLeaveClient(e.joinDate);
       const used   = parseFloat(e.usedLeave)||0;
       const remain = Math.max(total - used, 0);
       return `<tr style="border-bottom:1px solid #f5f5f5;">
         <td style="padding:8px 12px;font-weight:700;">${e.name}</td>
-        <td style="padding:8px 12px;color:#777;">${e.dept||'-'}</td>
+        <td style="padding:8px 12px;color:#777;">${e.isHead ? '대표' : (e.dept||'-')}</td>
         <td style="padding:8px 12px;text-align:center;">${total}</td>
         <td style="padding:8px 12px;text-align:center;color:#c0392b;">${used}</td>
         <td style="padding:8px 12px;text-align:center;color:#1a7a45;font-weight:700;">${remain}</td>
@@ -8842,16 +8860,23 @@ if ('serviceWorker' in navigator) {
 </div>
 </section>
 
-<section id="orgTab" class="tab-panel" style="display:none;position:relative;">
+<section id="orgTab" class="tab-panel" style="display:none;">
 
-  <!-- 사원목록 버튼 -->
-  <button onclick="toggleOrgEmpPanel()" style="position:fixed;top:70px;left:16px;z-index:600;background:#5E4630;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">사원 목록</button>
+  <!-- 엣지 핸들 탭 -->
+  <div id="orgEmpHandle" onclick="toggleOrgEmpPanel()"
+    style="position:fixed;top:50%;left:0;transform:translateY(-50%);z-index:600;
+      background:#5E4630;color:#fff;border-radius:0 8px 8px 0;
+      writing-mode:vertical-rl;text-orientation:mixed;
+      padding:16px 8px;font-size:12px;font-weight:700;cursor:pointer;
+      box-shadow:2px 0 8px rgba(0,0,0,0.15);letter-spacing:2px;user-select:none;">
+    사원목록
+  </div>
 
-  <!-- 사원목록 슬라이드 패널 오버레이 -->
+  <!-- 오버레이 -->
   <div id="orgEmpOverlay" onclick="closeOrgEmpPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:601;"></div>
 
   <!-- 사원목록 슬라이드 패널 -->
-  <div id="orgEmpPanel" style="display:none;position:fixed;top:0;left:0;width:260px;height:100vh;background:#fff;z-index:602;box-shadow:4px 0 20px rgba(0,0,0,0.12);overflow-y:auto;padding:20px 16px;box-sizing:border-box;">
+  <div id="orgEmpPanel" style="display:none;position:fixed;top:0;left:0;width:260px;height:100vh;background:#F1EADF;z-index:602;box-shadow:4px 0 20px rgba(0,0,0,0.12);overflow-y:auto;padding:20px 16px;box-sizing:border-box;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:14px;font-weight:800;color:#5E4630;">사원 목록</div>
       <button onclick="closeOrgEmpPanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
