@@ -5611,8 +5611,8 @@ function renderHamburgerItems() {
     items.innerHTML = tabOrder.map(id => {
       const label = TAB_LABELS[id];
       if (!label) return '';
-      const adminEl = document.getElementById('adminTabBtn');
-      if (id === 'adminTab' && (!adminEl || adminEl.style.display === 'none')) return '';
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+      if (tabBtn && tabBtn.style.display === 'none') return '';
       const checked = visible.includes(id);
       return `<div class="hamburger-menu-item hamburger-edit-item" draggable="true"
         data-tabid="${id}"
@@ -5633,8 +5633,8 @@ function renderHamburgerItems() {
     items.innerHTML = tabOrder.map(id => {
       const label = TAB_LABELS[id];
       if (!label) return '';
-      const adminEl = document.getElementById('adminTabBtn');
-      if (id === 'adminTab' && (!adminEl || adminEl.style.display === 'none')) return '';
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+      if (tabBtn && tabBtn.style.display === 'none') return '';
       return `<div class="hamburger-menu-item" onclick="setTab('${id}');closeHamburger();">
         <span>${label}</span>
       </div>`;
