@@ -55,7 +55,6 @@
     display:flex; align-items:center; gap:8px; margin-bottom:14px;
     background:#F1EADF; padding:8px 12px;
     border-bottom:1px solid #E2D6C2;
-    box-shadow:0 1px 4px rgba(0,0,0,0.06);
   }
   .hamburger-btn { min-width:36px; height:36px; border:1px solid #E2D6C2; border-radius:8px; background:#F1EADF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
   .hamburger-btn span { display:block; width:16px; height:2px; background:#8A7B68; border-radius:2px; }
@@ -8208,8 +8207,9 @@ if ('serviceWorker' in navigator) {
   window.leaveCalNext = function() { _leaveMon++; if(_leaveMon>11){_leaveMon=0;_leaveYear++;} renderLeaveCal(); };
 
   window.leaveCalMouseDown = function(dateStr) {
-    _isDragging = true;
     _dragStart = dateStr;
+    _isDragging = false; // 실제 이동 시에만 true
+    // 토글: 이미 선택된 날짜면 해제, 아니면 선택
     if (_selectedDates.includes(dateStr)) {
       _selectedDates = _selectedDates.filter(d => d !== dateStr);
     } else {
@@ -8219,8 +8219,8 @@ if ('serviceWorker' in navigator) {
   };
 
   window.leaveCalMouseOver = function(dateStr) {
-    if (!_isDragging || !_dragStart) return;
-    // 드래그 범위로 선택
+    if (!_dragStart || dateStr === _dragStart) return;
+    _isDragging = true; // 다른 날짜로 이동해야 드래그로 인식
     const allDates = [];
     const first = new Date(_leaveYear, _leaveMon, 1);
     const last  = new Date(_leaveYear, _leaveMon + 1, 0);
@@ -8232,7 +8232,7 @@ if ('serviceWorker' in navigator) {
     const [s, e] = si <= ei ? [si, ei] : [ei, si];
     const range = allDates.slice(s, e+1).filter(dt => {
       const dow = new Date(dt).getDay();
-      return dow !== 0 && dow !== 6; // 주말 제외
+      return dow !== 0 && dow !== 6;
     });
     _selectedDates = [...new Set([..._selectedDates, ...range])];
     renderLeaveCal();
@@ -8513,26 +8513,31 @@ if ('serviceWorker' in navigator) {
   };
 
   function renderOrgChart(emps) {
+    const TITLE_ORDER = ['대표이사','CEO','부회장','회장','사장','부사장','전무','상무','이사','본부장','실장','부장','차장','과장','팀장','대리','주임','사원','인턴'];
+    const getRank = t => { const i = TITLE_ORDER.findIndex(o => String(t||'').includes(o)); return i === -1 ? 99 : i; };
+    const getJoinMs = e => e.joinDate ? new Date(e.joinDate).getTime() : Infinity;
+    const sortMembers = arr => [...arr].sort((a, b) => {
+      const rd = getRank(a.title) - getRank(b.title);
+      return rd !== 0 ? rd : getJoinMs(a) - getJoinMs(b);
+    });
+
     const head = emps.find(e => e.isHead);
     document.getElementById('orgHeadName').textContent = head ? head.name : '-';
 
     const deptRow = document.getElementById('orgDeptRow');
     deptRow.innerHTML = DEPTS.map(dept => {
       const members = emps.filter(e => e.dept === dept && !e.isHead);
-      const manager = members.find(e => e.isManager);
-      const staff   = members.filter(e => !e.isManager);
+      const sorted  = sortMembers(members);
       return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:100px;">
-        <!-- 부서 박스 -->
         <div style="background:#C8A97E;color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:800;margin-bottom:4px;">${dept}</div>
-        <!-- 부서장 -->
-        ${manager ? `<div style="background:#FBF7F2;border:1px solid #E8DCCB;border-radius:8px;padding:7px 12px;text-align:center;min-width:80px;">
-          <div style="font-size:10px;color:#C8A97E;font-weight:700;">부서장</div>
-          <div style="font-size:12px;font-weight:800;color:#222;">${manager.name}</div>
-        </div>` : ''}
-        <!-- 사원 -->
-        ${staff.map(s=>`<div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:6px 12px;text-align:center;min-width:80px;">
-          <div style="font-size:12px;font-weight:600;color:#555;">${s.name}</div>
-        </div>`).join('')}
+        ${sorted.map((m, idx) => {
+          const isMgr = m.isManager;
+          return `<div style="background:${isMgr?'#FBF7F2':'#fff'};border:1px solid ${isMgr?'#E8DCCB':'#eee'};border-radius:8px;padding:7px 12px;text-align:center;min-width:80px;">
+            ${isMgr ? `<div style="font-size:10px;color:#C8A97E;font-weight:700;margin-bottom:2px;">부서장</div>` : ''}
+            <div style="font-size:12px;font-weight:${isMgr?'800':'600'};color:${isMgr?'#222':'#555'};">${m.name}</div>
+            <div style="font-size:10px;color:#aaa;margin-top:1px;">${m.title||''}</div>
+          </div>`;
+        }).join('')}
       </div>`;
     }).join('');
   }
