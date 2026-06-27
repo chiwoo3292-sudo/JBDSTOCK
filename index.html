@@ -5618,21 +5618,37 @@ function renderHamburgerItems() {
   const editBtn = document.getElementById('hamburgerEditBtn');
   if (editBtn) editBtn.textContent = _hamburgerEditMode ? '완료' : '편집';
 
+  // 권한 탭: 버튼이 존재하고 display가 ''(표시중)인 것만 포함
+  // display:none이어도 권한 탭(approvalTab,orgTab,smsTab)은 별도 처리
+  const PERM_TABS = ['adminTab', 'approvalTab', 'orgTab', 'smsTab', 'myInfoTab'];
+
+  function isTabVisible(id) {
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+    if (!tabBtn) return false;
+    if (PERM_TABS.includes(id)) {
+      // 권한 탭은 display가 none이 아닐 때만 표시
+      return tabBtn.style.display !== 'none';
+    }
+    return true;
+  }
+
   if (_hamburgerEditMode) {
-    // 편집 모드: 체크박스 + 드래그 핸들
     items.innerHTML = tabOrder.map(id => {
       const label = TAB_LABELS[id];
       if (!label) return '';
-      const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
-      if (tabBtn && tabBtn.style.display === 'none') return '';
+      if (!isTabVisible(id)) return '';
       const checked = visible.includes(id);
       return `<div class="hamburger-menu-item hamburger-edit-item" draggable="true"
         data-tabid="${id}"
         ondragstart="hamburgerDragStart(event)"
         ondragover="hamburgerDragOver(event)"
+        ondragleave="hamburgerDragLeave(event)"
         ondrop="hamburgerDrop(event)"
         ondragend="hamburgerDragEnd(event)"
-        style="cursor:grab;">
+        ontouchstart="hamburgerTouchStart(event)"
+        ontouchmove="hamburgerTouchMove(event)"
+        ontouchend="hamburgerTouchEnd(event)"
+        style="cursor:grab;transition:background .1s;">
         <span style="display:flex;align-items:center;gap:10px;">
           <span style="color:#ccc;font-size:16px;cursor:grab;">⠿</span>
           <span>${label}</span>
@@ -5641,12 +5657,10 @@ function renderHamburgerItems() {
       </div>`;
     }).filter(Boolean).join('');
   } else {
-    // 일반 모드: 탭 이동만
     items.innerHTML = tabOrder.map(id => {
       const label = TAB_LABELS[id];
       if (!label) return '';
-      const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
-      if (tabBtn && tabBtn.style.display === 'none') return '';
+      if (!isTabVisible(id)) return '';
       return `<div class="hamburger-menu-item" onclick="setTab('${id}');closeHamburger();">
         <span>${label}</span>
       </div>`;
@@ -5667,11 +5681,22 @@ window.hamburgerDragStart = function(e) {
 };
 window.hamburgerDragOver = function(e) {
   e.preventDefault();
+  document.querySelectorAll('.hamburger-edit-item').forEach(el => {
+    el.style.background = '';
+    el.style.borderTop = '';
+  });
   e.currentTarget.style.background = '#EEE9FD';
+  e.currentTarget.style.borderTop = '2px solid #7C6FF7';
+};
+window.hamburgerDragLeave = function(e) {
+  e.currentTarget.style.background = '';
+  e.currentTarget.style.borderTop = '';
 };
 window.hamburgerDrop = function(e) {
   e.preventDefault();
   const targetId = e.currentTarget.dataset.tabid;
+  e.currentTarget.style.background = '';
+  e.currentTarget.style.borderTop = '';
   if (!_dragSrcId || _dragSrcId === targetId) return;
   let order = JSON.parse(localStorage.getItem('baram_tab_order') || 'null') || Object.keys(TAB_LABELS);
   const si = order.indexOf(_dragSrcId);
@@ -5686,8 +5711,68 @@ window.hamburgerDrop = function(e) {
 };
 window.hamburgerDragEnd = function(e) {
   e.currentTarget.style.opacity = '';
-  document.querySelectorAll('.hamburger-edit-item').forEach(el => el.style.background = '');
+  document.querySelectorAll('.hamburger-edit-item').forEach(el => {
+    el.style.background = '';
+    el.style.borderTop = '';
+  });
   _dragSrcId = null;
+};
+
+// 모바일 터치 드래그
+let _touchDragSrcId = null;
+let _touchDragEl = null;
+let _touchClone = null;
+
+window.hamburgerTouchStart = function(e) {
+  const el = e.currentTarget;
+  _touchDragSrcId = el.dataset.tabid;
+  _touchDragEl = el;
+  el.style.opacity = '0.4';
+};
+
+window.hamburgerTouchMove = function(e) {
+  if (!_touchDragSrcId) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const items = document.querySelectorAll('.hamburger-edit-item');
+  items.forEach(el => { el.style.background = ''; el.style.borderTop = ''; });
+  // 터치 위치 아래 요소 찾기
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  const item = target ? target.closest('.hamburger-edit-item') : null;
+  if (item && item.dataset.tabid !== _touchDragSrcId) {
+    item.style.background = '#EEE9FD';
+    item.style.borderTop = '2px solid #7C6FF7';
+    item._isHovered = true;
+  }
+};
+
+window.hamburgerTouchEnd = function(e) {
+  if (!_touchDragSrcId) return;
+  const touch = e.changedTouches[0];
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  const item = target ? target.closest('.hamburger-edit-item') : null;
+
+  document.querySelectorAll('.hamburger-edit-item').forEach(el => {
+    el.style.background = '';
+    el.style.borderTop = '';
+    el.style.opacity = '';
+  });
+
+  if (item && item.dataset.tabid && item.dataset.tabid !== _touchDragSrcId) {
+    const targetId = item.dataset.tabid;
+    let order = JSON.parse(localStorage.getItem('baram_tab_order') || 'null') || Object.keys(TAB_LABELS);
+    const si = order.indexOf(_touchDragSrcId);
+    const ti = order.indexOf(targetId);
+    if (si > -1 && ti > -1) {
+      order.splice(si, 1);
+      order.splice(ti, 0, _touchDragSrcId);
+      localStorage.setItem('baram_tab_order', JSON.stringify(order));
+      applyTabOrder();
+      renderHamburgerItems();
+    }
+  }
+  _touchDragSrcId = null;
+  _touchDragEl = null;
 };
 
 // 탭 순서 상단에 반영
@@ -8234,14 +8319,17 @@ if ('serviceWorker' in navigator) {
     if (!user) return;
     const total = calcAnnualLeave(user.joinDate);
     const used  = parseFloat(user.usedLeave) || 0;
-    // 확정된 신청 중 아직 차감 안 된 것도 합산
-    const pending = _allLeaves
-      .filter(r => r.id === user.id && r.status === '확정')
+    const today = new Date().toISOString().slice(0,10);
+    // 사용예정: 확정됐지만 종료일이 아직 안 지난 것
+    const scheduledDays = _allLeaves
+      .filter(r => r.id === user.id && r.status === '확정' && String(r.endDate||'') >= today)
       .reduce((s, r) => s + parseFloat(r.days||0), 0);
-    const remain = total - used - pending;
-    document.getElementById('leaveTotal').textContent  = total + '일';
-    document.getElementById('leaveUsed').textContent   = (used + pending) + '일';
-    document.getElementById('leaveRemain').textContent = Math.max(remain, 0) + '일';
+    const remain = Math.max(total - used - scheduledDays, 0);
+    document.getElementById('leaveTotal').textContent    = total + '일';
+    document.getElementById('leaveUsed').textContent     = used + '일';
+    const schedEl = document.getElementById('leaveScheduled');
+    if (schedEl) schedEl.textContent = scheduledDays + '일';
+    document.getElementById('leaveRemain').textContent   = remain + '일';
   }
 
   // 패널 열기
@@ -8381,12 +8469,26 @@ if ('serviceWorker' in navigator) {
 
     msg.textContent = '신청 중...';
     try {
+      // 6. 잔여연차 없을 때 확인 팝업
+      const total = calcAnnualLeave(user.joinDate);
+      const used  = parseFloat(user.usedLeave) || 0;
+      const pendingDays = _allLeaves
+        .filter(r => r.id === user.id && (r.status === '확정' || r.status === '대기' || r.status === '대표승인대기'))
+        .reduce((s, r) => s + parseFloat(r.days||0), 0);
+      const remain = total - used - pendingDays;
+      if (remain <= 0) {
+        if (!confirm('잔여 연차가 없습니다. 신청하시겠습니까?')) {
+          msg.textContent = '';
+          return;
+        }
+      }
       const params = new URLSearchParams({
         action: 'applyLeave',
         id: user.id, name: user.name, dept: user.dept || '',
         startDate: sorted[0], endDate: sorted[sorted.length-1],
         days, leaveType: _leaveType, reason,
-        approverIds
+        approverIds,
+        isHead: user.isHead ? 'true' : 'false'
       });
       const res  = await fetch(`${RESERVE_URL}?${params}`);
       const data = await res.json();
@@ -8915,18 +9017,22 @@ if ('serviceWorker' in navigator) {
       <button onclick="closeLeavePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
     </div>
     <!-- 잔여 연차 표시 -->
-    <div id="leaveBalanceBox" style="background:#F5F3FE;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;">
+    <div id="leaveBalanceBox" style="background:#F5F3FE;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
       <div style="text-align:center;flex:1;">
-        <div style="font-size:11px;color:#999;margin-bottom:4px;">부여 연차</div>
-        <div id="leaveTotal" style="font-size:20px;font-weight:800;color:#7C6FF7;">-</div>
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">부여</div>
+        <div id="leaveTotal" style="font-size:18px;font-weight:800;color:#7C6FF7;">-</div>
       </div>
       <div style="text-align:center;flex:1;">
-        <div style="font-size:11px;color:#999;margin-bottom:4px;">사용 연차</div>
-        <div id="leaveUsed" style="font-size:20px;font-weight:800;color:#c0392b;">-</div>
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">사용</div>
+        <div id="leaveUsed" style="font-size:18px;font-weight:800;color:#c0392b;">-</div>
       </div>
       <div style="text-align:center;flex:1;">
-        <div style="font-size:11px;color:#999;margin-bottom:4px;">잔여 연차</div>
-        <div id="leaveRemain" style="font-size:20px;font-weight:800;color:#1a7a45;">-</div>
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">사용예정</div>
+        <div id="leaveScheduled" style="font-size:18px;font-weight:800;color:#e67e22;">-</div>
+      </div>
+      <div style="text-align:center;flex:1;">
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">잔여</div>
+        <div id="leaveRemain" style="font-size:18px;font-weight:800;color:#1a7a45;">-</div>
       </div>
     </div>
     <!-- 탭: 신청 / 내역 / 일정 -->
