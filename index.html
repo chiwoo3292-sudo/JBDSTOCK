@@ -5901,6 +5901,18 @@ document.addEventListener('click', () => {
 window.goMyInfo = function() {
   document.getElementById('userDropdown').classList.remove('open');
   setTab('myInfoTab');
+  // 최신 직원 정보 다시 불러와서 명함 등 반영
+  const user = window._currentUser;
+  if (user) {
+    fetch(`${RESERVE_URL}?action=getEmployees`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          const me = (data.rows||[]).find(r => String(r.id) === String(user.id));
+          if (me) fillMyInfo(me);
+        }
+      }).catch(() => {});
+  }
 };
 
 window.openApprovalPanel = function() {
