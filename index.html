@@ -4141,7 +4141,7 @@ function csDateInputValue(val) {
         if (ls) ls.style.display = 'none';
     }
 
-    function unlock(loginType, userData) {
+    async function unlock(loginType, userData) {
         if (lockSection) lockSection.style.display = 'none';
         if (mainSection) mainSection.style.display = 'block';
         unlockBody();
