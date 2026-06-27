@@ -3504,7 +3504,14 @@ function csDateInputValue(val) {
     <!-- 명함 이미지 -->
     <div id="myiBusinessCardWrap" style="display:none;flex-shrink:0;">
       <img id="myiBusinessCard" src="" alt="명함"
-        style="height:120px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.12);object-fit:contain;">
+        style="height:120px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.12);object-fit:contain;cursor:zoom-in;"
+        onclick="openCardViewer(this.src)">
+    </div>
+    <!-- 명함 원본 뷰어 -->
+    <div id="cardViewerOverlay" onclick="closeCardViewer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;align-items:center;justify-content:center;">
+      <img id="cardViewerImg" src="" alt="명함 원본"
+        style="max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.5);object-fit:contain;">
+      <button onclick="closeCardViewer()" style="position:fixed;top:18px;right:18px;background:rgba(255,255,255,0.18);border:none;border-radius:50%;width:40px;height:40px;font-size:22px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
     </div>
   </div>
 
@@ -5566,6 +5573,23 @@ function resetViewportZoom() {
   }, 50);
   window.scrollTo(0, 0);
 }
+
+function openCardViewer(src) {
+  const overlay = document.getElementById('cardViewerOverlay');
+  const img = document.getElementById('cardViewerImg');
+  if (!overlay || !img) return;
+  img.src = src;
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeCardViewer() {
+  const overlay = document.getElementById('cardViewerOverlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeCardViewer();
+});
 
 function setTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
