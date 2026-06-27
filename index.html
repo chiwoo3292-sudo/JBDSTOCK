@@ -3756,6 +3756,17 @@ function csDateInputValue(val) {
         <input id="empModalAnnualLeave" type="number" min="0" max="99"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
+      <!-- 직책 설정 -->
+      <div style="display:flex;gap:16px;padding:10px 12px;background:#FBF7F2;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#333;cursor:pointer;">
+          <input type="checkbox" id="empModalIsHead" style="width:15px;height:15px;accent-color:#5E4630;">
+          대표
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#333;cursor:pointer;">
+          <input type="checkbox" id="empModalIsManager" style="width:15px;height:15px;accent-color:#5E4630;">
+          부서장
+        </label>
+      </div>
       <!-- 추가 시: 초기 비밀번호 안내 -->
       <div id="empModalPwHint" style="background:#F7F1E6;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
         🔒 초기 비밀번호: <strong style="color:#5E4630;">0000</strong>
@@ -4432,7 +4443,8 @@ function csDateInputValue(val) {
                     style="background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 16px;margin:6px 0;cursor:pointer;transition:all .1s;">
                     <div id="emp-card-${ri}" class="emp-card"
                       data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}"
-                      data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}">
+                      data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}"
+                      data-ishead="${r.isHead||false}" data-ismanager="${r.isManager||false}">
                       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
                           <span class="emp-card-name" style="font-size:15px;font-weight:800;color:#222;">${r.name||''}</span>
@@ -4464,7 +4476,8 @@ function csDateInputValue(val) {
                 const allowed = resolveAllowed(r.allowedTabs);
                 return `<tr id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')" style="cursor:pointer;"
                     data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}"
-                    data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}">
+                    data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}"
+                    data-ishead="${r.isHead||false}" data-ismanager="${r.isManager||false}">
                     <td><strong>${r.name||''}</strong></td>
                     <td style="color:#aaa;font-size:12px;">${r.id||''}</td>
                     <td>${r.dept||''}</td>
@@ -4582,6 +4595,8 @@ function csDateInputValue(val) {
           document.getElementById('empModalEmail').value = src.dataset.email || '';
           const usedLeave = parseInt(src.dataset.annualleave || '0');
           document.getElementById('empModalAnnualLeave').value = usedLeave;
+          document.getElementById('empModalIsHead').checked    = src.dataset.ishead === 'true';
+          document.getElementById('empModalIsManager').checked = src.dataset.ismanager === 'true';
           // 연차 계산 표시
           const calcEl = document.getElementById('empModalLeaveCalc');
           if (calcEl && src.dataset.joindate) {
@@ -4603,6 +4618,8 @@ function csDateInputValue(val) {
         if (pwReset) pwReset.style.display = 'none';
         ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate','empModalEmail','empModalAnnualLeave']
           .forEach(fieldId => { const el = document.getElementById(fieldId); if(el) el.value = ''; });
+        document.getElementById('empModalIsHead').checked    = false;
+        document.getElementById('empModalIsManager').checked = false;
       }
       modal.style.display = 'flex';
     };
@@ -4619,6 +4636,8 @@ function csDateInputValue(val) {
       const joinDate = document.getElementById('empModalJoinDate').value;
       const email = document.getElementById('empModalEmail').value.trim();
       const annualLeave = document.getElementById('empModalAnnualLeave').value;
+      const isHead    = document.getElementById('empModalIsHead').checked;
+      const isManager = document.getElementById('empModalIsManager').checked;
       const msg = document.getElementById('empModalMsg');
 
       if (!name) { msg.style.color='#e74c3c'; msg.textContent='이름을 입력해주세요.'; return; }
@@ -4627,7 +4646,7 @@ function csDateInputValue(val) {
       msg.style.color='#888'; msg.textContent='저장 중...';
       try {
         const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
-        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, annualLeave });
+        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, annualLeave, isHead, isManager });
         const res = await fetch(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
