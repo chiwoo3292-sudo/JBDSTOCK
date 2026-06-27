@@ -5131,7 +5131,19 @@ function csDateInputValue(val) {
         }
       } catch(e) {}
       updateMonthBtns();
-      renderNoticePreview();
+      // 데이터 로드 완료 후 미리보기 강제 렌더링
+      const key = `${_noticeYear}_${_selectedMonth}`;
+      const text = (_monthlyData[key] || '').trim();
+      const box = document.getElementById('noticePreviewBox');
+      const content = document.getElementById('noticePreviewContent');
+      if (box && content) {
+        if (text) {
+          content.textContent = text;
+          box.style.display = 'block';
+        } else {
+          box.style.display = 'none';
+        }
+      }
     }
 
     document.addEventListener('input', function(e) {
