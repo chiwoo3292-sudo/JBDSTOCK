@@ -1547,6 +1547,7 @@
       <div class="slot-save-row">
         <button class="slot-btn-save" onclick="saveSlots()">💾 저장</button>
         <button class="slot-btn-reset" onclick="resetSlots()">↩ 초기화</button>
+        <button class="slot-btn-save" onclick="closeAllSlots()" style="background:#c0392b;">🔒 일괄마감</button>
       </div>
       <div id="slotMsg" style="font-size:12px;color:#555;margin-top:8px;text-align:center;"></div>
     </div>
@@ -1565,7 +1566,8 @@
   const DEFAULT_SLOTS = [
     '10:00~10:30','10:30~11:00','11:00~11:30','11:30~12:00',
     '12:00~12:30','12:30~13:00','13:00~13:30','13:30~14:00',
-    '14:00~14:30','14:30~15:00','15:00~15:30','15:30~16:00'
+    '14:00~14:30','14:30~15:00','15:00~15:30','15:30~16:00',
+    '16:00~16:30','16:30~17:00'
   ];
 
   let allReservations = [];
@@ -1835,6 +1837,16 @@
     document.getElementById('slotMsg').textContent = '전체 오픈으로 초기화되었습니다. 저장 버튼을 눌러주세요.';
   };
 
+  // ── 일괄마감 + 저장 ──
+  window.closeAllSlots = async function() {
+    const date = document.getElementById('slotDate').value;
+    if (!date) { alert('날짜를 선택해주세요.'); return; }
+    if (!confirm(`${date} 전체 타임을 마감 처리하고 저장할까요?`)) return;
+    DEFAULT_SLOTS.forEach(s => slotState[s] = 'closed');
+    renderSlotGrid();
+    await saveSlots();
+  };
+
   // 초기 슬롯 그리드 렌더
   DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
   renderSlotGrid();
@@ -1887,7 +1899,7 @@
     <!-- 텍스트 입력 -->
     <textarea id="monthlyNoticeEditor"
       style="width:100%;min-height:100px;padding:14px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.8;box-sizing:border-box;"
-      placeholder="예: 매주 일요일 / 공휴일 - 현충일(6/6)"></textarea>
+      placeholder=""></textarea>
 
     <!-- 미리보기 -->
     <div id="noticePreviewBox" style="display:none;margin-top:14px;padding:14px 16px;background:#FBF7F2;border:1px solid #E8DCCB;border-radius:10px;">
