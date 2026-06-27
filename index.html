@@ -4230,6 +4230,8 @@ function csDateInputValue(val) {
       if (userData.isManager || userData.isHead) {
         const approvalBtn = document.getElementById('approvalTabBtn');
         if (approvalBtn) approvalBtn.style.display = '';
+        // 탭 순서 재적용 (사용자가 저장한 순서 반영)
+        if (typeof applyTabOrder === 'function') applyTabOrder();
         await checkLeavePending(userData);
         if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
         window._leaveBadgeTimer = setInterval(() => checkLeavePending(userData), 30000);
