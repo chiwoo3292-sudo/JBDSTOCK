@@ -101,7 +101,7 @@
   .tab-panel.active { display:block; }
   .layout { display:grid; grid-template-columns:1.3fr 1fr; gap:18px; }
   .card { background:#fff; border:1px solid #ECE3D3; border-radius:16px; padding:18px; }
-  .title { margin:0 0 14px; font-size:17px; font-weight:700; font-family:'Noto Serif KR',serif; color:#1A1A2E; letter-spacing:-.01em; }
+  .title { margin:0 0 14px; font-size:17px; font-weight:700; font-family:'Pretendard','Noto Sans KR',sans-serif; color:#1A1A2E; letter-spacing:-.01em; }
   .topbar { display:grid; grid-template-columns:auto minmax(180px, 280px); justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
   .product-add { display:grid; grid-template-columns:minmax(220px, 240px) auto; gap:8px; align-items:center; }
   select, input[type="text"], input[type="number"], textarea { font-family:inherit; font-size:13px; border:1px solid #D4CEF7; border-radius:10px; background:#F5F3FE; }
@@ -3758,6 +3758,11 @@ function csDateInputValue(val) {
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">생일</label>
+        <input id="empModalBirthday" type="date"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;">
+      </div>
+      <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">
           사용 연차 <span style="font-size:11px;color:#aaa;font-weight:500;" id="empModalLeaveCalc"></span>
         </label>
@@ -3837,7 +3842,7 @@ function csDateInputValue(val) {
           <th>직급</th>
           <th>입사일</th>
           <th>재직상태</th>
-          <th>허용탭</th>
+          <th>권한설정</th>
           <th style="width:70px;">권한</th>
         </tr>
       </thead>
@@ -4192,7 +4197,13 @@ function csDateInputValue(val) {
 
         const lastTab = localStorage.getItem('baram_last_tab');
         if (loginType === 'user') {
-            if (typeof setTab === 'function') setTab('reservationTab');
+            if (typeof setTab === 'function') {
+              if (userData.role === 'admin') {
+                setTab('adminTab');
+              } else {
+                setTab('myInfoTab');
+              }
+            }
             setTimeout(() => {
               if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
             }, 300);
@@ -4493,7 +4504,7 @@ function csDateInputValue(val) {
                       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
                           style="padding:6px 12px;background:#EEE9FD;color:#7C6FF7;border:1px solid #D4CEF7;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
-                          탭 설정 (${allowed.length}개)
+                          허용메뉴 (${allowed.length}개)
                         </button>
                         <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
                         <select id="emp-role-${ri}" onclick="event.stopPropagation()" onchange="markEmpDirty(\'${r.id}\',${ri})"
@@ -4525,7 +4536,7 @@ function csDateInputValue(val) {
                     <td>
                       <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
                         style="padding:5px 12px;background:#EEE9FD;color:#7C6FF7;border:1px solid #D4CEF7;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
-                        탭 설정 (${allowed.length}개)
+                        허용메뉴 (${allowed.length}개)
                       </button>
                       <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
                     </td>
@@ -4631,6 +4642,7 @@ function csDateInputValue(val) {
           document.getElementById('empModalRank').value = src.dataset.title || '';
           document.getElementById('empModalJoinDate').value = src.dataset.joindate || '';
           document.getElementById('empModalEmail').value = src.dataset.email || '';
+          document.getElementById('empModalBirthday').value = src.dataset.birthday || '';
           const usedLeave = parseInt(src.dataset.annualleave || '0');
           document.getElementById('empModalAnnualLeave').value = usedLeave;
           document.getElementById('empModalIsHead').checked    = src.dataset.ishead === 'true';
@@ -4654,7 +4666,7 @@ function csDateInputValue(val) {
         if (idInput) { idInput.disabled = false; idInput.style.background = ''; }
         if (pwHint) pwHint.style.display = 'block';
         if (pwReset) pwReset.style.display = 'none';
-        ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate','empModalEmail','empModalAnnualLeave']
+        ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate','empModalEmail','empModalBirthday','empModalAnnualLeave']
           .forEach(fieldId => { const el = document.getElementById(fieldId); if(el) el.value = ''; });
         document.getElementById('empModalIsHead').checked    = false;
         document.getElementById('empModalIsManager').checked = false;
@@ -4673,6 +4685,7 @@ function csDateInputValue(val) {
       const title = document.getElementById('empModalRank').value.trim();
       const joinDate = document.getElementById('empModalJoinDate').value;
       const email = document.getElementById('empModalEmail').value.trim();
+      const birthday = document.getElementById('empModalBirthday').value;
       const annualLeave = document.getElementById('empModalAnnualLeave').value;
       const isHead    = document.getElementById('empModalIsHead').checked;
       const isManager = document.getElementById('empModalIsManager').checked;
@@ -4684,7 +4697,7 @@ function csDateInputValue(val) {
       msg.style.color='#888'; msg.textContent='저장 중...';
       try {
         const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
-        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, annualLeave, isHead, isManager });
+        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, birthday, annualLeave, isHead, isManager });
         const res = await fetch(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
@@ -4800,7 +4813,7 @@ function csDateInputValue(val) {
 
       // 버튼 텍스트 업데이트
       const btn = document.querySelector(`#emp-row-${_tabPermRowIdx} button[onclick*="openTabPermModal"]`);
-      if (btn) btn.textContent = `탭 설정 (${allowedTabs.length}개)`;
+      if (btn) btn.textContent = `허용메뉴 (${allowedTabs.length}개)`;
 
       closeTabPermModal();
 
@@ -8329,7 +8342,7 @@ if ('serviceWorker' in navigator) {
     const scheduledDays = _allLeaves
       .filter(r => r.id === user.id && r.status === '확정' && String(r.endDate||'') >= today)
       .reduce((s, r) => s + parseFloat(r.days||0), 0);
-    const remain = Math.max(total - used, 0);
+    const remain = total - used;
     document.getElementById('leaveTotal').textContent    = total + '일';
     document.getElementById('leaveUsed').textContent     = used + '일';
     const schedEl = document.getElementById('leaveScheduled');
@@ -8789,7 +8802,7 @@ if ('serviceWorker' in navigator) {
   function renderOrgLeaveTable(emps) {
     const tbody = document.getElementById('orgLeaveBody');
     const TITLE_ORDER = ['대표이사','CEO','부회장','회장','사장','부사장','전무','상무','이사','본부장','실장','부장','차장','과장','팀장','대리','주임','사원','인턴'];
-    const DEPT_ORDER  = ['영업','회계','R&D','물류'];
+    const DEPT_ORDER  = ['회계','R&D','영업','물류'];
     const getRank  = t => { const i = TITLE_ORDER.findIndex(o => String(t||'').includes(o)); return i === -1 ? 99 : i; };
     const getJoinMs = e => e.joinDate ? new Date(e.joinDate).getTime() : Infinity;
 
@@ -8809,7 +8822,7 @@ if ('serviceWorker' in navigator) {
     tbody.innerHTML = sorted.map(e => {
       const total  = calcAnnualLeaveClient(e.joinDate);
       const used   = parseFloat(e.usedLeave)||0;
-      const remain = Math.max(total - used, 0);
+      const remain = total - used;
       return `<tr style="border-bottom:1px solid #f5f5f5;">
         <td style="padding:8px 12px;font-weight:700;">${e.name}</td>
         <td style="padding:8px 12px;color:#777;">${e.isHead ? '대표' : (e.dept||'-')}</td>
@@ -8817,9 +8830,12 @@ if ('serviceWorker' in navigator) {
         <td style="padding:8px 12px;text-align:center;color:#c0392b;">${used}</td>
         <td style="padding:8px 12px;text-align:center;color:#1a7a45;font-weight:700;">${remain}</td>
         <td style="padding:8px 12px;text-align:center;">
-          <input type="number" value="${used}" min="0" step="0.5"
-            style="width:60px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:12px;text-align:center;"
-            onchange="saveUsedLeave('${e.id}', this.value)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+            <input type="number" id="usedLeaveInput_${e.id}" value="${used}" min="0" step="0.5"
+              style="width:60px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:12px;text-align:center;">
+            <button onclick="saveUsedLeave('${e.id}')"
+              style="padding:4px 10px;background:#7C6FF7;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">저장</button>
+          </div>
         </td>
       </tr>`;
     }).join('');
@@ -8836,10 +8852,18 @@ if ('serviceWorker' in navigator) {
     return Math.min(15 + Math.floor((diffYears - 1) / 2), 25);
   }
 
-  window.saveUsedLeave = async function(id, val) {
+  window.saveUsedLeave = async function(id) {
+    const input = document.getElementById('usedLeaveInput_' + id);
+    if (!input) return;
+    const val = input.value;
     try {
       const params = new URLSearchParams({ action:'updateEmployeeInfo', id, usedLeave: val });
-      await fetch(`${RESERVE_URL}?${params}`);
+      const res = await fetch(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        input.style.borderColor = '#1a7a45';
+        setTimeout(() => { input.style.borderColor = '#ddd'; }, 1500);
+      }
     } catch(e) {}
   };
 
