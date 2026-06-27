@@ -601,15 +601,18 @@
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
       <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" style="display:none;">조직도</button>
     </div>
-    <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
+    <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;position:relative;" title="내 계정">
       <span id="userInitial">G</span>
+      <span id="leavePendingDot" style="display:none;position:absolute;top:0;right:0;width:9px;height:9px;background:#e74c3c;border-radius:50%;border:2px solid #FBF7EF;"></span>
       <div class="user-dropdown" id="userDropdown">
         <div class="user-dropdown-header" id="userDropdownHeader">
           <div class="udh-name" id="userInfoText">게스트</div>
           <div class="udh-sub" id="userInfoSub">게스트 접속</div>
         </div>
         <div class="user-dropdown-item" id="userDropdownMyInfo" onclick="goMyInfo()">내 정보</div>
-        <div class="user-dropdown-item" id="userDropdownLeave" onclick="openLeavePanel()" style="display:none;">휴가신청</div>
+        <div class="user-dropdown-item" id="userDropdownLeave" onclick="openLeavePanel()" style="display:none;">
+          휴가신청 <span id="leavePendingCount" style="display:none;margin-left:auto;background:#e74c3c;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800;"></span>
+        </div>
         <div class="user-dropdown-item logout" onclick="logoutUser()">로그아웃</div>
       </div>
     </div>
@@ -4176,6 +4179,28 @@ function csDateInputValue(val) {
             fillMyInfo(userData);
             // 전역 현재 사용자 저장 (휴가신청 등에서 참조)
             window._currentUser = userData;
+            // 전체 직원목록 저장 (결재라인 자동 계산용)
+            try {
+              const empRes = await fetch(`${RESERVE_URL}?action=getEmployees`);
+              const empData = await empRes.json();
+              if (empData.rows) window._allEmployees = empData.rows;
+            } catch(e) {}
+            // 결재자면 30초마다 휴가 대기 뱃지 체크
+            if (userData.isManager || userData.isHead || userData.role === 'admin') {
+              if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
+              window._leaveBadgeTimer = setInterval(async () => {
+                try {
+                  const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
+                  const data = await res.json();
+                  if (data.status === 'ok') {
+                    window._leaveAllCache = data.rows || [];
+                    // IIFE 내부 _allLeaves 업데이트
+                    const ev = new CustomEvent('leaveDataRefresh', { detail: data.rows });
+                    document.dispatchEvent(ev);
+                  }
+                } catch(e) {}
+              }, 30000);
+            }
             // 조직도 탭 표시 (관리자/부서장/대표)
             const orgBtn = document.getElementById('orgTabBtn');
             if (orgBtn && (userData.role === 'admin' || userData.isManager || userData.isHead)) {
@@ -4408,6 +4433,8 @@ function csDateInputValue(val) {
         try {
             const res = await fetch(`${RESERVE_URL}?action=getEmployees`);
             const data = await res.json();
+            // 전역 직원 목록 저장 (결재라인 자동 계산용)
+            if (data.rows) window._allEmployees = data.rows;
             const tbody = document.getElementById('adminEmpList');
             if (!tbody) return;
             if (!data.rows || !data.rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="admin-empty">직원 없음</td></tr>'; return; }
@@ -8127,6 +8154,12 @@ if ('serviceWorker' in navigator) {
     if (tab === 'calendar') renderLeaveSchedCal();
   };
 
+  document.addEventListener('leaveDataRefresh', function(e) {
+    _allLeaves = e.detail || [];
+    updateLeavePendingBadge();
+    renderLeavePending();
+  });
+
   // 신청 달력 렌더링
   function renderLeaveCal() {
     const title = document.getElementById('leaveCalTitle');
@@ -8219,6 +8252,14 @@ if ('serviceWorker' in navigator) {
     const days = _leaveType === '반차' ? _selectedDates.length * 0.5 : _selectedDates.length;
     const reason = document.getElementById('leaveReason').value.trim();
     const msg = document.getElementById('leaveApplyMsg');
+
+    // 결재라인 자동 계산: 같은 부서 부서장 → 대표 순
+    const allEmps = window._allEmployees || [];
+    const deptManager = allEmps.find(e => e.dept === user.dept && e.isManager && e.id !== user.id);
+    const head = allEmps.find(e => e.isHead);
+    const approverIds = [deptManager ? deptManager.id : null, head ? head.id : null]
+      .filter(Boolean).join(',');
+
     msg.textContent = '신청 중...';
     try {
       const params = new URLSearchParams({
@@ -8226,7 +8267,7 @@ if ('serviceWorker' in navigator) {
         id: user.id, name: user.name, dept: user.dept || '',
         startDate: sorted[0], endDate: sorted[sorted.length-1],
         days, leaveType: _leaveType, reason,
-        approverIds: user.approverIds || ''
+        approverIds
       });
       const res  = await fetch(`${RESERVE_URL}?${params}`);
       const data = await res.json();
@@ -8240,6 +8281,26 @@ if ('serviceWorker' in navigator) {
     } catch(e) { msg.textContent = '오류: ' + e.message; }
   };
 
+  // 결재 대기 뱃지 업데이트
+  function updateLeavePendingBadge() {
+    const user = window._currentUser;
+    if (!user) return;
+    const pending = _allLeaves.filter(r => {
+      if (r.id === user.id) return false;
+      const approvers = String(r.approverIds||'').split(',').map(s=>s.trim());
+      if (!approvers.includes(user.id)) return false;
+      // 부서장: 대기 상태만, 대표: 대표승인대기 상태만
+      if (user.isHead)    return r.status === '대표승인대기';
+      if (user.isManager) return r.status === '대기';
+      return false;
+    });
+    const count = pending.length;
+    const dot   = document.getElementById('leavePendingDot');
+    const badge = document.getElementById('leavePendingCount');
+    if (dot)   dot.style.display   = count > 0 ? 'block' : 'none';
+    if (badge) { badge.style.display = count > 0 ? 'inline' : 'none'; badge.textContent = count; }
+  }
+
   // 휴가 데이터 로드
   async function loadLeaveData() {
     const user = window._currentUser;
@@ -8251,6 +8312,7 @@ if ('serviceWorker' in navigator) {
         _allLeaves = data.rows || [];
         updateLeaveBalance();
         renderLeavePending();
+        updateLeavePendingBadge();
       }
     } catch(e) {}
   }
