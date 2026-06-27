@@ -51,7 +51,7 @@
   td, th { -webkit-user-modify: read-only; }
   .wrap { max-width:1880px; margin:0 auto; padding:10px; }
   .tabs-wrap { 
-    position:sticky; top:0; z-index:500;
+    position:sticky; top:0; z-index:1000;
     display:flex; align-items:center; gap:8px; margin-bottom:14px;
     background:#F1EADF; padding:8px 12px;
     border-bottom:1px solid #E2D6C2;
@@ -624,10 +624,14 @@
   <!-- 햄버거 메뉴 -->
   <div class="hamburger-menu" id="hamburgerMenu">
     <div class="hamburger-menu-header">
-      <h3>☰ 전체 메뉴</h3>
+      <h3>전체 메뉴</h3>
       <button class="hamburger-menu-close" onclick="closeHamburger()">✕</button>
     </div>
     <div id="hamburgerMenuItems"></div>
+    <!-- 편집 버튼 -->
+    <div style="padding:16px 20px;border-top:1px solid #eee;margin-top:auto;">
+      <button id="hamburgerEditBtn" onclick="toggleHamburgerEdit()" style="width:100%;padding:11px 0;border:1px solid #E2D6C2;border-radius:10px;background:#FBF7F2;color:#5E4630;font-size:13px;font-weight:700;cursor:pointer;">편집</button>
+    </div>
   </div>
 
   <section id="pricingTab" class="tab-panel active">
@@ -1267,7 +1271,7 @@
             <div class="inv-contact">
               <div class="inv-contact-title">CONTACT</div>
               서울시 강남구 언주로 133길 25 지복득마루<br>
-              T&nbsp;&nbsp; 02 576 7736&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp; <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4b21222924202f2e3e20262a393e0b252a3d2e3965282426">[email&#160;protected]</a>&nbsp;&nbsp;&nbsp;&nbsp; www.jibokdeukmaru.com
+              T&nbsp;&nbsp; 02 576 7736&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp; jibokdeukmaru@naver.com&nbsp;&nbsp;&nbsp;&nbsp; www.jibokdeukmaru.com
             </div>
           </div>
           <div class="inv-account-wrap">
@@ -4212,7 +4216,7 @@ function csDateInputValue(val) {
         if (empData.rows) window._allEmployees = empData.rows;
       } catch(e) {}
 
-      if (userData.isManager || userData.isHead || userData.role === 'admin') {
+      if (userData.isManager || userData.isHead) {
         const approvalBtn = document.getElementById('approvalTabBtn');
         if (approvalBtn) approvalBtn.style.display = '';
         await checkLeavePending(userData);
@@ -4256,10 +4260,10 @@ function csDateInputValue(val) {
         if (role === 'admin') return;
         if (allowedTabs === 'ALL' || allowedTabs === undefined || allowedTabs === null) return;
         const allowed = String(allowedTabs).split(',').map(s => s.trim()).filter(Boolean);
-        // 빈 문자열('')이면 allowed가 [] → 전부 숨김
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
-            if (tab === 'myInfoTab' || tab === 'adminTab') return;
+            // 별도 권한 로직으로 관리하는 탭은 여기서 건드리지 않음
+            if (tab === 'myInfoTab' || tab === 'adminTab' || tab === 'approvalTab' || tab === 'orgTab') return;
             if (!allowed.includes(tab)) btn.style.display = 'none';
         });
     }
@@ -5585,19 +5589,102 @@ function applyVisibleTabs() {
 }
 
 function openHamburger() {
-  const visible = getVisibleTabs();
-  const items = document.getElementById('hamburgerMenuItems');
-  items.innerHTML = Object.entries(TAB_LABELS).map(([id, label]) => {
-    const adminEl = document.getElementById('adminTabBtn');
-    if (id === 'adminTab' && (!adminEl || adminEl.style.display === 'none')) return '';
-    const checked = visible.includes(id);
-    return `<div class="hamburger-menu-item" onclick="setTab('${id}')">
-      <span>${label}</span>
-      <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleTabVisible('${id}',this.checked)">
-    </div>`;
-  }).join('');
+  renderHamburgerItems();
   document.getElementById('hamburgerMenu').classList.add('open');
   document.getElementById('hamburgerOverlay').classList.add('open');
+}
+
+let _hamburgerEditMode = false;
+
+function renderHamburgerItems() {
+  const visible = getVisibleTabs();
+  const tabOrder = JSON.parse(localStorage.getItem('baram_tab_order') || 'null') || Object.keys(TAB_LABELS);
+  const items = document.getElementById('hamburgerMenuItems');
+  const editBtn = document.getElementById('hamburgerEditBtn');
+  if (editBtn) editBtn.textContent = _hamburgerEditMode ? '완료' : '편집';
+
+  if (_hamburgerEditMode) {
+    // 편집 모드: 체크박스 + 드래그 핸들
+    items.innerHTML = tabOrder.map(id => {
+      const label = TAB_LABELS[id];
+      if (!label) return '';
+      const adminEl = document.getElementById('adminTabBtn');
+      if (id === 'adminTab' && (!adminEl || adminEl.style.display === 'none')) return '';
+      const checked = visible.includes(id);
+      return `<div class="hamburger-menu-item hamburger-edit-item" draggable="true"
+        data-tabid="${id}"
+        ondragstart="hamburgerDragStart(event)"
+        ondragover="hamburgerDragOver(event)"
+        ondrop="hamburgerDrop(event)"
+        ondragend="hamburgerDragEnd(event)"
+        style="cursor:grab;">
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span style="color:#ccc;font-size:16px;cursor:grab;">⠿</span>
+          <span>${label}</span>
+        </span>
+        <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleTabVisible('${id}',this.checked)">
+      </div>`;
+    }).filter(Boolean).join('');
+  } else {
+    // 일반 모드: 탭 이동만
+    items.innerHTML = tabOrder.map(id => {
+      const label = TAB_LABELS[id];
+      if (!label) return '';
+      const adminEl = document.getElementById('adminTabBtn');
+      if (id === 'adminTab' && (!adminEl || adminEl.style.display === 'none')) return '';
+      return `<div class="hamburger-menu-item" onclick="setTab('${id}');closeHamburger();">
+        <span>${label}</span>
+      </div>`;
+    }).filter(Boolean).join('');
+  }
+}
+
+window.toggleHamburgerEdit = function() {
+  _hamburgerEditMode = !_hamburgerEditMode;
+  renderHamburgerItems();
+};
+
+// 드래그 앤 드롭
+let _dragSrcId = null;
+window.hamburgerDragStart = function(e) {
+  _dragSrcId = e.currentTarget.dataset.tabid;
+  e.currentTarget.style.opacity = '0.4';
+};
+window.hamburgerDragOver = function(e) {
+  e.preventDefault();
+  e.currentTarget.style.background = '#F7F1E6';
+};
+window.hamburgerDrop = function(e) {
+  e.preventDefault();
+  const targetId = e.currentTarget.dataset.tabid;
+  if (!_dragSrcId || _dragSrcId === targetId) return;
+  let order = JSON.parse(localStorage.getItem('baram_tab_order') || 'null') || Object.keys(TAB_LABELS);
+  const si = order.indexOf(_dragSrcId);
+  const ti = order.indexOf(targetId);
+  if (si > -1 && ti > -1) {
+    order.splice(si, 1);
+    order.splice(ti, 0, _dragSrcId);
+    localStorage.setItem('baram_tab_order', JSON.stringify(order));
+    applyTabOrder();
+    renderHamburgerItems();
+  }
+};
+window.hamburgerDragEnd = function(e) {
+  e.currentTarget.style.opacity = '';
+  document.querySelectorAll('.hamburger-edit-item').forEach(el => el.style.background = '');
+  _dragSrcId = null;
+};
+
+// 탭 순서 상단에 반영
+function applyTabOrder() {
+  const order = JSON.parse(localStorage.getItem('baram_tab_order') || 'null');
+  if (!order) return;
+  const tabBar = document.getElementById('mainTabBar');
+  if (!tabBar) return;
+  order.forEach(id => {
+    const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+    if (btn) tabBar.appendChild(btn);
+  });
 }
 
 function closeHamburger() {
@@ -5664,8 +5751,9 @@ window.setDateFilter = function(el) {
   if (typeof renderConsultList === 'function') renderConsultList();
 };
 
-// 초기 즐겨찾기 적용
+// 초기 즐겨찾기 + 순서 적용
 applyVisibleTabs();
+applyTabOrder();
 
 function formatDecimal(value, digits=3) {
   const num = Number(value);
@@ -8439,6 +8527,22 @@ if ('serviceWorker' in navigator) {
 (function() {
   const DEPTS = ['영업','회계','R&D','물류'];
 
+  window.toggleOrgEmpPanel = function() {
+    const panel   = document.getElementById('orgEmpPanel');
+    const overlay = document.getElementById('orgEmpOverlay');
+    if (!panel) return;
+    const isOpen = panel.style.display === 'block';
+    panel.style.display   = isOpen ? 'none' : 'block';
+    overlay.style.display = isOpen ? 'none' : 'block';
+  };
+
+  window.closeOrgEmpPanel = function() {
+    const panel   = document.getElementById('orgEmpPanel');
+    const overlay = document.getElementById('orgEmpOverlay');
+    if (panel)   panel.style.display   = 'none';
+    if (overlay) overlay.style.display = 'none';
+  };
+
   window.loadOrgTab = async function() {
     try {
       const res  = await fetch(`${RESERVE_URL}?action=getEmployees`);
@@ -8733,19 +8837,26 @@ if ('serviceWorker' in navigator) {
 </div>
 </section>
 
-<section id="orgTab" class="tab-panel" style="display:none;">
-<div style="max-width:1200px;margin:24px auto;padding:0 16px;display:flex;gap:20px;min-height:600px;">
+<section id="orgTab" class="tab-panel" style="display:none;position:relative;">
 
-  <!-- 좌측: 사원 목록 -->
-  <div style="width:220px;flex-shrink:0;">
-    <div style="font-size:13px;font-weight:800;color:#5E4630;margin-bottom:12px;">사원 목록</div>
+  <!-- 사원목록 버튼 -->
+  <button onclick="toggleOrgEmpPanel()" style="position:fixed;top:70px;left:16px;z-index:600;background:#5E4630;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">사원 목록</button>
+
+  <!-- 사원목록 슬라이드 패널 오버레이 -->
+  <div id="orgEmpOverlay" onclick="closeOrgEmpPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:601;"></div>
+
+  <!-- 사원목록 슬라이드 패널 -->
+  <div id="orgEmpPanel" style="display:none;position:fixed;top:0;left:0;width:260px;height:100vh;background:#fff;z-index:602;box-shadow:4px 0 20px rgba(0,0,0,0.12);overflow-y:auto;padding:20px 16px;box-sizing:border-box;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:800;color:#5E4630;">사원 목록</div>
+      <button onclick="closeOrgEmpPanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
+    </div>
     <div id="orgEmpList" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
 
-  <!-- 우측: 조직도 -->
-  <div style="flex:1;background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:24px;overflow:auto;">
-    <div style="font-size:13px;font-weight:800;color:#5E4630;margin-bottom:20px;">조직도</div>
-    <div id="orgChartWrap">
+  <!-- 조직도 전체 배경 -->
+  <div style="padding:24px 16px;min-height:calc(100vh - 120px);">
+    <div id="orgChartWrap" style="text-align:center;">
       <!-- 대표 -->
       <div style="display:flex;justify-content:center;margin-bottom:8px;">
         <div id="orgHead" style="background:#5E4630;color:#fff;border-radius:10px;padding:10px 20px;text-align:center;min-width:100px;">
@@ -8755,13 +8866,14 @@ if ('serviceWorker' in navigator) {
       </div>
       <!-- 연결선 -->
       <div style="display:flex;justify-content:center;"><div style="width:2px;height:24px;background:#C8A97E;"></div></div>
-      <!-- 부서 가로선 -->
+      <!-- 부서 가로 -->
       <div id="orgDeptRow" style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;"></div>
     </div>
-    <!-- 연차 현황 테이블 -->
-    <div style="margin-top:32px;">
+
+    <!-- 연차 현황 -->
+    <div style="margin-top:40px;max-width:900px;margin-left:auto;margin-right:auto;">
       <div style="font-size:13px;font-weight:800;color:#5E4630;margin-bottom:12px;">연차 현황</div>
-      <table id="orgLeaveTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+      <table id="orgLeaveTable" style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
         <thead>
           <tr style="background:#FBF7F2;">
             <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #eee;color:#888;font-weight:700;">이름</th>
@@ -8776,7 +8888,6 @@ if ('serviceWorker' in navigator) {
       </table>
     </div>
   </div>
-</div>
 </section>
 
 </body>
