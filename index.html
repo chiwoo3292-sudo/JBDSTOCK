@@ -4180,7 +4180,7 @@ function csDateInputValue(val) {
             if (orgBtn && userData.role === 'admin') {
               orgBtn.style.display = '';
             }
-            setTimeout(() => { initAfterLogin(userData); }, 100);
+            setTimeout(() => { initAfterLogin(userData); }, 500);
         } else {
             if (userInitial) userInitial.textContent = 'G';
             if (badge) badge.classList.add('guest');
@@ -8778,8 +8778,8 @@ if ('serviceWorker' in navigator) {
       var approverRole = (user.isHead && r.status === '대표승인대기') ? 'head' : 'manager';
       var canApprove   = (user.isManager && r.status === '대기') || (user.isHead && r.status === '대표승인대기');
       var actionBtns = canApprove
-        ? '<button onclick="doApprove(' + r.rowIdx + ','approve','' + approverRole + '')" style="padding:5px 12px;background:#1a7a45;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;">승인</button>'
-          + '<button onclick="doApprove(' + r.rowIdx + ','reject','' + approverRole + '')" style="padding:5px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">반려</button>'
+        ? '<button onclick="doApprove(' + r.rowIdx + ',&quot;approve&quot;,&quot;' + approverRole + '&quot;)" style="padding:5px 12px;background:#1a7a45;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;">승인</button>'
+          + '<button onclick="doApprove(' + r.rowIdx + ',&quot;reject&quot;,&quot;' + approverRole + '&quot;)" style="padding:5px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">반려</button>'
         : '<span style="font-size:11px;color:#bbb;">처리완료</span>';
       return '<tr style="border-bottom:1px solid #f0f0f0;cursor:default;">'
         + '<td style="padding:12px;font-weight:700;">' + (r.name||'') + '</td>'
