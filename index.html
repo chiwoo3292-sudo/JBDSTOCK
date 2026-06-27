@@ -4325,8 +4325,11 @@ function csDateInputValue(val) {
         const cardWrap = document.getElementById('myiBusinessCardWrap');
         const cardImg  = document.getElementById('myiBusinessCard');
         if (cardWrap && cardImg) {
-          if (u.cardUrl) {
-            cardImg.src = u.cardUrl;
+          const url = u.cardUrl || '';
+          if (url) {
+            cardImg.src = url;
+            cardImg.onload = function() { cardWrap.style.display = 'block'; };
+            cardImg.onerror = function() { cardWrap.style.display = 'none'; };
             cardWrap.style.display = 'block';
           } else {
             cardWrap.style.display = 'none';
@@ -5910,12 +5913,14 @@ window.goMyInfo = function() {
         if (data.status === 'ok') {
           const me = (data.rows||[]).find(r => String(r.id) === String(user.id));
           if (me) {
-            // cardUrl 강제 반영
             const cardWrap = document.getElementById('myiBusinessCardWrap');
             const cardImg  = document.getElementById('myiBusinessCard');
             if (cardWrap && cardImg) {
-              if (me.cardUrl) {
-                cardImg.src = me.cardUrl;
+              const url = me.cardUrl || '';
+              if (url) {
+                cardImg.src = url;
+                cardImg.onload = function() { cardWrap.style.display = 'block'; };
+                cardImg.onerror = function() { cardWrap.style.display = 'none'; };
                 cardWrap.style.display = 'block';
               } else {
                 cardWrap.style.display = 'none';
