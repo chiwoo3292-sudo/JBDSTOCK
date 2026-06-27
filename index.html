@@ -598,7 +598,6 @@
       <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
       <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" style="display:none;">조직도</button>
-      <button type="button" class="tab-btn" data-tab="approvalTab" id="approvalTabBtn" style="display:none;">결재대기<span id="approvalBadge" style="display:none;margin-left:4px;background:#e74c3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;">N</span></button>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
       <span id="userInitial">G</span>
@@ -614,6 +613,9 @@
     <div class="user-dropdown-item" id="userDropdownMyInfo" onclick="goMyInfo()">내 정보</div>
     <div class="user-dropdown-item" id="userDropdownLeave" onclick="openLeavePanel()" style="display:none;">
       휴가신청
+    </div>
+    <div class="user-dropdown-item" id="userDropdownApproval" onclick="openApprovalPanel()" style="display:none;">
+      결재대기
     </div>
     <div class="user-dropdown-item logout" onclick="logoutUser()">로그아웃</div>
   </div>
@@ -4228,8 +4230,9 @@ function csDateInputValue(val) {
       } catch(e) {}
 
       if (userData.isManager || userData.isHead) {
-        const approvalBtn = document.getElementById('approvalTabBtn');
-        if (approvalBtn) approvalBtn.style.display = '';
+        // 드롭다운 결재대기 메뉴 표시
+        const approvalDropdown = document.getElementById('userDropdownApproval');
+        if (approvalDropdown) approvalDropdown.style.display = '';
         // 탭 순서 재적용 (사용자가 저장한 순서 반영)
         if (typeof applyTabOrder === 'function') applyTabOrder();
         await checkLeavePending(userData);
@@ -5598,8 +5601,7 @@ const TAB_LABELS = {
   pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
-  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송', orgTab:'조직도',
-  approvalTab:'결재대기'
+  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송', orgTab:'조직도'
 };
 const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 
@@ -5862,6 +5864,15 @@ document.addEventListener('click', () => {
 window.goMyInfo = function() {
   document.getElementById('userDropdown').classList.remove('open');
   setTab('myInfoTab');
+};
+
+window.openApprovalPanel = function() {
+  document.getElementById('userDropdown').classList.remove('open');
+  // approvalTab 섹션 직접 표시
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  const panel = document.getElementById('approvalTab');
+  if (panel) panel.style.display = 'block';
+  if (typeof loadApprovalList === 'function') loadApprovalList();
 };
 
 // ── 날짜 필터 ──
