@@ -8476,7 +8476,7 @@ if ('serviceWorker' in navigator) {
   window.leaveApprove = async function(rowIdx, action, approverRole) {
     const user = window._currentUser;
     try {
-      const params = new URLSearchParams({ action:'approveLeave', rowIdx, action, approverRole, approverId: user.id });
+      const params = new URLSearchParams({ action:'approveLeave', rowIdx, approveAction: action, approverRole, approverId: user.id });
       const res  = await fetch(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') loadLeaveData();
@@ -8704,7 +8704,12 @@ if ('serviceWorker' in navigator) {
         return approvers.includes(String(user.id));
       });
       if (rows.length === 0) { list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">결재 대기 건이 없습니다.</div>'; return; }
-      const statusColor = s => s==='확정'?'#1a7a45':s==='반려'?'#c0392b':'#e67e22';
+      function statusColor(s) {
+        return s==='확정'?'#1a7a45':s==='반려'?'#c0392b':'#e67e22';
+      }
+      function statusBg(s) {
+        return s==='대기'?'#fff3cd':s==='반려'?'#fdecea':'#d1f0e0';
+      }
       list.innerHTML = rows.map(r => {
         const approverRole = user.isHead && r.status === '대표승인대기' ? 'head' : 'manager';
         const canApprove   = (user.isManager && r.status === '대기') || (user.isHead && r.status === '대표승인대기');
@@ -8714,7 +8719,7 @@ if ('serviceWorker' in navigator) {
               <span style="font-size:14px;font-weight:800;color:#222;">${r.name}</span>
               <span style="font-size:12px;color:#aaa;margin-left:8px;">${r.dept||''}</span>
             </div>
-            <span style="font-size:12px;font-weight:700;color:${statusColor(r.status)};background:${r.status==='대기'?'#fff3cd':r.status==='반려'?'#fdecea':'#d1f0e0'};padding:3px 10px;border-radius:999px;">${r.status}</span>
+            <span style="font-size:12px;font-weight:700;color:${statusColor(r.status)};background:${statusBg(r.status)};padding:3px 10px;border-radius:999px;">${r.status}</span>
           </div>
           <div style="font-size:13px;color:#555;margin-bottom:4px;">${r.leaveType} · ${r.days}일 · ${r.startDate} ~ ${r.endDate}</div>
           ${r.reason ? `<div style="font-size:12px;color:#aaa;margin-bottom:10px;">${r.reason}</div>` : '<div style="margin-bottom:10px;"></div>'}
@@ -8734,7 +8739,7 @@ if ('serviceWorker' in navigator) {
     if (!user) return;
     if (!confirm(action === 'approve' ? '승인하시겠습니까?' : '반려하시겠습니까?')) return;
     try {
-      const params = new URLSearchParams({ action:'approveLeave', rowIdx, action, approverRole, approverId: user.id });
+      const params = new URLSearchParams({ action:'approveLeave', rowIdx, approveAction: action, approverRole, approverId: user.id });
       const res  = await fetch(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
