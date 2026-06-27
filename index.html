@@ -5613,7 +5613,12 @@ let _hamburgerEditMode = false;
 
 function renderHamburgerItems() {
   const visible = getVisibleTabs();
-  const tabOrder = JSON.parse(localStorage.getItem('baram_tab_order') || 'null') || Object.keys(TAB_LABELS);
+  const saved = JSON.parse(localStorage.getItem('baram_tab_order') || 'null');
+  const allKeys = Object.keys(TAB_LABELS);
+  // 저장된 순서에 없는 신규 탭은 뒤에 자동 추가
+  const tabOrder = saved
+    ? [...saved, ...allKeys.filter(k => !saved.includes(k))]
+    : allKeys;
   const items = document.getElementById('hamburgerMenuItems');
   const editBtn = document.getElementById('hamburgerEditBtn');
   if (editBtn) editBtn.textContent = _hamburgerEditMode ? '완료' : '편집';
