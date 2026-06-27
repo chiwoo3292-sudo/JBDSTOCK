@@ -602,6 +602,11 @@
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
       <span id="userInitial">G</span>
     </div>
+    <!-- 결재 대기 종 알림 -->
+    <div id="approvalBellWrap" style="display:none;position:relative;margin-left:-8px;cursor:pointer;" onclick="toggleUserDropdown(event)" title="결재 대기">
+      <span style="font-size:18px;">🔔</span>
+      <span id="approvalBellBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e74c3c;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;align-items:center;justify-content:center;line-height:14px;text-align:center;">N</span>
+    </div>
   </div>
 
   <!-- 유저 드롭다운 (body 직속 - stacking context 문제 방지) -->
@@ -615,7 +620,7 @@
       휴가신청
     </div>
     <div class="user-dropdown-item" id="userDropdownApproval" onclick="openApprovalPanel()" style="display:none;">
-      결재대기
+      결재대기 <span id="approvalDropdownBadge" style="display:none;margin-left:auto;background:#e74c3c;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800;"></span>
     </div>
     <div class="user-dropdown-item logout" onclick="logoutUser()">로그아웃</div>
   </div>
@@ -3485,14 +3490,21 @@ function csDateInputValue(val) {
 <div class="myi-wrap">
 
   <!-- 프로필 카드 -->
-  <div class="myi-profile-card">
-    <div class="myi-avatar" id="myiAvatar">?</div>
-    <div class="myi-profile-info">
-      <div class="myi-name" id="myiName">-</div>
-      <div class="myi-profile-meta">
-        <span class="myi-meta-label">부서</span><span class="myi-meta-val" id="myiDept">-</span>
-        <span class="myi-meta-label">직급</span><span class="myi-meta-val" id="myiTitle">-</span>
+  <div class="myi-profile-card" style="justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:22px;flex:1;">
+      <div class="myi-avatar" id="myiAvatar">?</div>
+      <div class="myi-profile-info">
+        <div class="myi-name" id="myiName">-</div>
+        <div class="myi-profile-meta">
+          <span class="myi-meta-label">부서</span><span class="myi-meta-val" id="myiDept">-</span>
+          <span class="myi-meta-label">직급</span><span class="myi-meta-val" id="myiTitle">-</span>
+        </div>
       </div>
+    </div>
+    <!-- 명함 이미지 -->
+    <div id="myiBusinessCardWrap" style="display:none;flex-shrink:0;">
+      <img id="myiBusinessCard" src="" alt="명함"
+        style="height:120px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.12);object-fit:contain;">
     </div>
   </div>
 
@@ -3763,6 +3775,11 @@ function csDateInputValue(val) {
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">생일</label>
         <input id="empModalBirthday" type="date"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">명함 이미지 URL (GitHub)</label>
+        <input id="empModalCardUrl" type="text" placeholder="https://raw.githubusercontent.com/..."
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
       </div>
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">
@@ -4264,8 +4281,14 @@ function csDateInputValue(val) {
         return false;
       });
       const count = pending.length;
-      const tabBadge = document.getElementById('approvalBadge');
-      if (tabBadge) { tabBadge.style.display = count > 0 ? 'inline-flex' : 'none'; tabBadge.textContent = count; }
+      // 종 아이콘
+      const bellWrap  = document.getElementById('approvalBellWrap');
+      const bellBadge = document.getElementById('approvalBellBadge');
+      if (bellWrap)  bellWrap.style.display  = count > 0 ? 'flex' : 'none';
+      if (bellBadge) { bellBadge.style.display = count > 0 ? 'flex' : 'none'; bellBadge.textContent = count > 9 ? '9+' : count; }
+      // 드롭다운 뱃지
+      const dropBadge = document.getElementById('approvalDropdownBadge');
+      if (dropBadge) { dropBadge.style.display = count > 0 ? 'inline' : 'none'; dropBadge.textContent = count; }
     }
     // 허용탭 제어
     function applyTabPermissions(allowedTabs, role) {
@@ -4297,6 +4320,18 @@ function csDateInputValue(val) {
         // 아바타 (이름 첫 글자)
         const av = document.getElementById('myiAvatar');
         if (av && u.name) av.textContent = u.name[0];
+
+        // 명함 이미지
+        const cardWrap = document.getElementById('myiBusinessCardWrap');
+        const cardImg  = document.getElementById('myiBusinessCard');
+        if (cardWrap && cardImg) {
+          if (u.cardUrl) {
+            cardImg.src = u.cardUrl;
+            cardWrap.style.display = 'block';
+          } else {
+            cardWrap.style.display = 'none';
+          }
+        }
 
         // 입사일
         if (u.joinDate) {
@@ -4502,7 +4537,7 @@ function csDateInputValue(val) {
                     <div id="emp-card-${ri}" class="emp-card"
                       data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}"
                       data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}"
-                      data-ishead="${r.isHead||false}" data-ismanager="${r.isManager||false}">
+                      data-cardurl="${r.cardUrl||''}" data-ishead="${r.isHead||false}" data-ismanager="${r.isManager||false}">
                       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
                           <span class="emp-card-name" style="font-size:15px;font-weight:800;color:#222;">${r.name||''}</span>
@@ -4535,7 +4570,7 @@ function csDateInputValue(val) {
                 return `<tr id="emp-row-${ri}" onclick="selectEmp(${ri},\'${r.id}\')" style="cursor:pointer;"
                     data-name="${r.name||''}" data-dept="${r.dept||''}" data-title="${r.title||''}"
                     data-joindate="${r.joinDate||''}" data-email="${r.email||''}" data-annualleave="${r.annualLeave||''}"
-                    data-ishead="${r.isHead||false}" data-ismanager="${r.isManager||false}">
+                    data-cardurl="${r.cardUrl||''}" data-ishead="${r.isHead||false}" data-ismanager="${r.isManager||false}">
                     <td><strong>${r.name||''}</strong></td>
                     <td style="color:#aaa;font-size:12px;">${r.id||''}</td>
                     <td>${r.dept||''}</td>
@@ -4652,6 +4687,7 @@ function csDateInputValue(val) {
           document.getElementById('empModalJoinDate').value = src.dataset.joindate || '';
           document.getElementById('empModalEmail').value = src.dataset.email || '';
           document.getElementById('empModalBirthday').value = src.dataset.birthday || '';
+          document.getElementById('empModalCardUrl').value = src.dataset.cardurl || '';
           const usedLeave = parseInt(src.dataset.annualleave || '0');
           document.getElementById('empModalAnnualLeave').value = usedLeave;
           document.getElementById('empModalIsHead').checked    = src.dataset.ishead === 'true';
@@ -4675,7 +4711,7 @@ function csDateInputValue(val) {
         if (idInput) { idInput.disabled = false; idInput.style.background = ''; }
         if (pwHint) pwHint.style.display = 'block';
         if (pwReset) pwReset.style.display = 'none';
-        ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate','empModalEmail','empModalBirthday','empModalAnnualLeave']
+        ['empModalId','empModalName','empModalDept','empModalTitle','empModalJoinDate','empModalEmail','empModalBirthday','empModalCardUrl','empModalAnnualLeave']
           .forEach(fieldId => { const el = document.getElementById(fieldId); if(el) el.value = ''; });
         document.getElementById('empModalIsHead').checked    = false;
         document.getElementById('empModalIsManager').checked = false;
@@ -4695,6 +4731,7 @@ function csDateInputValue(val) {
       const joinDate = document.getElementById('empModalJoinDate').value;
       const email = document.getElementById('empModalEmail').value.trim();
       const birthday = document.getElementById('empModalBirthday').value;
+      const cardUrl  = document.getElementById('empModalCardUrl').value.trim();
       const annualLeave = document.getElementById('empModalAnnualLeave').value;
       const isHead    = document.getElementById('empModalIsHead').checked;
       const isManager = document.getElementById('empModalIsManager').checked;
@@ -4706,7 +4743,7 @@ function csDateInputValue(val) {
       msg.style.color='#888'; msg.textContent='저장 중...';
       try {
         const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
-        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, birthday, annualLeave, isHead, isManager });
+        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, birthday, cardUrl, annualLeave, isHead, isManager });
         const res = await fetch(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
