@@ -4238,7 +4238,7 @@ function csDateInputValue(val) {
     }
     window.checkLeavePending = checkLeavePending;
 
-    function updateApprovalBadge(userData, rows) {
+    window.updateApprovalBadge = function updateApprovalBadge(userData, rows) {
       const pending = (rows||[]).filter(r => {
         if (r.id === userData.id) return false;
         const approvers = String(r.approverIds||'').split(',').map(s=>s.trim());
