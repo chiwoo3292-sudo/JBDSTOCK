@@ -8812,87 +8812,7 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
-</div><!-- /.wrap -->
-</section><!-- /#mainSection -->
 
-<!-- ================================================================ -->
-<!--  휴가신청 슬라이드 패널                                            -->
-<!-- ================================================================ -->
-<div id="leaveOverlay" onclick="closeLeavePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;"></div>
-<div id="leavePanel" style="display:none;position:fixed;top:0;right:0;width:min(420px,100vw);height:100vh;background:#fff;z-index:10001;box-shadow:-4px 0 24px rgba(0,0,0,0.12);overflow-y:auto;flex-direction:column;">
-  <div style="padding:20px 20px 0;border-bottom:1px solid #eee;margin-bottom:0;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div style="font-size:16px;font-weight:800;color:#222;">휴가신청</div>
-      <button onclick="closeLeavePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
-    </div>
-    <!-- 잔여 연차 표시 -->
-    <div id="leaveBalanceBox" style="background:#F5F3FE;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;">
-      <div style="text-align:center;flex:1;">
-        <div style="font-size:11px;color:#999;margin-bottom:4px;">부여 연차</div>
-        <div id="leaveTotal" style="font-size:20px;font-weight:800;color:#7C6FF7;">-</div>
-      </div>
-      <div style="text-align:center;flex:1;">
-        <div style="font-size:11px;color:#999;margin-bottom:4px;">사용 연차</div>
-        <div id="leaveUsed" style="font-size:20px;font-weight:800;color:#c0392b;">-</div>
-      </div>
-      <div style="text-align:center;flex:1;">
-        <div style="font-size:11px;color:#999;margin-bottom:4px;">잔여 연차</div>
-        <div id="leaveRemain" style="font-size:20px;font-weight:800;color:#1a7a45;">-</div>
-      </div>
-    </div>
-    <!-- 탭: 신청 / 내역 / 일정 -->
-    <div style="display:flex;gap:0;border-bottom:2px solid #eee;">
-      <button id="leavePanelTab_apply" onclick="switchLeaveTab('apply')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:700;color:#7C6FF7;border-bottom:2px solid #7C6FF7;margin-bottom:-2px;cursor:pointer;">신청</button>
-      <button id="leavePanelTab_history" onclick="switchLeaveTab('history')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">내역</button>
-      <button id="leavePanelTab_calendar" onclick="switchLeaveTab('calendar')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">일정</button>
-    </div>
-  </div>
-
-  <!-- 신청 탭 -->
-  <div id="leavePanelContent_apply" style="padding:20px;">
-    <div style="font-size:12px;color:#999;margin-bottom:10px;">날짜를 클릭하거나 드래그해서 선택하세요.</div>
-    <!-- 신청 달력 -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <button onclick="leaveCalPrev()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">‹</button>
-      <div id="leaveCalTitle" style="font-size:14px;font-weight:700;color:#222;"></div>
-      <button onclick="leaveCalNext()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">›</button>
-    </div>
-    <div id="leaveCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;user-select:none;"></div>
-    <!-- 선택된 날짜 -->
-    <div id="leaveSelectedInfo" style="font-size:12px;color:#555;margin-bottom:12px;min-height:18px;"></div>
-    <!-- 종류 선택 -->
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #7C6FF7;background:#7C6FF7;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">연차</button>
-      <button id="leaveTypeBtn_반차" onclick="setLeaveType('반차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:13px;font-weight:700;cursor:pointer;">반차</button>
-    </div>
-    <!-- 사유 -->
-    <textarea id="leaveReason" placeholder="사유 (선택)" style="width:100%;min-height:70px;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;margin-bottom:14px;"></textarea>
-    <!-- 신청 버튼 -->
-    <button onclick="submitLeave()" style="width:100%;padding:13px 0;background:#7C6FF7;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">신청하기</button>
-    <div id="leaveApplyMsg" style="text-align:center;font-size:12px;color:#1a7a45;margin-top:8px;min-height:18px;"></div>
-  </div>
-
-  <!-- 내역 탭 -->
-  <div id="leavePanelContent_history" style="padding:20px;display:none;">
-    <div id="leaveHistoryList" style="display:flex;flex-direction:column;gap:10px;"></div>
-  </div>
-
-  <!-- 일정 탭 -->
-  <div id="leavePanelContent_calendar" style="padding:20px;display:none;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <button onclick="leaveSchedPrev()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">‹</button>
-      <div id="leaveSchedTitle" style="font-size:14px;font-weight:700;color:#222;"></div>
-      <button onclick="leaveSchedNext()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">›</button>
-    </div>
-    <div id="leaveSchedGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
-  </div>
-
-  <!-- 결재 대기 영역 제거 - 결재대기 탭으로 이전 -->
-</div>
-
-<!-- ================================================================ -->
-<!--  조직도 탭                                                         -->
-<!-- ================================================================ -->
 <section id="approvalTab" class="tab-panel" style="display:none;">
 <div style="max-width:1100px;margin:24px auto;padding:0 16px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -8980,6 +8900,89 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </section>
+
+</div><!-- /.wrap -->
+</section><!-- /#mainSection -->
+
+<!-- ================================================================ -->
+<!--  휴가신청 슬라이드 패널                                            -->
+<!-- ================================================================ -->
+<div id="leaveOverlay" onclick="closeLeavePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;"></div>
+<div id="leavePanel" style="display:none;position:fixed;top:0;right:0;width:min(420px,100vw);height:100vh;background:#fff;z-index:10001;box-shadow:-4px 0 24px rgba(0,0,0,0.12);overflow-y:auto;flex-direction:column;">
+  <div style="padding:20px 20px 0;border-bottom:1px solid #eee;margin-bottom:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:800;color:#222;">휴가신청</div>
+      <button onclick="closeLeavePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
+    </div>
+    <!-- 잔여 연차 표시 -->
+    <div id="leaveBalanceBox" style="background:#F5F3FE;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="text-align:center;flex:1;">
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">부여 연차</div>
+        <div id="leaveTotal" style="font-size:20px;font-weight:800;color:#7C6FF7;">-</div>
+      </div>
+      <div style="text-align:center;flex:1;">
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">사용 연차</div>
+        <div id="leaveUsed" style="font-size:20px;font-weight:800;color:#c0392b;">-</div>
+      </div>
+      <div style="text-align:center;flex:1;">
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">잔여 연차</div>
+        <div id="leaveRemain" style="font-size:20px;font-weight:800;color:#1a7a45;">-</div>
+      </div>
+    </div>
+    <!-- 탭: 신청 / 내역 / 일정 -->
+    <div style="display:flex;gap:0;border-bottom:2px solid #eee;">
+      <button id="leavePanelTab_apply" onclick="switchLeaveTab('apply')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:700;color:#7C6FF7;border-bottom:2px solid #7C6FF7;margin-bottom:-2px;cursor:pointer;">신청</button>
+      <button id="leavePanelTab_history" onclick="switchLeaveTab('history')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">내역</button>
+      <button id="leavePanelTab_calendar" onclick="switchLeaveTab('calendar')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">일정</button>
+    </div>
+  </div>
+
+  <!-- 신청 탭 -->
+  <div id="leavePanelContent_apply" style="padding:20px;">
+    <div style="font-size:12px;color:#999;margin-bottom:10px;">날짜를 클릭하거나 드래그해서 선택하세요.</div>
+    <!-- 신청 달력 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <button onclick="leaveCalPrev()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">‹</button>
+      <div id="leaveCalTitle" style="font-size:14px;font-weight:700;color:#222;"></div>
+      <button onclick="leaveCalNext()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">›</button>
+    </div>
+    <div id="leaveCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;user-select:none;"></div>
+    <!-- 선택된 날짜 -->
+    <div id="leaveSelectedInfo" style="font-size:12px;color:#555;margin-bottom:12px;min-height:18px;"></div>
+    <!-- 종류 선택 -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #7C6FF7;background:#7C6FF7;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">연차</button>
+      <button id="leaveTypeBtn_반차" onclick="setLeaveType('반차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:13px;font-weight:700;cursor:pointer;">반차</button>
+    </div>
+    <!-- 사유 -->
+    <textarea id="leaveReason" placeholder="사유 (선택)" style="width:100%;min-height:70px;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;margin-bottom:14px;"></textarea>
+    <!-- 신청 버튼 -->
+    <button onclick="submitLeave()" style="width:100%;padding:13px 0;background:#7C6FF7;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">신청하기</button>
+    <div id="leaveApplyMsg" style="text-align:center;font-size:12px;color:#1a7a45;margin-top:8px;min-height:18px;"></div>
+  </div>
+
+  <!-- 내역 탭 -->
+  <div id="leavePanelContent_history" style="padding:20px;display:none;">
+    <div id="leaveHistoryList" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+  <!-- 일정 탭 -->
+  <div id="leavePanelContent_calendar" style="padding:20px;display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <button onclick="leaveSchedPrev()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">‹</button>
+      <div id="leaveSchedTitle" style="font-size:14px;font-weight:700;color:#222;"></div>
+      <button onclick="leaveSchedNext()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">›</button>
+    </div>
+    <div id="leaveSchedGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+  </div>
+
+  <!-- 결재 대기 영역 제거 - 결재대기 탭으로 이전 -->
+</div>
+
+<!-- ================================================================ -->
+<!--  조직도 탭                                                         -->
+<!-- ================================================================ -->
+
 
 </body>
     </html>
