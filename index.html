@@ -56,12 +56,12 @@
     background:#FBF7EF; padding:8px 0 8px;
     box-shadow:0 1px 4px rgba(0,0,0,0.06);
   }
-  .hamburger-btn { min-width:36px; height:36px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
-  .hamburger-btn span { display:block; width:16px; height:2px; background:#444; border-radius:2px; }
+  .hamburger-btn { min-width:36px; height:36px; border:1px solid #E2D6C2; border-radius:8px; background:#FBF7EF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
+  .hamburger-btn span { display:block; width:16px; height:2px; background:#8A7B68; border-radius:2px; }
   .tabs { display:flex; gap:8px; align-items:center; overflow-x:auto; flex:1; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; user-select:none; }
   .tabs::-webkit-scrollbar { display:none; }
   .tabs.dragging { cursor:grabbing; }
-  .tab-btn { min-height:36px; padding:0 14px; border:1px solid #E2D6C2; border-radius:999px; background:#fff; color:#8A7B68; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .tab-btn { min-height:36px; padding:0 14px; border:1px solid #E2D6C2; border-radius:999px; background:#FBF7EF; color:#8A7B68; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .tab-btn.active { background:#5E4630; color:#F3ECDF; border-color:#5E4630; }
   .user-info-badge { 
     flex-shrink:0; display:flex; align-items:center; justify-content:center;
@@ -599,6 +599,7 @@
       <button type="button" class="tab-btn" data-tab="noticeTab">공지게시판</button>
       <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
+      <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" style="display:none;">조직도</button>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
       <span id="userInitial">G</span>
@@ -607,8 +608,9 @@
           <div class="udh-name" id="userInfoText">게스트</div>
           <div class="udh-sub" id="userInfoSub">게스트 접속</div>
         </div>
-        <div class="user-dropdown-item" id="userDropdownMyInfo" onclick="goMyInfo()">👤 내 정보</div>
-        <div class="user-dropdown-item logout" onclick="logoutUser()">🚪 로그아웃</div>
+        <div class="user-dropdown-item" id="userDropdownMyInfo" onclick="goMyInfo()">내 정보</div>
+        <div class="user-dropdown-item" id="userDropdownLeave" onclick="openLeavePanel()" style="display:none;">휴가신청</div>
+        <div class="user-dropdown-item logout" onclick="logoutUser()">로그아웃</div>
       </div>
     </div>
   </div>
@@ -4147,6 +4149,8 @@ function csDateInputValue(val) {
             if (userSub) userSub.textContent = userData.title || '';
             const myInfoItem = document.getElementById('userDropdownMyInfo');
             if (myInfoItem) myInfoItem.style.display = 'flex';
+            const leaveItem = document.getElementById('userDropdownLeave');
+            if (leaveItem) leaveItem.style.display = 'flex';
             // 내 정보 탭 표시
             const myBtn = document.getElementById('myInfoTabBtn');
             if (myBtn) myBtn.style.display = '';
@@ -4159,6 +4163,13 @@ function csDateInputValue(val) {
             applyTabPermissions(userData.allowedTabs, userData.role);
             // 내 정보 탭 데이터 채우기
             fillMyInfo(userData);
+            // 전역 현재 사용자 저장 (휴가신청 등에서 참조)
+            window._currentUser = userData;
+            // 조직도 탭 표시 (관리자/부서장/대표)
+            const orgBtn = document.getElementById('orgTabBtn');
+            if (orgBtn && (userData.role === 'admin' || userData.isManager || userData.isHead)) {
+              orgBtn.style.display = '';
+            }
         } else {
             // 게스트: 회색 원 + G
             if (userInitial) userInitial.textContent = 'G';
@@ -5471,12 +5482,14 @@ function setTab(tabId) {
     document.dispatchEvent(new CustomEvent('tabChanged', { detail: 'memoTab' }));
   }
   if (tabId === 'smsTab' && typeof loadSmsTemplates === 'function') {
-    // SMS 템플릿 + 발송내역 병렬 로드
     Promise.all([
       loadSmsTemplates(),
       typeof loadSmsLog === 'function' ? loadSmsLog() : Promise.resolve()
     ]);
     if (typeof loadAligoSettings === 'function') loadAligoSettings();
+  }
+  if (tabId === 'orgTab' && typeof loadOrgTab === 'function') {
+    loadOrgTab();
   }
   resetViewportZoom();
   closeHamburger();
@@ -5487,7 +5500,7 @@ const TAB_LABELS = {
   pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
-  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송'
+  memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송', orgTab:'조직도'
 };
 const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 
@@ -8024,8 +8037,529 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
+<script>
+// ================================================================
+//  휴가신청 패널 JS
+// ================================================================
+(function() {
+  let _leaveYear  = new Date().getFullYear();
+  let _leaveMon   = new Date().getMonth(); // 0-based
+  let _leaveSchedYear = new Date().getFullYear();
+  let _leaveSchedMon  = new Date().getMonth();
+  let _selectedDates  = []; // 'YYYY-MM-DD' 배열
+  let _leaveType  = '연차';
+  let _isDragging = false;
+  let _dragStart  = null;
+  let _allLeaves  = []; // 전체 휴가 내역 캐시
+
+  // 연차 계산 (근로기준법)
+  function calcAnnualLeave(joinDateStr) {
+    if (!joinDateStr) return 0;
+    const join = new Date(joinDateStr);
+    const today = new Date();
+    const diffMs = today - join;
+    const diffMonths = diffMs / (1000 * 60 * 60 * 24 * 30.44);
+    const diffYears  = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+    if (diffYears < 1) return Math.min(Math.floor(diffMonths), 11);
+    return Math.min(15 + Math.floor((diffYears - 1) / 2), 25);
+  }
+
+  // 잔여 연차 업데이트
+  function updateLeaveBalance() {
+    const user = window._currentUser;
+    if (!user) return;
+    const total = calcAnnualLeave(user.joinDate);
+    const used  = parseFloat(user.usedLeave) || 0;
+    // 확정된 신청 중 아직 차감 안 된 것도 합산
+    const pending = _allLeaves
+      .filter(r => r.id === user.id && r.status === '확정')
+      .reduce((s, r) => s + parseFloat(r.days||0), 0);
+    const remain = total - used - pending;
+    document.getElementById('leaveTotal').textContent  = total + '일';
+    document.getElementById('leaveUsed').textContent   = (used + pending) + '일';
+    document.getElementById('leaveRemain').textContent = Math.max(remain, 0) + '일';
+  }
+
+  // 패널 열기
+  window.openLeavePanel = function() {
+    document.getElementById('leaveOverlay').style.display = 'block';
+    const panel = document.getElementById('leavePanel');
+    panel.style.display = 'flex';
+    document.getElementById('userDropdown').classList.remove('open');
+    renderLeaveCal();
+    loadLeaveData();
+  };
+
+  window.closeLeavePanel = function() {
+    document.getElementById('leaveOverlay').style.display = 'none';
+    document.getElementById('leavePanel').style.display = 'none';
+  };
+
+  // 탭 전환
+  window.switchLeaveTab = function(tab) {
+    ['apply','history','calendar'].forEach(t => {
+      document.getElementById('leavePanelContent_' + t).style.display = t === tab ? 'block' : 'none';
+      const btn = document.getElementById('leavePanelTab_' + t);
+      btn.style.color = t === tab ? '#5E4630' : '#aaa';
+      btn.style.fontWeight = t === tab ? '700' : '600';
+      btn.style.borderBottom = t === tab ? '2px solid #5E4630' : 'none';
+    });
+    if (tab === 'history') renderLeaveHistory();
+    if (tab === 'calendar') renderLeaveSchedCal();
+  };
+
+  // 신청 달력 렌더링
+  function renderLeaveCal() {
+    const title = document.getElementById('leaveCalTitle');
+    const grid  = document.getElementById('leaveCalGrid');
+    title.textContent = _leaveYear + '년 ' + (_leaveMon + 1) + '월';
+    const days = ['일','월','화','수','목','금','토'];
+    const firstDay = new Date(_leaveYear, _leaveMon, 1).getDay();
+    const lastDate  = new Date(_leaveYear, _leaveMon + 1, 0).getDate();
+    let html = days.map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:#aaa;padding:4px 0;">${d}</div>`).join('');
+    for (let i = 0; i < firstDay; i++) html += '<div></div>';
+    for (let d = 1; d <= lastDate; d++) {
+      const dateStr = _leaveYear + '-' + String(_leaveMon+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      const dow = new Date(_leaveYear, _leaveMon, d).getDay();
+      const isSel = _selectedDates.includes(dateStr);
+      const isWeekend = dow === 0 || dow === 6;
+      html += `<div data-date="${dateStr}"
+        onmousedown="leaveCalMouseDown('${dateStr}')"
+        onmouseover="leaveCalMouseOver('${dateStr}')"
+        onmouseup="leaveCalMouseUp()"
+        style="text-align:center;padding:6px 2px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+          background:${isSel?'#5E4630':'transparent'};
+          color:${isSel?'#fff':isWeekend?'#ccc':'#333'};
+          border:${isSel?'none':'1px solid transparent'};">${d}</div>`;
+    }
+    grid.innerHTML = html;
+    updateSelectedInfo();
+  }
+
+  window.leaveCalPrev = function() { _leaveMon--; if(_leaveMon<0){_leaveMon=11;_leaveYear--;} renderLeaveCal(); };
+  window.leaveCalNext = function() { _leaveMon++; if(_leaveMon>11){_leaveMon=0;_leaveYear++;} renderLeaveCal(); };
+
+  window.leaveCalMouseDown = function(dateStr) {
+    _isDragging = true;
+    _dragStart = dateStr;
+    if (_selectedDates.includes(dateStr)) {
+      _selectedDates = _selectedDates.filter(d => d !== dateStr);
+    } else {
+      _selectedDates.push(dateStr);
+    }
+    renderLeaveCal();
+  };
+
+  window.leaveCalMouseOver = function(dateStr) {
+    if (!_isDragging || !_dragStart) return;
+    // 드래그 범위로 선택
+    const allDates = [];
+    const first = new Date(_leaveYear, _leaveMon, 1);
+    const last  = new Date(_leaveYear, _leaveMon + 1, 0);
+    for (let d = new Date(first); d <= last; d.setDate(d.getDate()+1)) {
+      allDates.push(d.toISOString().slice(0,10));
+    }
+    const si = allDates.indexOf(_dragStart);
+    const ei = allDates.indexOf(dateStr);
+    const [s, e] = si <= ei ? [si, ei] : [ei, si];
+    const range = allDates.slice(s, e+1).filter(dt => {
+      const dow = new Date(dt).getDay();
+      return dow !== 0 && dow !== 6; // 주말 제외
+    });
+    _selectedDates = [...new Set([..._selectedDates, ...range])];
+    renderLeaveCal();
+  };
+
+  window.leaveCalMouseUp = function() { _isDragging = false; _dragStart = null; };
+  document.addEventListener('mouseup', () => { _isDragging = false; _dragStart = null; });
+
+  function updateSelectedInfo() {
+    const el = document.getElementById('leaveSelectedInfo');
+    if (_selectedDates.length === 0) { el.textContent = '선택된 날짜 없음'; return; }
+    const sorted = [..._selectedDates].sort();
+    const days = _leaveType === '반차' ? _selectedDates.length * 0.5 : _selectedDates.length;
+    el.textContent = sorted[0] + (sorted.length > 1 ? ' ~ ' + sorted[sorted.length-1] : '') + '  |  ' + days + '일';
+  }
+
+  window.setLeaveType = function(type) {
+    _leaveType = type;
+    ['연차','반차'].forEach(t => {
+      const btn = document.getElementById('leaveTypeBtn_' + t);
+      if (t === type) { btn.style.background='#5E4630'; btn.style.color='#fff'; btn.style.borderColor='#5E4630'; }
+      else { btn.style.background='#fff'; btn.style.color='#888'; btn.style.borderColor='#ddd'; }
+    });
+    updateSelectedInfo();
+  };
+
+  // 신청 제출
+  window.submitLeave = async function() {
+    const user = window._currentUser;
+    if (!user) return;
+    if (_selectedDates.length === 0) { alert('날짜를 선택해주세요.'); return; }
+    const sorted = [..._selectedDates].sort();
+    const days = _leaveType === '반차' ? _selectedDates.length * 0.5 : _selectedDates.length;
+    const reason = document.getElementById('leaveReason').value.trim();
+    const msg = document.getElementById('leaveApplyMsg');
+    msg.textContent = '신청 중...';
+    try {
+      const params = new URLSearchParams({
+        action: 'applyLeave',
+        id: user.id, name: user.name, dept: user.dept || '',
+        startDate: sorted[0], endDate: sorted[sorted.length-1],
+        days, leaveType: _leaveType, reason,
+        approverIds: user.approverIds || ''
+      });
+      const res  = await fetch(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        msg.textContent = '신청 완료!';
+        _selectedDates = [];
+        document.getElementById('leaveReason').value = '';
+        renderLeaveCal();
+        loadLeaveData();
+      } else { msg.textContent = '실패: ' + (data.message||''); }
+    } catch(e) { msg.textContent = '오류: ' + e.message; }
+  };
+
+  // 휴가 데이터 로드
+  async function loadLeaveData() {
+    const user = window._currentUser;
+    if (!user) return;
+    try {
+      const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        _allLeaves = data.rows || [];
+        updateLeaveBalance();
+        renderLeavePending();
+      }
+    } catch(e) {}
+  }
+
+  // 내역 렌더링
+  function renderLeaveHistory() {
+    const user = window._currentUser;
+    const list = document.getElementById('leaveHistoryList');
+    const mine = _allLeaves.filter(r => r.id === (user&&user.id));
+    if (mine.length === 0) { list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:20px 0;">신청 내역이 없습니다.</div>'; return; }
+    list.innerHTML = mine.map(r => {
+      const statusColor = r.status==='확정'?'#1a7a45':r.status==='반려'?'#c0392b':'#e67e22';
+      return `<div style="border:1px solid #eee;border-radius:10px;padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:700;">${r.leaveType} · ${r.days}일</span>
+          <span style="font-size:11px;font-weight:700;color:${statusColor};">${r.status}</span>
+        </div>
+        <div style="font-size:12px;color:#777;">${r.startDate} ~ ${r.endDate}</div>
+        ${r.reason ? `<div style="font-size:11px;color:#aaa;margin-top:4px;">${r.reason}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // 결재 대기 (부서장/대표)
+  function renderLeavePending() {
+    const user = window._currentUser;
+    if (!user) return;
+    const section = document.getElementById('leavePendingSection');
+    const list    = document.getElementById('leavePendingList');
+    const pending = _allLeaves.filter(r => {
+      if (r.id === user.id) return false;
+      const approvers = String(r.approverIds||'').split(',').map(s=>s.trim());
+      return approvers.includes(user.id);
+    });
+    if (pending.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    list.innerHTML = pending.map(r => {
+      const isManager = user.isManager;
+      const isHead    = user.isHead;
+      const needManager = r.status === '대기' && isManager;
+      const needHead    = r.status === '대표승인대기' && isHead;
+      const canApprove  = needManager || needHead;
+      const approverRole = isHead && r.status === '대표승인대기' ? 'head' : 'manager';
+      return `<div style="border:1px solid #E8DCCB;border-radius:10px;padding:12px 14px;background:#FBF7F2;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${r.name} · ${r.leaveType} ${r.days}일</div>
+        <div style="font-size:12px;color:#777;margin-bottom:8px;">${r.startDate} ~ ${r.endDate}</div>
+        ${canApprove ? `
+        <div style="display:flex;gap:6px;">
+          <button onclick="leaveApprove(${r.rowIdx},'approve','${approverRole}')" style="flex:1;padding:7px 0;background:#1a7a45;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">승인</button>
+          <button onclick="leaveApprove(${r.rowIdx},'reject','${approverRole}')" style="flex:1;padding:7px 0;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">반려</button>
+        </div>` : `<div style="font-size:11px;color:#aaa;">${r.status}</div>`}
+      </div>`;
+    }).join('');
+  }
+
+  // 승인/반려
+  window.leaveApprove = async function(rowIdx, action, approverRole) {
+    const user = window._currentUser;
+    try {
+      const params = new URLSearchParams({ action:'approveLeave', rowIdx, action, approverRole, approverId: user.id });
+      const res  = await fetch(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') loadLeaveData();
+      else alert('처리 실패: ' + (data.message||''));
+    } catch(e) { alert('오류: ' + e.message); }
+  };
+
+  // 일정 달력
+  function renderLeaveSchedCal() {
+    const title = document.getElementById('leaveSchedTitle');
+    const grid  = document.getElementById('leaveSchedGrid');
+    title.textContent = _leaveSchedYear + '년 ' + (_leaveSchedMon + 1) + '월';
+    const days = ['일','월','화','수','목','금','토'];
+    const firstDay = new Date(_leaveSchedYear, _leaveSchedMon, 1).getDay();
+    const lastDate  = new Date(_leaveSchedYear, _leaveSchedMon + 1, 0).getDate();
+    // 이 달의 휴가 날짜 수집
+    const leaveDates = {};
+    _allLeaves.filter(r => r.status !== '반려').forEach(r => {
+      const s = new Date(r.startDate), e = new Date(r.endDate);
+      for (let d = new Date(s); d <= e; d.setDate(d.getDate()+1)) {
+        const key = d.toISOString().slice(0,10);
+        if (!leaveDates[key]) leaveDates[key] = [];
+        leaveDates[key].push(r.name);
+      }
+    });
+    let html = days.map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:#aaa;padding:4px 0;">${d}</div>`).join('');
+    for (let i = 0; i < firstDay; i++) html += '<div></div>';
+    for (let d = 1; d <= lastDate; d++) {
+      const dateStr = _leaveSchedYear + '-' + String(_leaveSchedMon+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      const names = leaveDates[dateStr] || [];
+      html += `<div style="text-align:center;padding:4px 2px;border-radius:6px;font-size:12px;min-height:32px;
+        background:${names.length?'#FBF7F2':'transparent'};border:1px solid ${names.length?'#E8DCCB':'transparent'};">
+        <div style="font-weight:600;color:#333;">${d}</div>
+        ${names.map(n=>`<div style="font-size:9px;color:#5E4630;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n}</div>`).join('')}
+      </div>`;
+    }
+    grid.innerHTML = html;
+  }
+
+  window.leaveSchedPrev = function() { _leaveSchedMon--; if(_leaveSchedMon<0){_leaveSchedMon=11;_leaveSchedYear--;} renderLeaveSchedCal(); };
+  window.leaveSchedNext = function() { _leaveSchedMon++; if(_leaveSchedMon>11){_leaveSchedMon=0;_leaveSchedYear++;} renderLeaveSchedCal(); };
+
+})();
+
+// ================================================================
+//  조직도 탭 JS
+// ================================================================
+(function() {
+  const DEPTS = ['영업','회계','R&D','물류'];
+
+  window.loadOrgTab = async function() {
+    try {
+      const res  = await fetch(`${RESERVE_URL}?action=getEmployees`);
+      const data = await res.json();
+      if (data.status !== 'ok') return;
+      const emps = data.rows || [];
+      renderOrgEmpList(emps);
+      renderOrgChart(emps);
+      renderOrgLeaveTable(emps);
+    } catch(e) {}
+  };
+
+  function renderOrgEmpList(emps) {
+    const list = document.getElementById('orgEmpList');
+    list.innerHTML = emps.map(e => `
+      <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:10px 12px;cursor:default;">
+        <div style="font-size:13px;font-weight:700;color:#222;">${e.name}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;">${e.dept||'-'} · ${e.title||'-'}</div>
+      </div>`).join('');
+  }
+
+  function renderOrgChart(emps) {
+    const head = emps.find(e => e.isHead);
+    document.getElementById('orgHeadName').textContent = head ? head.name : '-';
+
+    const deptRow = document.getElementById('orgDeptRow');
+    deptRow.innerHTML = DEPTS.map(dept => {
+      const members = emps.filter(e => e.dept === dept && !e.isHead);
+      const manager = members.find(e => e.isManager);
+      const staff   = members.filter(e => !e.isManager);
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:100px;">
+        <!-- 부서 박스 -->
+        <div style="background:#C8A97E;color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:800;margin-bottom:4px;">${dept}</div>
+        <!-- 부서장 -->
+        ${manager ? `<div style="background:#FBF7F2;border:1px solid #E8DCCB;border-radius:8px;padding:7px 12px;text-align:center;min-width:80px;">
+          <div style="font-size:10px;color:#C8A97E;font-weight:700;">부서장</div>
+          <div style="font-size:12px;font-weight:800;color:#222;">${manager.name}</div>
+        </div>` : ''}
+        <!-- 사원 -->
+        ${staff.map(s=>`<div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:6px 12px;text-align:center;min-width:80px;">
+          <div style="font-size:12px;font-weight:600;color:#555;">${s.name}</div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  function renderOrgLeaveTable(emps) {
+    const tbody = document.getElementById('orgLeaveBody');
+    tbody.innerHTML = emps.map(e => {
+      const total  = calcAnnualLeaveClient(e.joinDate);
+      const used   = parseFloat(e.usedLeave)||0;
+      const remain = Math.max(total - used, 0);
+      return `<tr style="border-bottom:1px solid #f5f5f5;">
+        <td style="padding:8px 12px;font-weight:700;">${e.name}</td>
+        <td style="padding:8px 12px;color:#777;">${e.dept||'-'}</td>
+        <td style="padding:8px 12px;text-align:center;">${total}</td>
+        <td style="padding:8px 12px;text-align:center;color:#c0392b;">${used}</td>
+        <td style="padding:8px 12px;text-align:center;color:#1a7a45;font-weight:700;">${remain}</td>
+        <td style="padding:8px 12px;text-align:center;">
+          <input type="number" value="${used}" min="0" step="0.5"
+            style="width:60px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:12px;text-align:center;"
+            onchange="saveUsedLeave('${e.id}', this.value)">
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function calcAnnualLeaveClient(joinDateStr) {
+    if (!joinDateStr) return 0;
+    const join = new Date(joinDateStr);
+    const today = new Date();
+    const diffMs = today - join;
+    const diffMonths = diffMs / (1000 * 60 * 60 * 24 * 30.44);
+    const diffYears  = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+    if (diffYears < 1) return Math.min(Math.floor(diffMonths), 11);
+    return Math.min(15 + Math.floor((diffYears - 1) / 2), 25);
+  }
+
+  window.saveUsedLeave = async function(id, val) {
+    try {
+      const params = new URLSearchParams({ action:'updateEmployeeInfo', id, usedLeave: val });
+      await fetch(`${RESERVE_URL}?${params}`);
+    } catch(e) {}
+  };
+
+})();
+</script>
+
 </div><!-- /.wrap -->
 </section><!-- /#mainSection -->
+
+<!-- ================================================================ -->
+<!--  휴가신청 슬라이드 패널                                            -->
+<!-- ================================================================ -->
+<div id="leaveOverlay" onclick="closeLeavePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;"></div>
+<div id="leavePanel" style="display:none;position:fixed;top:0;right:0;width:min(420px,100vw);height:100vh;background:#fff;z-index:10001;box-shadow:-4px 0 24px rgba(0,0,0,0.12);overflow-y:auto;flex-direction:column;">
+  <div style="padding:20px 20px 0;border-bottom:1px solid #eee;margin-bottom:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:800;color:#222;">휴가신청</div>
+      <button onclick="closeLeavePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
+    </div>
+    <!-- 잔여 연차 표시 -->
+    <div id="leaveBalanceBox" style="background:#FBF7F2;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="text-align:center;flex:1;">
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">부여 연차</div>
+        <div id="leaveTotal" style="font-size:20px;font-weight:800;color:#5E4630;">-</div>
+      </div>
+      <div style="text-align:center;flex:1;">
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">사용 연차</div>
+        <div id="leaveUsed" style="font-size:20px;font-weight:800;color:#c0392b;">-</div>
+      </div>
+      <div style="text-align:center;flex:1;">
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">잔여 연차</div>
+        <div id="leaveRemain" style="font-size:20px;font-weight:800;color:#1a7a45;">-</div>
+      </div>
+    </div>
+    <!-- 탭: 신청 / 내역 / 일정 -->
+    <div style="display:flex;gap:0;border-bottom:2px solid #eee;">
+      <button id="leavePanelTab_apply" onclick="switchLeaveTab('apply')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:700;color:#5E4630;border-bottom:2px solid #5E4630;margin-bottom:-2px;cursor:pointer;">신청</button>
+      <button id="leavePanelTab_history" onclick="switchLeaveTab('history')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">내역</button>
+      <button id="leavePanelTab_calendar" onclick="switchLeaveTab('calendar')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">일정</button>
+    </div>
+  </div>
+
+  <!-- 신청 탭 -->
+  <div id="leavePanelContent_apply" style="padding:20px;">
+    <div style="font-size:12px;color:#999;margin-bottom:10px;">날짜를 클릭하거나 드래그해서 선택하세요.</div>
+    <!-- 신청 달력 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <button onclick="leaveCalPrev()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">‹</button>
+      <div id="leaveCalTitle" style="font-size:14px;font-weight:700;color:#222;"></div>
+      <button onclick="leaveCalNext()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">›</button>
+    </div>
+    <div id="leaveCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;user-select:none;"></div>
+    <!-- 선택된 날짜 -->
+    <div id="leaveSelectedInfo" style="font-size:12px;color:#555;margin-bottom:12px;min-height:18px;"></div>
+    <!-- 종류 선택 -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #5E4630;background:#5E4630;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">연차</button>
+      <button id="leaveTypeBtn_반차" onclick="setLeaveType('반차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:13px;font-weight:700;cursor:pointer;">반차</button>
+    </div>
+    <!-- 사유 -->
+    <textarea id="leaveReason" placeholder="사유 (선택)" style="width:100%;min-height:70px;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;margin-bottom:14px;"></textarea>
+    <!-- 신청 버튼 -->
+    <button onclick="submitLeave()" style="width:100%;padding:13px 0;background:#5E4630;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">신청하기</button>
+    <div id="leaveApplyMsg" style="text-align:center;font-size:12px;color:#1a7a45;margin-top:8px;min-height:18px;"></div>
+  </div>
+
+  <!-- 내역 탭 -->
+  <div id="leavePanelContent_history" style="padding:20px;display:none;">
+    <div id="leaveHistoryList" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+  <!-- 일정 탭 -->
+  <div id="leavePanelContent_calendar" style="padding:20px;display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <button onclick="leaveSchedPrev()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">‹</button>
+      <div id="leaveSchedTitle" style="font-size:14px;font-weight:700;color:#222;"></div>
+      <button onclick="leaveSchedNext()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">›</button>
+    </div>
+    <div id="leaveSchedGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+  </div>
+
+  <!-- 결재 대기 (부서장/대표에게 보이는 영역) -->
+  <div id="leavePendingSection" style="display:none;padding:0 20px 20px;">
+    <div style="font-size:13px;font-weight:800;color:#222;margin-bottom:10px;padding-top:16px;border-top:1px solid #eee;">결재 대기</div>
+    <div id="leavePendingList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  조직도 탭                                                         -->
+<!-- ================================================================ -->
+<section id="orgTab" class="tab-panel" style="display:none;">
+<div style="max-width:1200px;margin:24px auto;padding:0 16px;display:flex;gap:20px;min-height:600px;">
+
+  <!-- 좌측: 사원 목록 -->
+  <div style="width:220px;flex-shrink:0;">
+    <div style="font-size:13px;font-weight:800;color:#5E4630;margin-bottom:12px;">사원 목록</div>
+    <div id="orgEmpList" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
+  <!-- 우측: 조직도 -->
+  <div style="flex:1;background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:24px;overflow:auto;">
+    <div style="font-size:13px;font-weight:800;color:#5E4630;margin-bottom:20px;">조직도</div>
+    <div id="orgChartWrap">
+      <!-- 대표 -->
+      <div style="display:flex;justify-content:center;margin-bottom:8px;">
+        <div id="orgHead" style="background:#5E4630;color:#fff;border-radius:10px;padding:10px 20px;text-align:center;min-width:100px;">
+          <div style="font-size:11px;opacity:.7;">대표</div>
+          <div id="orgHeadName" style="font-size:14px;font-weight:800;">-</div>
+        </div>
+      </div>
+      <!-- 연결선 -->
+      <div style="display:flex;justify-content:center;"><div style="width:2px;height:24px;background:#C8A97E;"></div></div>
+      <!-- 부서 가로선 -->
+      <div id="orgDeptRow" style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;"></div>
+    </div>
+    <!-- 연차 현황 테이블 -->
+    <div style="margin-top:32px;">
+      <div style="font-size:13px;font-weight:800;color:#5E4630;margin-bottom:12px;">연차 현황</div>
+      <table id="orgLeaveTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#FBF7F2;">
+            <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #eee;color:#888;font-weight:700;">이름</th>
+            <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #eee;color:#888;font-weight:700;">부서</th>
+            <th style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee;color:#888;font-weight:700;">부여</th>
+            <th style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee;color:#888;font-weight:700;">사용</th>
+            <th style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee;color:#888;font-weight:700;">잔여</th>
+            <th style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee;color:#888;font-weight:700;">기사용 수정</th>
+          </tr>
+        </thead>
+        <tbody id="orgLeaveBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</section>
 
 </body>
     </html>
