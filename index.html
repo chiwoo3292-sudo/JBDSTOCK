@@ -579,7 +579,6 @@
 </section>
 
 <section id="mainSection" style="display:none;">
-  <div class="wrap">
   <div class="tabs-wrap no-capture">
     <button class="hamburger-btn no-capture" onclick="openHamburger()" title="전체 메뉴">
       <span></span><span></span><span></span>
@@ -634,6 +633,7 @@
     </div>
   </div>
 
+  <div class="wrap">
   <section id="pricingTab" class="tab-panel active">
     <div class="layout">
       <div class="card">
@@ -5556,7 +5556,7 @@ function setTab(tabId) {
     closeOrgEmpPanel && closeOrgEmpPanel();
   }
   if (tabId === 'approvalTab') {
-    renderApprovalTab();
+    loadApprovalList();
   }
   resetViewportZoom();
   closeHamburger();
@@ -8725,61 +8725,73 @@ if ('serviceWorker' in navigator) {
   };
 
   // 결재대기 탭 렌더링
-  window.renderApprovalTab = async function() {
+  // 결재대기 - loadConsults 방식으로 재작성
+  let _approvalRows = [];
+
+  window.loadApprovalList = async function() {
     const user = window._currentUser;
-    const list = document.getElementById('approvalList');
-    if (!user || !list) return;
-    list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">불러오는 중...</div>';
+    const tbody = document.getElementById('approvalTableBody');
+    if (!user || !tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오는 중...</td></tr>';
     try {
-      const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
+      const res  = await fetch(RESERVE_URL + '?action=getLeaves&id=' + encodeURIComponent(user.id) + '&role=' + encodeURIComponent(user.role||'staff'));
       const data = await res.json();
-      if (data.status !== 'ok') { list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">불러오기 실패</div>'; return; }
-      const rows = (data.rows||[]).filter(r => {
-        if (r.id === user.id) return false;
-        const approvers = String(r.approverIds||'').split(',').map(s=>s.trim());
-        return approvers.includes(String(user.id));
-      });
-      if (rows.length === 0) { list.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">결재 대기 건이 없습니다.</div>'; return; }
-      function statusColor(s) {
-        return s==='확정'?'#1a7a45':s==='반려'?'#c0392b':'#e67e22';
+      if (data.status === 'ok') {
+        _approvalRows = (data.rows||[]).filter(function(r) {
+          if (r.id === user.id) return false;
+          var approvers = String(r.approverIds||'').split(',').map(function(s){ return s.trim(); });
+          return approvers.indexOf(String(user.id)) > -1;
+        });
+        renderApprovalTable();
+        updateApprovalBadge(user, data.rows);
+      } else {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오기 실패: ' + (data.message||'') + '</td></tr>';
       }
-      function statusBg(s) {
-        return s==='대기'?'#fff3cd':s==='반려'?'#fdecea':'#d1f0e0';
-      }
-      list.innerHTML = rows.map(r => {
-        const approverRole = user.isHead && r.status === '대표승인대기' ? 'head' : 'manager';
-        const canApprove   = (user.isManager && r.status === '대기') || (user.isHead && r.status === '대표승인대기');
-        return `<div style="background:#fff;border:1px solid #D4CEF7;border-radius:12px;padding:16px 18px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div>
-              <span style="font-size:14px;font-weight:800;color:#222;">${r.name}</span>
-              <span style="font-size:12px;color:#aaa;margin-left:8px;">${r.dept||''}</span>
-            </div>
-            <span style="font-size:12px;font-weight:700;color:${statusColor(r.status)};background:${statusBg(r.status)};padding:3px 10px;border-radius:999px;">${r.status}</span>
-          </div>
-          <div style="font-size:13px;color:#555;margin-bottom:4px;">${r.leaveType} · ${r.days}일 · ${r.startDate} ~ ${r.endDate}</div>
-          ${r.reason ? `<div style="font-size:12px;color:#aaa;margin-bottom:10px;">${r.reason}</div>` : '<div style="margin-bottom:10px;"></div>'}
-          ${canApprove ? `<div style="display:flex;gap:8px;">
-            <button onclick="doApprove(${r.rowIdx},'approve','${approverRole}')" style="flex:1;padding:9px 0;background:#1a7a45;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">승인</button>
-            <button onclick="doApprove(${r.rowIdx},'reject','${approverRole}')" style="flex:1;padding:9px 0;background:#c0392b;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">반려</button>
-          </div>` : `<div style="font-size:12px;color:#bbb;">처리 완료</div>`}
-        </div>`;
-      }).join('');
-      // 뱃지 업데이트
-      updateApprovalBadge(user, data.rows);
-    } catch(e) { list.innerHTML = '<div style="color:#e74c3c;font-size:13px;text-align:center;padding:40px 0;">오류가 발생했습니다.</div>'; }
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#e74c3c;">오류: ' + e.message + '</td></tr>';
+    }
   };
+
+  function renderApprovalTable() {
+    const user = window._currentUser;
+    const tbody = document.getElementById('approvalTableBody');
+    if (!tbody) return;
+    if (_approvalRows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">결재 대기 건이 없습니다.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = _approvalRows.map(function(r) {
+      var statusColor = r.status==='확정'?'#1a7a45':r.status==='반려'?'#c0392b':'#e67e22';
+      var statusBg    = r.status==='대기'?'#fff3cd':r.status==='반려'?'#fdecea':'#d1f0e0';
+      var approverRole = (user.isHead && r.status === '대표승인대기') ? 'head' : 'manager';
+      var canApprove   = (user.isManager && r.status === '대기') || (user.isHead && r.status === '대표승인대기');
+      var actionBtns = canApprove
+        ? '<button onclick="doApprove(' + r.rowIdx + ','approve','' + approverRole + '')" style="padding:5px 12px;background:#1a7a45;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;">승인</button>'
+          + '<button onclick="doApprove(' + r.rowIdx + ','reject','' + approverRole + '')" style="padding:5px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">반려</button>'
+        : '<span style="font-size:11px;color:#bbb;">처리완료</span>';
+      return '<tr style="border-bottom:1px solid #f0f0f0;cursor:default;">'
+        + '<td style="padding:12px;font-weight:700;">' + (r.name||'') + '</td>'
+        + '<td style="padding:12px;color:#888;">' + (r.dept||'-') + '</td>'
+        + '<td style="padding:12px;text-align:center;">' + (r.leaveType||'') + '</td>'
+        + '<td style="padding:12px;text-align:center;white-space:nowrap;">' + (r.startDate||'') + ' ~ ' + (r.endDate||'') + '</td>'
+        + '<td style="padding:12px;text-align:center;">' + (r.days||0) + '일</td>'
+        + '<td style="padding:12px;color:#888;">' + (r.reason||'-') + '</td>'
+        + '<td style="padding:12px;text-align:center;"><span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;color:' + statusColor + ';background:' + statusBg + ';">' + r.status + '</span></td>'
+        + '<td style="padding:12px;text-align:center;">' + actionBtns + '</td>'
+        + '</tr>';
+    }).join('');
+  }
 
   window.doApprove = async function(rowIdx, action, approverRole) {
     const user = window._currentUser;
     if (!user) return;
     if (!confirm(action === 'approve' ? '승인하시겠습니까?' : '반려하시겠습니까?')) return;
     try {
-      const params = new URLSearchParams({ action:'approveLeave', rowIdx, approveAction: action, approverRole, approverId: user.id });
-      const res  = await fetch(`${RESERVE_URL}?${params}`);
+      const params = new URLSearchParams({ action:'approveLeave', rowIdx: rowIdx, approveAction: action, approverRole: approverRole, approverId: user.id });
+      const res  = await fetch(RESERVE_URL + '?' + params.toString());
       const data = await res.json();
       if (data.status === 'ok') {
-        renderApprovalTab();
+        loadApprovalList();
         checkLeavePending(user);
       } else { alert('처리 실패: ' + (data.message||'')); }
     } catch(e) { alert('오류: ' + e.message); }
@@ -8870,10 +8882,29 @@ if ('serviceWorker' in navigator) {
 <!--  조직도 탭                                                         -->
 <!-- ================================================================ -->
 <section id="approvalTab" class="tab-panel" style="display:none;">
-<div style="max-width:900px;margin:24px auto;padding:0 16px;">
-  <div style="font-size:16px;font-weight:800;color:#222;margin-bottom:16px;">결재대기</div>
-  <div id="approvalList" style="display:flex;flex-direction:column;gap:12px;">
-    <div style="color:#aaa;font-size:13px;text-align:center;padding:40px 0;">불러오는 중...</div>
+<div style="max-width:1100px;margin:24px auto;padding:0 16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="font-size:16px;font-weight:800;color:#222;">결재대기</div>
+    <button onclick="loadApprovalList()" style="padding:7px 16px;border:1px solid #D4CEF7;border-radius:8px;background:#fff;color:#7C6FF7;font-size:12px;font-weight:700;cursor:pointer;">새로고침</button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#F5F3FE;">
+          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;white-space:nowrap;">신청자</th>
+          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;white-space:nowrap;">부서</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;white-space:nowrap;">종류</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;white-space:nowrap;">기간</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;white-space:nowrap;">일수</th>
+          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;">사유</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;white-space:nowrap;">상태</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #D4CEF7;color:#8B87A8;font-weight:700;white-space:nowrap;">처리</th>
+        </tr>
+      </thead>
+      <tbody id="approvalTableBody">
+        <tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오는 중...</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 </section>
