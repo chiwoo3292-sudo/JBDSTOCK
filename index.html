@@ -4264,6 +4264,10 @@ function csDateInputValue(val) {
     }
     // 허용탭 제어
     function applyTabPermissions(allowedTabs, role) {
+        // orgTab은 무조건 admin만
+        const orgBtn = document.getElementById('orgTabBtn');
+        if (orgBtn && role !== 'admin') orgBtn.style.display = 'none';
+
         if (role === 'admin') return;
         if (allowedTabs === 'ALL' || allowedTabs === undefined || allowedTabs === null) return;
         const allowed = String(allowedTabs).split(',').map(s => s.trim()).filter(Boolean);
