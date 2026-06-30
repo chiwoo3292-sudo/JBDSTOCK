@@ -3588,19 +3588,23 @@ function csDateInputValue(val) {
   <!-- 화면 표시 설정 -->
   <div class="myi-pw-card">
     <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>화면 표시 설정</div>
-    <p style="font-size:12.5px;color:#888;margin:0 0 14px;">모바일 화면의 여백·글자 크기를 조절해 더 많은 정보를 한눈에 볼 수 있어요. 내 기기에만 저장됩니다.</p>
-    <div id="uiDensityOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+    <p style="font-size:12.5px;color:#888;margin:0 0 14px;">모바일 화면의 여백·글자 크기를 조절해 더 많은 정보를 한눈에 볼 수 있어요. 이 기기에서 내 계정으로 로그인할 때마다 설정한 값이 그대로 유지됩니다.</p>
+    <div id="uiDensityOptions" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+      <button type="button" class="ui-density-btn" data-density="0.72" onclick="setUiDensity('0.72')">
+        <span style="display:block;font-weight:800;font-size:13px;">매우 촘촘</span>
+        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">최대로 보기</span>
+      </button>
       <button type="button" class="ui-density-btn" data-density="0.85" onclick="setUiDensity('0.85')">
-        <span style="display:block;font-weight:800;font-size:13.5px;">촘촘하게</span>
-        <span style="display:block;font-size:11px;color:#999;margin-top:2px;">정보 많이 보기</span>
+        <span style="display:block;font-weight:800;font-size:13px;">촘촘하게</span>
+        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">정보 많이 보기</span>
       </button>
       <button type="button" class="ui-density-btn" data-density="1" onclick="setUiDensity('1')">
-        <span style="display:block;font-weight:800;font-size:13.5px;">기본</span>
-        <span style="display:block;font-size:11px;color:#999;margin-top:2px;">표준 크기</span>
+        <span style="display:block;font-weight:800;font-size:13px;">기본</span>
+        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">표준 크기</span>
       </button>
       <button type="button" class="ui-density-btn" data-density="1.15" onclick="setUiDensity('1.15')">
-        <span style="display:block;font-weight:800;font-size:13.5px;">넓게</span>
-        <span style="display:block;font-size:11px;color:#999;margin-top:2px;">크게 보기</span>
+        <span style="display:block;font-weight:800;font-size:13px;">넓게</span>
+        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">크게 보기</span>
       </button>
     </div>
   </div>
@@ -4244,6 +4248,8 @@ function csDateInputValue(val) {
             applyTabPermissions(userData.allowedTabs, userData.role);
             fillMyInfo(userData);
             window._currentUser = userData;
+            // 사용자별 화면 표시 설정(촘촘하게/기본/넓게) 동기화
+            if (typeof initUiDensity === 'function') initUiDensity();
             const orgBtn = document.getElementById('orgTabBtn');
             if (orgBtn && userData.role === 'admin') {
               orgBtn.style.display = '';
@@ -7243,6 +7249,11 @@ function addInvoiceItem() {
 
 // ── 화면 표시 설정 (모바일 정보 밀도: 촘촘하게/기본/넓게) ──
 const UI_DENSITY_KEY = 'baram_ui_density';
+function getUiDensityStorageKey() {
+    // 로그인한 사용자별로 분리 저장 (같은 기기를 여러 직원이 같이 써도 각자 설정 유지)
+    const uid = window._currentUser && window._currentUser.id;
+    return uid ? `${UI_DENSITY_KEY}_${uid}` : UI_DENSITY_KEY;
+}
 function applyUiDensity(value) {
     const v = String(value || '1');
     document.documentElement.style.setProperty('--ui-scale', v);
@@ -7252,13 +7263,13 @@ function applyUiDensity(value) {
 }
 function setUiDensity(value) {
     applyUiDensity(value);
-    try { localStorage.setItem(UI_DENSITY_KEY, value); } catch(_) {}
+    try { localStorage.setItem(getUiDensityStorageKey(), value); } catch(_) {}
     // 견적서 탭이 열려있다면 비율 재계산
     if (typeof updateInvoiceScale === 'function') setTimeout(updateInvoiceScale, 30);
 }
 function initUiDensity() {
     let saved = '1';
-    try { saved = localStorage.getItem(UI_DENSITY_KEY) || '1'; } catch(_) {}
+    try { saved = localStorage.getItem(getUiDensityStorageKey()) || '1'; } catch(_) {}
     applyUiDensity(saved);
 }
 document.addEventListener('DOMContentLoaded', initUiDensity);
@@ -9500,4 +9511,4 @@ if ('serviceWorker' in navigator) {
 
 
 </body>
-    </html>
+  </html>
