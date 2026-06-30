@@ -1578,8 +1578,11 @@
 
 <!-- 전역 URL 변수 (모든 스크립트 블록에서 접근 가능) -->
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-  var RESERVE_URL = 'https://script.google.com/macros/s/AKfycbzWSC8JY4qHk3TGPIEAMR34y3J6z3oWBSrNJghElCrDt-9QbxFAaaLwT8Lb_b6BTi8o3A/exec';
-  var ERP_URL = 'https://script.google.com/macros/s/AKfycbycqipsEpR-JzkRdeMhqtYRxfGej3RXvJjyNGDr3oGlMjnXqV8RNEOFFAhoLofm1qvR/exec';
+  // ★ 사내계정에서 GAS 재배포 후 새 /exec URL로 교체 ★
+  //   RESERVE_URL = RESERVE스크립트(예약·인사·운영) 배포 URL
+  //   ERP_URL     = ERP스크립트(재고·연락처 appendRow) 배포 URL
+  var RESERVE_URL = 'https://script.google.com/macros/s/AKfycbyA2-Dp_MlixvFD6nRBGUtxuDPesDW1wG-zVXUN9GlIhm3Fd2fTiaVuDDhpoUaOQp32aA/exec';
+  var ERP_URL = 'https://script.google.com/macros/s/AKfycbyUOVwnhgY-njzN2zxLVFi4Gf7r1YamdZ0-7sCCWG39DLo7Wck2fl44PBAhfS0YQTju/exec';
 </script>
 
 <script>
@@ -4130,7 +4133,7 @@ function csDateInputValue(val) {
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({
                     action: 'appendRow',
-                    spreadsheetId: SHEET_CONFIG.ID,
+                    spreadsheetId: SHEET_CONFIG.ID_RESERVE,
                     sheetName: SHEET_CONFIG.CONTACTS,
                     row: [company, name, position, mobile, phone, today]
                 })
@@ -6261,7 +6264,16 @@ if (document.readyState === 'loading') {
 //  구글 시트 설정 (단일 ID, 탭 이름만 구분)
 // ============================================================
 const SHEET_CONFIG = {
-    ID: '1lu3P1g_CTFdofwpWITXQgGKisUoZLPdFD1mxC29wf_k',
+    // ────────────────────────────────────────────────────────────
+    //  ★ 사내계정 이전 시 4개 파일 ID를 여기에 입력 ★
+    //  이전 전: 4개 ID 모두 기존 ID로 채우면 기존과 100% 동일 동작.
+    //  이전 후: 각 도메인 파일 생성 후 해당 ID로 교체.
+    // ────────────────────────────────────────────────────────────
+    ID_STOCK:   '1BErtYoh68Yiz5u4odV5VqGrtpa4yVdePUZeUZhs5eQw', // ① 재고·단가
+    ID_RESERVE: '153ErZIx1oaA0gjw3xHIehk1-v8745fi5-rbAILte3LQ', // ② 고객·예약
+    ID_HR:      '1LoHBLtOQHa1arIkQGXtV3Hneiq83fkvcS4lpUNTWodM', // ③ 인사
+
+    // 시트(탭) 이름
     PRICE:    'PRICE',
     STOCK:    'STOCK',
     TOOLTIP:  'TOOLTIP',
@@ -6269,11 +6281,22 @@ const SHEET_CONFIG = {
     ORDER:    '발주현황',
     ARRIVAL:  '입고예정일',
     CONTACTS: '연락처',
+
+    // 하위호환: 기존 SHEET_CONFIG.ID 참조 코드용(재고단가 파일을 가리킴)
+    get ID() { return this.ID_STOCK; },
 };
+
+// 시트 이름 → 소속 스프레드시트 ID 매핑 (gviz 읽기/쓰기 시 올바른 파일 선택)
+function sheetSpreadsheetId(sheetName) {
+    if (sheetName === SHEET_CONFIG.CONTACTS) return SHEET_CONFIG.ID_RESERVE; // 연락처=고객예약 파일
+    // PRICE/STOCK/TOOLTIP/RESERVE/발주현황/입고예정일 = 재고단가 파일
+    return SHEET_CONFIG.ID_STOCK;
+}
 
 // 구글 시트 gviz JSON 파싱 공통 함수
 async function fetchSheetJson(sheetName, timeoutMs = 10000) {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(sheetName)}`;
+    const ssId = sheetSpreadsheetId(sheetName);
+    const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(sheetName)}`;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -6404,7 +6427,7 @@ function initExcelUpload() {
     const lastEl = document.getElementById('lastUploadTime');
     if (lastEl) {
         lastEl.textContent = '업로드 시간 확인 중...';
-        fetch(`${ERP_URL}?spreadsheetId=${SHEET_CONFIG.ID}`)
+        fetch(`${ERP_URL}?spreadsheetId=${SHEET_CONFIG.ID_STOCK}`)
             .then(r => r.json())
             .then(data => {
                 if (data.uploadTime) {
@@ -6508,7 +6531,7 @@ function initExcelUpload() {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({
-                    spreadsheetId: SHEET_CONFIG.ID,
+                    spreadsheetId: SHEET_CONFIG.ID_STOCK,
                     sheetDataMap: sheetDataMap
                 })
             });
