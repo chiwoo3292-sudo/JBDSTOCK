@@ -1282,7 +1282,7 @@
             <div class="inv-contact">
               <div class="inv-contact-title">CONTACT</div>
               서울시 강남구 언주로 133길 25 지복득마루<br>
-              T&nbsp;&nbsp; 02 576 7736&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp; jibokdeukmaru@naver.com&nbsp;&nbsp;&nbsp;&nbsp; www.jibokdeukmaru.com
+              T&nbsp;&nbsp; 02 576 7736&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp; <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="365c5f54595d5253435d5b5744437658574053441855595b">[email&#160;protected]</a>&nbsp;&nbsp;&nbsp;&nbsp; www.jibokdeukmaru.com
             </div>
           </div>
           <div class="inv-account-wrap">
@@ -7635,9 +7635,24 @@ function renderInvoice() {
         return `  <span style="color:#888;">[1BOX = ${metaList.join(', ')}]</span>`;
     }
 
-    // 가견적서 모드일 때는 REMARKS 자동 덮어쓰기 하지 않음 (기존 내용 유지)
+    // 가견적서 모드일 때는 REMARKS 전체를 덮어쓰지 않고, [1BOX = ...] 메타 부분만 실시간 갱신 (제품 변경 즉시 반영)
     const isDraftForRemarks = !!document.getElementById('invDraftCheck')?.checked;
     if (isDraftForRemarks) {
+        if (remarksDiv) {
+            const unitLabelDraft = allBox ? 'BOX' : (unit1 === 'PY' ? 'PY' : 'M2');
+            const newMeta = buildBoxMetaStr(unitLabelDraft); // '  <span ...>[1BOX = ...]</span>' 또는 ''
+            // 현재 REMARKS HTML에서 기존 [1BOX = ...] span을 새 메타로 교체
+            const metaRegex = /\s*<span style="color:#888;">\[1BOX = [^<]*<\/span>/;
+            if (metaRegex.test(remarksDiv.innerHTML)) {
+                remarksDiv.innerHTML = remarksDiv.innerHTML.replace(metaRegex, newMeta);
+            } else if (newMeta) {
+                // 기존 메타가 없으면 "단위 : 원/단위" 줄 끝에 삽입 시도
+                const unitLineRegex = /(단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원\/[A-Z2]+)/;
+                if (unitLineRegex.test(remarksDiv.innerHTML)) {
+                    remarksDiv.innerHTML = remarksDiv.innerHTML.replace(unitLineRegex, '$1' + newMeta);
+                }
+            }
+        }
         if (window.innerWidth <= 768) setTimeout(updateInvoiceScale, 30);
         return;
     }
@@ -9407,4 +9422,4 @@ if ('serviceWorker' in navigator) {
 
 
 </body>
-                                                                                         </html>
+    </html>
