@@ -3933,16 +3933,14 @@ function csDateInputValue(val) {
     <table class="admin-table">
       <thead>
         <tr>
-          <th style="width:60px;">번호</th>
+          <th style="width:50px;">번호</th>
           <th style="width:110px;">신청자</th>
-          <th style="width:90px;">신청 내용</th>
           <th style="width:90px;">신청 시각</th>
-          <th style="width:80px;">상태</th>
-          <th style="width:70px;">처리</th>
+          <th style="width:110px;">상태</th>
         </tr>
       </thead>
       <tbody id="adminInfoRequestList">
-        <tr><td colspan="6" class="admin-empty">불러오는 중...</td></tr>
+        <tr><td colspan="4" class="admin-empty">불러오는 중...</td></tr>
       </tbody>
     </table>
   </div>
@@ -3957,6 +3955,23 @@ function csDateInputValue(val) {
   </div>
 </div>
 </section>
+
+<!-- 관리자: 정보 수정 신청 상세보기/처리 모달 -->
+<div id="adminInfoReqModal" onclick="if(event.target===this) closeAdminInfoReqModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:90%;max-width:480px;padding:26px 24px 22px;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <h3 style="font-size:15px;font-weight:800;color:#222;margin:0;">정보 수정 신청 내용</h3>
+      <button onclick="closeAdminInfoReqModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div id="adminInfoReqMeta" style="font-size:12px;color:#999;margin-bottom:14px;"></div>
+    <div id="adminInfoReqContent" style="white-space:pre-wrap;word-break:break-word;background:#F7F1E7;border-radius:10px;padding:14px 16px;font-size:13.5px;line-height:1.7;color:#333;min-height:60px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+      <button onclick="closeAdminInfoReqModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">닫기</button>
+      <button id="adminInfoReqResolveBtn" onclick="resolveAdminInfoReqFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">완료 처리</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 (function() {
@@ -5010,50 +5025,39 @@ function csDateInputValue(val) {
     function escHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
-    // 신청 내용 원본을 별도로 보관 (HTML 속성에 직접 박지 않고 rowIdx로 조회)
-    window._infoRequestContentMap = {};
+    // 신청 데이터 원본을 보관 (HTML 속성에 직접 박지 않고 rowIdx로 조회)
+    window._infoRequestDataMap = {};
     window.loadInfoRequests = async function() {
       const tbody = document.getElementById('adminInfoRequestList');
       if (!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="6" class="admin-empty">불러오는 중...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">불러오는 중...</td></tr>';
       try {
         const res = await fetch(`${RESERVE_URL}?action=getInfoRequests`);
         const data = await res.json();
         if (!data.rows || !data.rows.length) {
-          tbody.innerHTML = '<tr><td colspan="6" class="admin-empty">신청 내역이 없습니다.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">신청 내역이 없습니다.</td></tr>';
           return;
         }
-        window._infoRequestContentMap = {};
-        data.rows.forEach(r => { window._infoRequestContentMap[r.rowIdx] = (r.content || '').toString(); });
+        window._infoRequestDataMap = {};
+        data.rows.forEach(r => { window._infoRequestDataMap[r.rowIdx] = r; });
         tbody.innerHTML = data.rows.map((r, i) => `
           <tr>
             <td>${data.rows.length - i}</td>
             <td><strong>${escHtml(r.requester)}</strong></td>
-            <td style="text-align:center;">
-              <button type="button" class="info-req-view-btn" data-rowidx="${r.rowIdx}"
-                style="padding:4px 10px;background:#f5f5f5;color:#555;border:1px solid #ddd;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
-                내용 보기
-              </button>
-            </td>
             <td>${escHtml((r.submittedAt||'').split(' ')[0])}</td>
             <td>
-              <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
+              <button type="button" class="info-req-status-btn" data-rowidx="${r.rowIdx}"
+                style="padding:3px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;
                 background:${r.resolved==='Y'?'#d1f0e0':'#fff3cd'};
                 color:${r.resolved==='Y'?'#1a7a45':'#856404'};
                 border:1px solid ${r.resolved==='Y'?'#28a745':'#ffc107'};">
                 ${r.resolved==='Y'?'처리완료':'대기중'}
-              </span>
-            </td>
-            <td>
-              ${r.resolved!=='Y' ? `<button type="button" class="info-req-resolve-btn" data-rowidx="${r.rowIdx}"
-                style="padding:4px 8px;background:#A2693E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
-                완료
-              </button>` : ''}
+              </button>
             </td>
           </tr>
         `).join('');
       } catch(e) {
-        tbody.innerHTML = `<tr><td colspan="6" class="admin-empty">오류: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="admin-empty">오류: ${e.message}</td></tr>`;
       }
     };
     // 이벤트 위임: innerHTML로 새로 그려진 버튼도 항상 동작하도록 tbody 자체에 리스너 등록
@@ -5062,29 +5066,59 @@ function csDateInputValue(val) {
       if (!tbody || tbody._infoReqBound) return;
       tbody._infoReqBound = true;
       tbody.addEventListener('click', function(e) {
-        const viewBtn = e.target.closest('.info-req-view-btn');
-        if (viewBtn) {
-          const content = window._infoRequestContentMap[viewBtn.dataset.rowidx] || '';
-          alert(content);
-          return;
-        }
-        const resolveBtn = e.target.closest('.info-req-resolve-btn');
-        if (resolveBtn) {
-          resolveInfoRequest(parseInt(resolveBtn.dataset.rowidx, 10));
+        const statusBtn = e.target.closest('.info-req-status-btn');
+        if (statusBtn) {
+          openAdminInfoReqModal(parseInt(statusBtn.dataset.rowidx, 10));
         }
       });
     })();
 
-    // ── 관리자: 처리 완료 ──
-
-    window.resolveInfoRequest = async function(rowIdx) {
-      if (!confirm('처리 완료로 변경하시겠습니까?')) return;
+    // ── 관리자: 정보 수정 신청 상세보기/처리 모달 ──
+    let _adminInfoReqCurrentRowIdx = null;
+    window.openAdminInfoReqModal = function(rowIdx) {
+      const r = window._infoRequestDataMap[rowIdx];
+      if (!r) return;
+      _adminInfoReqCurrentRowIdx = rowIdx;
+      const meta = document.getElementById('adminInfoReqMeta');
+      const content = document.getElementById('adminInfoReqContent');
+      const resolveBtn = document.getElementById('adminInfoReqResolveBtn');
+      if (meta) meta.textContent = `${r.requester || ''} · ${(r.submittedAt||'').split(' ')[0]}`;
+      if (content) content.textContent = r.content || '(내용 없음)';
+      if (resolveBtn) {
+        if (r.resolved === 'Y') {
+          resolveBtn.style.display = 'none';
+        } else {
+          resolveBtn.style.display = '';
+          resolveBtn.disabled = false;
+          resolveBtn.textContent = '완료 처리';
+        }
+      }
+      const modal = document.getElementById('adminInfoReqModal');
+      if (modal) modal.style.display = 'flex';
+    };
+    window.closeAdminInfoReqModal = function() {
+      const modal = document.getElementById('adminInfoReqModal');
+      if (modal) modal.style.display = 'none';
+      _adminInfoReqCurrentRowIdx = null;
+    };
+    window.resolveAdminInfoReqFromModal = async function() {
+      if (_adminInfoReqCurrentRowIdx === null) return;
+      const resolveBtn = document.getElementById('adminInfoReqResolveBtn');
+      if (resolveBtn) { resolveBtn.disabled = true; resolveBtn.textContent = '처리 중...'; }
       try {
-        const res = await fetch(`${RESERVE_URL}?action=resolveInfoRequest&rowIdx=${rowIdx}`);
+        const res = await fetch(`${RESERVE_URL}?action=resolveInfoRequest&rowIdx=${_adminInfoReqCurrentRowIdx}`);
         const data = await res.json();
-        if (data.status === 'ok') loadInfoRequests();
-        else alert('오류: ' + (data.message || ''));
-      } catch(e) { alert('오류: ' + e.message); }
+        if (data.status === 'ok') {
+          closeAdminInfoReqModal();
+          loadInfoRequests();
+        } else {
+          alert('오류: ' + (data.message || ''));
+          if (resolveBtn) { resolveBtn.disabled = false; resolveBtn.textContent = '완료 처리'; }
+        }
+      } catch(e) {
+        alert('오류: ' + e.message);
+        if (resolveBtn) { resolveBtn.disabled = false; resolveBtn.textContent = '완료 처리'; }
+      }
     };
 
     // ── 문자발송 탭 ──
