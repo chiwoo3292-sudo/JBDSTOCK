@@ -4474,12 +4474,12 @@ function csDateInputValue(val) {
             const res = await fetch(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
             const data = await res.json();
             if (data.status === 'ok') {
-                // 직원: 브라우저 닫으면 세션 종료되도록 sessionStorage 사용
-                sessionStorage.setItem(LOGIN_TYPE_KEY, 'user');
-                sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
-                localStorage.removeItem(LOGIN_TYPE_KEY);
-                localStorage.removeItem(USER_KEY);
-                localStorage.removeItem(SESSION_KEY);
+                // 직원: 로그인 후 8시간 동안 세션 유지 (브라우저를 벗어나도 8시간 내 재방문 시 자동 로그인)
+                localStorage.setItem(LOGIN_TYPE_KEY, 'user');
+                localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+                localStorage.setItem(SESSION_KEY, String(Date.now()));
+                sessionStorage.removeItem(LOGIN_TYPE_KEY);
+                sessionStorage.removeItem(USER_KEY);
                 unlock('user', data.user);
             } else {
                 errEl.style.display = 'block';
@@ -4520,7 +4520,7 @@ function csDateInputValue(val) {
         if (!curPw || !newPw || !newPw2) { msg.textContent = '모든 항목을 입력해주세요.'; return; }
         if (newPw !== newPw2) { msg.textContent = '새 비밀번호가 일치하지 않습니다.'; return; }
         if (newPw.length < 4) { msg.textContent = '비밀번호는 4자 이상이어야 합니다.'; return; }
-        const user = JSON.parse(sessionStorage.getItem(USER_KEY) || localStorage.getItem(USER_KEY) || 'null');
+        const user = JSON.parse(localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY) || 'null');
         if (!user) { msg.textContent = '로그인 정보 없음'; return; }
         msg.textContent = '변경 중...';
         try {
@@ -4957,7 +4957,7 @@ function csDateInputValue(val) {
       if (!text) { msgEl.style.color = '#e74c3c'; msgEl.textContent = '내용을 입력해주세요.'; return; }
 
       // 현재 로그인 사용자 정보
-      const userData = JSON.parse(sessionStorage.getItem('baram_user') || 'null');
+      const userData = JSON.parse(localStorage.getItem('baram_user') || sessionStorage.getItem('baram_user') || 'null');
       const requester = userData ? `${userData.name} ${userData.title||''}`.trim() : '알 수 없음';
 
       msgEl.style.color = '#888'; msgEl.textContent = '전송 중...';
@@ -5295,27 +5295,30 @@ function csDateInputValue(val) {
     };
 
     // ── 세션 확인 및 자동 로그인 ──
-    // 직원: sessionStorage (브라우저 닫으면 만료)
-    const sessionLoginType = sessionStorage.getItem(LOGIN_TYPE_KEY);
-    if (sessionLoginType === 'user') {
-        const userData = JSON.parse(sessionStorage.getItem(USER_KEY) || 'null');
-        if (userData) { unlock('user', userData); }
-        else { sessionStorage.removeItem(LOGIN_TYPE_KEY); lockBody(); }
-    } else {
-        // 게스트: localStorage (8시간)
-        const loginType = localStorage.getItem(LOGIN_TYPE_KEY);
-        if (loginType === 'guest') {
-            const savedAuth = localStorage.getItem(SESSION_KEY);
-            if (savedAuth && (Date.now() - parseInt(savedAuth, 10)) < AUTH_TIMEOUT) {
-                unlock('guest', null);
-            } else {
-                localStorage.removeItem(SESSION_KEY);
-                localStorage.removeItem(LOGIN_TYPE_KEY);
-                lockBody();
-            }
+    // 직원/게스트 공통: localStorage + 타임스탬프로 8시간 동안 세션 유지
+    const loginType = localStorage.getItem(LOGIN_TYPE_KEY);
+    if (loginType === 'user') {
+        const savedAuth = localStorage.getItem(SESSION_KEY);
+        const userData = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+        if (userData && savedAuth && (Date.now() - parseInt(savedAuth, 10)) < AUTH_TIMEOUT) {
+            unlock('user', userData);
         } else {
+            localStorage.removeItem(SESSION_KEY);
+            localStorage.removeItem(LOGIN_TYPE_KEY);
+            localStorage.removeItem(USER_KEY);
             lockBody();
         }
+    } else if (loginType === 'guest') {
+        const savedAuth = localStorage.getItem(SESSION_KEY);
+        if (savedAuth && (Date.now() - parseInt(savedAuth, 10)) < AUTH_TIMEOUT) {
+            unlock('guest', null);
+        } else {
+            localStorage.removeItem(SESSION_KEY);
+            localStorage.removeItem(LOGIN_TYPE_KEY);
+            lockBody();
+        }
+    } else {
+        lockBody();
     }
 
     // 이벤트 연결
@@ -5349,7 +5352,7 @@ function csDateInputValue(val) {
 
         // 현재 로그인 직원 ID 가져오기
         function getCurrentUserId() {
-          const user = JSON.parse(sessionStorage.getItem('baram_user') || localStorage.getItem('baram_user') || 'null');
+          const user = JSON.parse(localStorage.getItem('baram_user') || sessionStorage.getItem('baram_user') || 'null');
           return user ? (user.id || 'guest') : 'guest';
         }
 
@@ -9511,4 +9514,4 @@ if ('serviceWorker' in navigator) {
 
 
 </body>
-  </html>
+    </html>
