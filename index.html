@@ -6393,6 +6393,11 @@ function initApp() {
         } else {
           e.preventDefault();
           showPreview(trigger);
+          // 미리보기를 띄우면서 해당 내용도 복사
+          const btn = trigger.querySelector('.js-copy-template');
+          if (btn && typeof templates !== 'undefined') {
+            copyToClipboard(templates[btn.dataset.template] || '');
+          }
         }
       }, { passive: false });
     });
