@@ -4,6 +4,31 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
 <script>
+// ── 진단용: 항상 화면 구석에 상태 표시 (원인 파악되면 이 스크립트 블록은 제거 예정) ──
+(function () {
+  try {
+    var isIframe = (window.self !== window.top);
+    var realWidth = (window.screen && window.screen.width) ? window.screen.width : 0;
+    var showDebug = function () {
+      var renderedWidth = document.documentElement.clientWidth;
+      var badge = document.createElement('div');
+      badge.textContent = 'iframe:' + isIframe + ' / screen:' + realWidth + ' / rendered:' + renderedWidth + ' / dpr:' + (window.devicePixelRatio || '?');
+      badge.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:999999;background:#000;color:#0f0;font-size:11px;padding:4px 8px;border-radius:6px;font-family:monospace;opacity:0.9;';
+      if (document.body) document.body.appendChild(badge);
+    };
+    document.addEventListener('DOMContentLoaded', showDebug);
+    window.addEventListener('load', showDebug);
+  } catch (e) {
+    try {
+      var errBadge = document.createElement('div');
+      errBadge.textContent = '진단스크립트 오류: ' + e.message;
+      errBadge.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:999999;background:#900;color:#fff;font-size:11px;padding:4px 8px;border-radius:6px;';
+      document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(errBadge); });
+    } catch(e2) {}
+  }
+})();
+</script>
+<script>
 // ── 윅스(Wix) iframe 스케일링 보정 ──
 // 윅스에 iframe/외부URL로 삽입된 경우, 실제 폰 화면보다 훨씬 넓은 "가상 데스크탑 너비"로
 // 페이지가 렌더링되고 그걸 통째로 축소해서 보여주는 경우가 있음(윅스 iframe 특성).
@@ -14,8 +39,8 @@
   try {
     if (window.self === window.top) return; // iframe 안이 아니면(직접 접속) 그대로 둠
     var realWidth = (window.screen && window.screen.width) ? window.screen.width : 0;
-    if (!realWidth || realWidth > 900) return; // 화면 정보가 없거나 이미 데스크탑 화면이면 보정 불필요
     var check = function () {
+      if (!realWidth) return;
       var renderedWidth = document.documentElement.clientWidth;
       if (renderedWidth > realWidth * 1.25) {
         var meta = document.querySelector('meta[name="viewport"]');
@@ -27,17 +52,6 @@
     check();
     document.addEventListener('DOMContentLoaded', check);
     window.addEventListener('load', check);
-
-    // ── 진단용: 값 확인 편하게 화면 구석에 잠깐 표시 (원인 파악되면 이 블록은 나중에 제거) ──
-    var showDebug = function () {
-      var renderedWidth = document.documentElement.clientWidth;
-      var badge = document.createElement('div');
-      badge.textContent = 'screen:' + realWidth + ' / rendered:' + renderedWidth;
-      badge.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:999999;background:#000;color:#0f0;font-size:11px;padding:4px 8px;border-radius:6px;font-family:monospace;opacity:0.85;';
-      document.body.appendChild(badge);
-    };
-    document.addEventListener('DOMContentLoaded', showDebug);
-    window.addEventListener('load', showDebug);
   } catch (e) { /* 보정 실패해도 페이지 자체는 정상 동작해야 하므로 무시 */ }
 })();
 </script>
