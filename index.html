@@ -17,15 +17,18 @@
       : /Mobi|Android|iPhone/i.test(navigator.userAgent);
     if (!isMobile) return;
     var showButton = function () {
-      if (document.getElementById('wixExitBtn')) return;
+      if (document.getElementById('wixExitOverlay')) return;
+      var overlay = document.createElement('div');
+      overlay.id = 'wixExitOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#F4EFE6;display:flex;align-items:center;justify-content:center;';
       var btn = document.createElement('button');
-      btn.id = 'wixExitBtn';
       btn.textContent = '사내시스템에 접속합니다';
-      btn.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:999999;background:#A2693E;color:#fff;border:none;padding:13px 24px;border-radius:10px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;white-space:nowrap;';
+      btn.style.cssText = 'background:#A2693E;color:#fff;border:none;padding:18px 32px;border-radius:12px;font-size:16px;font-weight:800;box-shadow:0 6px 20px rgba(0,0,0,0.25);cursor:pointer;';
       btn.onclick = function () {
         window.top.location.href = 'https://chiwoo3292-sudo.github.io/JBDSTOCK/';
       };
-      if (document.body) document.body.appendChild(btn);
+      overlay.appendChild(btn);
+      if (document.body) document.body.appendChild(overlay);
     };
     document.addEventListener('DOMContentLoaded', showButton);
     window.addEventListener('load', showButton);
