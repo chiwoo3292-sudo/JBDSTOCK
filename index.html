@@ -5960,7 +5960,7 @@ function setTab(tabId, fromPopstate) {
   if (tabId === 'noticeTab' && typeof loadNotices === 'function') loadNotices();
   if (tabId === 'myInfoTab' && typeof applyUiDensity === 'function') {
     let saved = '1';
-    try { saved = localStorage.getItem('baram_ui_density') || '1'; } catch(_) {}
+    try { saved = localStorage.getItem(getUiDensityStorageKey()) || '1'; } catch(_) {}
     applyUiDensity(saved);
   }
   if (tabId === 'adminTab' && typeof loadEmployees === 'function') {
