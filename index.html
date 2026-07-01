@@ -1586,7 +1586,8 @@
   <!-- 좌: 예약 목록 -->
   <div class="rsv-card">
     <div class="rsv-card-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>예약 대기 목록
-      <button onclick="loadReservations()" style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>새로고침</button>
+      <button id="rsvBulkConfirmBtn" onclick="bulkConfirmSelected()" style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:8px;background:#A2693E;color:#fff;border:none;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>선택 확정</button>
+      <button onclick="loadReservations()" style="margin-left:8px;padding:6px 12px;font-size:11px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>새로고침</button>
     </div>
 
     <div id="rsvList" class="rsv-list">
@@ -1754,7 +1755,10 @@
       <div class="rsv-item${selectedRsv && selectedRsv.receiptNo === r.receiptNo ? ' selected':''}"
            onclick="selectRsv(${allReservations.indexOf(r)})">
         <div class="rsv-item-top">
-          <span class="rsv-item-name">${r.date} ${r.time ? r.time.split('~')[0] : ''}</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" class="rsv-item-check" data-idx="${allReservations.indexOf(r)}" onclick="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;accent-color:#A2693E;">
+            <span class="rsv-item-name">${r.date} ${r.time ? r.time.split('~')[0] : ''}</span>
+          </span>
           <span class="rsv-badge 대기">대기</span>
         </div>
         <div class="rsv-item-info">
@@ -1914,6 +1918,49 @@
     } catch(e) {
       document.getElementById('rsvActionMsg').textContent = '오류: ' + e.message;
     }
+  };
+
+  // ── 일괄 확정 ──
+  window.bulkConfirmSelected = async function() {
+    const checked = Array.from(document.querySelectorAll('.rsv-item-check:checked'));
+    if (!checked.length) { alert('확정할 예약을 선택해주세요.'); return; }
+    if (!confirm(`선택한 ${checked.length}건을 일괄 확정하시겠습니까?`)) return;
+
+    const btn = document.getElementById('rsvBulkConfirmBtn');
+    if (btn) btn.disabled = true;
+
+    let successCount = 0, failCount = 0;
+    for (let i = 0; i < checked.length; i++) {
+      const idx = parseInt(checked[i].dataset.idx, 10);
+      const rsv = allReservations[idx];
+      if (btn) btn.innerHTML = `처리 중... (${i+1}/${checked.length})`;
+      if (!rsv) { failCount++; continue; }
+      try {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(rsv.receiptNo)}&status=예약&email=${encodeURIComponent(rsv.email||'')}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          successCount++;
+          rsv.status = '예약';
+          const ri = allReservations.findIndex(r => r.receiptNo === rsv.receiptNo);
+          if (ri !== -1) allReservations[ri].status = '예약';
+          if (typeof sendSMS === 'function' && rsv.phone) {
+            const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(rsv.date||'') : (rsv.date||'');
+            const schedule = `${dateFormatted} ${rsv.time||''}`.trim();
+            sendSMS(rsv.phone, rsv.name||'', schedule, rsv.counselor||'', 'confirm');
+          }
+        } else {
+          failCount++;
+        }
+      } catch(e) {
+        failCount++;
+      }
+    }
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>선택 확정'; }
+    selectedRsv = null;
+    document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
+    renderRsvList();
+    alert(`일괄 확정 완료: 성공 ${successCount}건${failCount ? `, 실패 ${failCount}건` : ''}`);
   };
 
   // ── 슬롯 불러오기 ──
@@ -2471,6 +2518,11 @@
           <input type="text" id="cfRevisitInput" oninput="searchRevisitOverlay()" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;">
           <div id="cfRevisitResults" style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:6px;"></div>
         </div>
+        <div id="cfPastHistoryBox" style="display:none;margin-top:8px;background:#fff;border:1px solid #E5D9C6;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#555;line-height:1.6;">
+          <strong style="color:#A2693E;">지난 상담이력</strong><br>
+          <span id="cfPastHistoryText"></span>
+        </div>
+        <input type="hidden" id="cfPastHistory">
       </div>
     </div>
 
@@ -2654,6 +2706,7 @@
   let _consultsCache = null;      // 마지막으로 받은 상담 데이터 캐시 (최근 100건)
   let _consultsFullCache = null;  // 전체검색 시 1회 조회해 캐시하는 전체 상담 데이터
   let _consultsFullLoading = false; // 전체검색 요청 중복 방지 가드 (돋보기 연타/Enter 연타 대비)
+  let _revisitMatches = []; // 재방문 검색 결과 임시 저장 (더블클릭 적용 시 참조)
   let _consultsLoading = false;   // 현재 서버 요청 진행 중 여부
   let selectedConsult = null;
   let csCurrentFilter = '전체';
@@ -3259,6 +3312,8 @@ function csDateInputValue(val) {
     document.getElementById('cfMemo').value = '';
     document.getElementById('cfSampleBox').classList.remove('show');
     document.getElementById('cfCardBox').classList.remove('show');
+    if (document.getElementById('cfPastHistory')) document.getElementById('cfPastHistory').value = '';
+    if (document.getElementById('cfPastHistoryBox')) document.getElementById('cfPastHistoryBox').style.display = 'none';
     document.getElementById('cfMsg').textContent = '';
   }
 
@@ -3280,19 +3335,32 @@ function csDateInputValue(val) {
     if (box) box.style.display = document.getElementById('cfVisitStatus').value === '재방문' ? 'block' : 'none';
   };
 
-  window.searchRevisitOverlay = function() {
+  window.searchRevisitOverlay = async function() {
     const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
     const results = document.getElementById('cfRevisitResults');
     if (!q) { results.innerHTML = ''; return; }
-    const matched = allConsults.filter(r =>
+
+    // ★ 최근 100건만이 아니라 전체 데이터에서 검색 (오래전 방문 고객도 찾을 수 있도록)
+    if (!_consultsFullCache) {
+      results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">전체 데이터에서 검색 중...</div>';
+      try {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
+        const data = await res.json();
+        if (data.status === 'ok') _consultsFullCache = data.rows || [];
+      } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
+    }
+    const pool = _consultsFullCache || allConsults;
+
+    const matched = pool.filter(r =>
       (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
     ).slice(0, 8);
+    _revisitMatches = matched;
     if (!matched.length) {
       results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">검색 결과 없음</div>';
       return;
     }
     results.innerHTML = matched.map((r, i) => `
-      <div ondblclick="applyRevisitOverlay(${allConsults.indexOf(r)})"
+      <div ondblclick="applyRevisitOverlay(${i})"
         style="padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13px;"
         onmouseover="this.style.background='#F3EADB'" onmouseout="this.style.background=''">
         <strong>${r.name||''}</strong>
@@ -3303,8 +3371,21 @@ function csDateInputValue(val) {
     `).join('');
   };
 
+  // 지난 상담이력 한 줄 요약 생성: "지난 방문(6/3): 오크헤링본, 쪽샘플(월넛 3종), 명함 전달함(김철수 팀장)"
+  function buildPastHistorySummary(r) {
+    if (!r) return '';
+    const m = String(r.date||'').match(/^\d{4}-(\d{2})-(\d{2})/);
+    const dateStr = m ? `${parseInt(m[1],10)}/${parseInt(m[2],10)}` : (r.date || '날짜미상');
+    const parts = [];
+    if (r.products) parts.push(r.products);
+    if (r.sampleGiven) parts.push(`쪽샘플(${r.sampleGiven})`);
+    if (r.cardGiven) parts.push(`명함 전달함(${r.cardGiven})`);
+    const body = parts.length ? parts.join(', ') : '특이사항 없음';
+    return `지난 방문(${dateStr}): ${body}`;
+  }
+
   window.applyRevisitOverlay = function(idx) {
-    const r = allConsults[idx];
+    const r = _revisitMatches[idx];
     if (!r) return;
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
     set('cfName', r.name);
@@ -3319,6 +3400,14 @@ function csDateInputValue(val) {
     document.getElementById('cfRevisitSearchBox').style.display = 'none';
     document.getElementById('cfRevisitInput').value = '';
     document.getElementById('cfRevisitResults').innerHTML = '';
+
+    // ★ 지난 상담이력 요약 생성해서 참고용으로 표시 + 히든 필드에 저장 (다른 필드는 덮어쓰지 않음)
+    const summary = buildPastHistorySummary(r);
+    set('cfPastHistory', summary);
+    const box = document.getElementById('cfPastHistoryBox');
+    const textEl = document.getElementById('cfPastHistoryText');
+    if (box && textEl) { textEl.textContent = summary; box.style.display = 'block'; }
+
     alert(`${r.name} 님의 기존 데이터를 불러왔습니다!`);
   };
 
@@ -3400,6 +3489,16 @@ function csDateInputValue(val) {
     // 작성자 (직급 붙이기)
     document.getElementById('cfAuthor').textContent = attachTitle(r.counselor || '', map) || '자동입력';
 
+    // 지난 상담이력 복원 (이전에 재방문 검색으로 저장해둔 값이 있으면 계속 표시)
+    const pastHistory = String(r.pastHistory||'').trim();
+    if (document.getElementById('cfPastHistory')) document.getElementById('cfPastHistory').value = pastHistory;
+    const pastBox = document.getElementById('cfPastHistoryBox');
+    const pastText = document.getElementById('cfPastHistoryText');
+    if (pastBox && pastText) {
+      if (pastHistory) { pastText.textContent = pastHistory; pastBox.style.display = 'block'; }
+      else { pastBox.style.display = 'none'; }
+    }
+
     document.getElementById('csFormOverlay').classList.add('open');
     document.body.classList.add('overlay-open');
   };
@@ -3452,6 +3551,7 @@ function csDateInputValue(val) {
       cardStaff:  document.getElementById('cfCardStaff').value,
       content:    document.getElementById('cfMemo').value.trim(),
       counselor:  selectedCounselors.join(', '),
+      pastHistory: document.getElementById('cfPastHistory') ? document.getElementById('cfPastHistory').value : '',
     };
 
     document.getElementById('cfMsg').textContent = '저장 중...';
