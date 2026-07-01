@@ -1600,6 +1600,41 @@
   //   ERP_URL     = ERP스크립트(재고·연락처 appendRow) 배포 URL
   var RESERVE_URL = 'https://script.google.com/macros/s/AKfycbyA2-Dp_MlixvFD6nRBGUtxuDPesDW1wG-zVXUN9GlIhm3Fd2fTiaVuDDhpoUaOQp32aA/exec';
   var ERP_URL = 'https://script.google.com/macros/s/AKfycbyUOVwnhgY-njzN2zxLVFi4Gf7r1YamdZ0-7sCCWG39DLo7Wck2fl44PBAhfS0YQTju/exec';
+
+  // ════════════════════════════════════════════════════════════
+  //  fetchWithRetry - RESERVE_URL/ERP_URL 대상 공통 fetch 래퍼
+  //  ★ 로그인/재고/쇼룸상담 등에서 "Failed to fetch"가 간헐적으로 뜨는 문제 대응:
+  //    일시적 네트워크 오류/Apps Script 응답지연 시 1회 자동 재시도.
+  //    그래도 실패하면 브라우저 원본 에러(Failed to fetch 등) 대신 이해하기 쉬운 메시지로 변환.
+  //  기존 fetch()와 동일하게 Response를 반환하므로 호출부 코드(res.json() 등)는 그대로 사용 가능.
+  // ════════════════════════════════════════════════════════════
+  window.fetchWithRetry = async function fetchWithRetry(url, options, retries, timeoutMs) {
+    retries = (retries === undefined) ? 1 : retries;
+    timeoutMs = timeoutMs || 15000;
+    for (var attempt = 0; attempt <= retries; attempt++) {
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function () { controller.abort(); }, timeoutMs);
+      try {
+        var mergedOptions = Object.assign({}, options || {}, { signal: controller.signal });
+        var res = await fetch(url, mergedOptions);
+        clearTimeout(timeoutId);
+        return res;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (attempt < retries) {
+          // 짧게 대기 후 재시도 (연속 실패 시 서버에 부담 덜 주도록 점증 대기)
+          await new Promise(function (r) { setTimeout(r, 500 * (attempt + 1)); });
+          continue;
+        }
+        var friendlyMsg = (err.name === 'AbortError')
+          ? '서버 응답이 늦어지고 있습니다. 잠시 후 다시 시도해주세요.'
+          : '일시적인 네트워크 오류입니다. 잠시 후 다시 시도해주세요.';
+        var friendlyErr = new Error(friendlyMsg);
+        friendlyErr.original = err;
+        throw friendlyErr;
+      }
+    }
+  };
 </script>
 
 <script>
@@ -1623,7 +1658,7 @@
 
   async function loadAdminHolidays() {
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getHolidays`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getHolidays`);
       const data = await res.json();
       if (data.status === 'ok' && data.holidays) holidayMap = data.holidays;
     } catch (e) {
@@ -1655,7 +1690,7 @@
   window.loadReservations = async function() {
     document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getReservations`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
       const data = await res.json();
       if (data.status === 'ok') {
         allReservations = data.rows || [];
@@ -1810,7 +1845,7 @@
     if (!confirm(`[${selectedRsv.name}] 예약을 "${newStatus}" 처리하시겠습니까?`)) return;
     document.getElementById('rsvActionMsg').textContent = '처리 중...';
     try {
-      const res = await fetch(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
       const data = await res.json();
       if (data.status === 'ok') {
         selectedRsv.status = newStatus;
@@ -1864,7 +1899,7 @@
     }
 
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getSlots&date=${date}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getSlots&date=${date}`);
       const data = await res.json();
       if (data.status === 'ok' && data.closedSlots) {
         data.closedSlots.forEach(s => { if (s in slotState) slotState[s] = 'closed'; });
@@ -1900,7 +1935,7 @@
     document.getElementById('slotMsg').textContent = '저장 중...';
     try {
       const closedStr = closedSlots.length > 0 ? closedSlots.join(',') : '';
-      const res = await fetch(`${RESERVE_URL}?action=saveSlots&date=${encodeURIComponent(date)}&closedSlots=${encodeURIComponent(closedStr)}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=saveSlots&date=${encodeURIComponent(date)}&closedSlots=${encodeURIComponent(closedStr)}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('slotMsg').textContent = '저장 완료!';
@@ -2601,7 +2636,7 @@
   async function loadAllStaffMap() {
     if (_allStaffMapCache) return _allStaffMapCache;
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getEmployees`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
       const data = await res.json();
       _allStaffMapCache = {};
       (data.rows || []).forEach(r => {
@@ -2635,7 +2670,7 @@
   async function loadStaffList() {
     if (_staffListCache) return _staffListCache;
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getEmployees`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
       const data = await res.json();
       const allActive = (data.rows || []).filter(r => !r.leaveDate);
       // 전 직원 표시 (영업 필터 제거)
@@ -2799,7 +2834,7 @@
     if (_consultsLoading) return;
     _consultsLoading = true;
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getConsults`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsults`);
       const data = await res.json();
       if (data.status === 'ok') {
         _consultsCache = data.rows || [];
@@ -2901,7 +2936,7 @@
           _consultsFullLoading = true;
           if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
           try {
-            const res = await fetch(`${RESERVE_URL}?action=getConsultsFull`);
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
             const data = await res.json();
             if (data.status === 'ok') _consultsFullCache = data.rows || [];
           } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
@@ -3387,7 +3422,7 @@ function csDateInputValue(val) {
     document.getElementById('cfMsg').textContent = '저장 중...';
     try {
       const params = new URLSearchParams(payload);
-      const res = await fetch(`${RESERVE_URL}?${params}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('cfMsg').textContent = '저장 완료!';
@@ -3492,7 +3527,7 @@ function csDateInputValue(val) {
 
   window.loadNotices = async function() {
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getNotices`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getNotices`);
       const data = await res.json();
       notices = data.rows || [];
       renderNotices();
@@ -3539,7 +3574,7 @@ function csDateInputValue(val) {
     document.getElementById('noticeSaveMsg').textContent = '등록 중...';
     try {
       const params = new URLSearchParams({ action:'saveNotice', title, content, category, author });
-      const res = await fetch(`${RESERVE_URL}?${params}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         document.getElementById('noticeSaveMsg').textContent = '등록 완료!';
@@ -4310,7 +4345,7 @@ function csDateInputValue(val) {
         saveBtn.textContent = '저장 중...';
 
         try {
-            const res = await fetch(ERP_URL, {
+            const res = await fetchWithRetry(ERP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({
@@ -4444,7 +4479,7 @@ function csDateInputValue(val) {
 
     async function initAfterLogin(userData) {
       try {
-        const empRes = await fetch(`${RESERVE_URL}?action=getEmployees`);
+        const empRes = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
         const empData = await empRes.json();
         if (empData.rows) window._allEmployees = empData.rows;
       } catch(e) {}
@@ -4463,7 +4498,7 @@ function csDateInputValue(val) {
 
     async function checkLeavePending(userData) {
       try {
-        const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
+        const res  = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
         const data = await res.json();
         if (data.status === 'ok') {
           const ev = new CustomEvent('leaveDataRefresh', { detail: data.rows });
@@ -4624,7 +4659,7 @@ function csDateInputValue(val) {
         const btn = document.getElementById('loginBtn');
         btn.textContent = '로그인 중...'; btn.disabled = true;
         try {
-            const res = await fetch(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
             const data = await res.json();
             if (data.status === 'ok') {
                 // 직원: 로그인 후 8시간 동안 세션 유지 (브라우저를 벗어나도 8시간 내 재방문 시 자동 로그인)
@@ -4678,7 +4713,7 @@ function csDateInputValue(val) {
         msg.textContent = '변경 중...';
         try {
             const params = new URLSearchParams({ action:'changePassword', id:user.id, currentPassword:curPw, newPassword:newPw });
-            const res = await fetch(`${RESERVE_URL}?${params}`);
+            const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
             const data = await res.json();
             if (data.status === 'ok') {
                 msg.textContent = '비밀번호가 변경되었습니다.';
@@ -4703,7 +4738,7 @@ function csDateInputValue(val) {
 
     window.loadEmployees = async function() {
         try {
-            const res = await fetch(`${RESERVE_URL}?action=getEmployees`);
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
             const data = await res.json();
             // 전역 직원 목록 저장 (결재라인 자동 계산용)
             if (data.rows) window._allEmployees = data.rows;
@@ -4817,7 +4852,7 @@ function csDateInputValue(val) {
       const role = roleEl ? roleEl.value : 'staff';
       try {
         const params = new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           // 저장됨 토스트 표시
@@ -4952,7 +4987,7 @@ function csDateInputValue(val) {
       try {
         const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
         const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, phone, birthday, cardUrl, annualLeave, isHead, isManager });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           msg.style.color='#1a7a45';
@@ -4970,7 +5005,7 @@ function csDateInputValue(val) {
       if (!confirm(`[${_selectedEmpId}] 직원의 비밀번호를 0000으로 초기화하시겠습니까?`)) return;
       const msg = document.getElementById('empModalMsg');
       try {
-        const res = await fetch(`${RESERVE_URL}?${new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId })}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId })}`);
         const data = await res.json();
         if (data.status === 'ok') { msg.style.color='#1a7a45'; msg.textContent='비밀번호가 0000으로 초기화되었습니다.'; }
         else { msg.style.color='#e74c3c'; msg.textContent='' + (data.message||'오류'); }
@@ -4986,7 +5021,7 @@ function csDateInputValue(val) {
       try {
         const today = new Date().toISOString().slice(0,10);
         const params = new URLSearchParams({ action: 'updateEmployeeLeave', id: _selectedEmpId, leaveDate: today });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           msg.style.color = '#1a7a45';
@@ -5002,7 +5037,7 @@ function csDateInputValue(val) {
       if (!confirm(`[${_selectedEmpId}] 직원의 비밀번호를 0000으로 초기화하시겠습니까?`)) return;
       try {
         const params = new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') alert('비밀번호가 0000으로 초기화되었습니다.');
         else alert('' + (data.message||'오류'));
@@ -5077,7 +5112,7 @@ function csDateInputValue(val) {
       const finalTabs = allowedTabs.length === ALL_TABS.length ? 'ALL' : allowedTabs.join(',');
       try {
         const params = new URLSearchParams({ action: 'updateEmployee', id: _tabPermEmpId, allowedTabs: finalTabs, role });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           showAdminToast('탭 권한 저장됨');
@@ -5122,7 +5157,7 @@ function csDateInputValue(val) {
           requester,
           content: text
         });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           msgEl.style.color = '#1a7a45';
@@ -5149,7 +5184,7 @@ function csDateInputValue(val) {
       if (!tbody) return;
       tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">불러오는 중...</td></tr>';
       try {
-        const res = await fetch(`${RESERVE_URL}?action=getInfoRequests`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getInfoRequests`);
         const data = await res.json();
         if (!data.rows || !data.rows.length) {
           tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">신청 내역이 없습니다.</td></tr>';
@@ -5223,7 +5258,7 @@ function csDateInputValue(val) {
       const resolveBtn = document.getElementById('adminInfoReqResolveBtn');
       if (resolveBtn) { resolveBtn.disabled = true; resolveBtn.textContent = '처리 중...'; }
       try {
-        const res = await fetch(`${RESERVE_URL}?action=resolveInfoRequest&rowIdx=${_adminInfoReqCurrentRowIdx}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=resolveInfoRequest&rowIdx=${_adminInfoReqCurrentRowIdx}`);
         const data = await res.json();
         if (data.status === 'ok') {
           closeAdminInfoReqModal();
@@ -5243,7 +5278,7 @@ function csDateInputValue(val) {
     //   (기기별 localStorage 사용 안 함 — 모든 직원/기기가 항상 동일한 최신 템플릿을 봄)
     window.loadSmsTemplates = async function() {
       try {
-        const res = await fetch(`${RESERVE_URL}?action=getSmsTemplates`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsTemplates`);
         const data = await res.json();
         if (data.status === 'ok' && data.templates) {
           ['confirm','cancel','today'].forEach(k => {
@@ -5272,7 +5307,7 @@ function csDateInputValue(val) {
       const text = el.value;
       try {
         const params = new URLSearchParams({ action: 'saveSmsTemplate', key, text });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status !== 'ok') { alert('템플릿 저장 실패: ' + (data.message||'')); return; }
       } catch(e) {
@@ -5292,7 +5327,7 @@ function csDateInputValue(val) {
       const sender = document.getElementById('aligoSender').value.trim();
       try {
         const params = new URLSearchParams({ action: 'saveAligoSettings', apiKey, userId, sender });
-        await fetch(`${ERP_URL}?${params}`);
+        await fetchWithRetry(`${ERP_URL}?${params}`);
       } catch(e) {
         alert('알리고 설정 저장 실패: ' + e.message);
         return;
@@ -5303,7 +5338,7 @@ function csDateInputValue(val) {
 
     async function loadAligoSettings() {
       try {
-        const res = await fetch(`${ERP_URL}?action=getAligoSettings`);
+        const res = await fetchWithRetry(`${ERP_URL}?action=getAligoSettings`);
         const data = await res.json();
         const s = (data.status === 'ok' && data.settings) ? data.settings : {};
         if (document.getElementById('aligoApiKey')) document.getElementById('aligoApiKey').value = s.apiKey || '';
@@ -5321,7 +5356,7 @@ function csDateInputValue(val) {
       if (!tmpl) {
         // 화면에 아직 템플릿이 안 떠 있으면 구글시트에서 바로 조회
         try {
-          const res = await fetch(`${RESERVE_URL}?action=getSmsTemplates`);
+          const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsTemplates`);
           const data = await res.json();
           if (data.status === 'ok' && data.templates) tmpl = data.templates[templateKey] || '';
         } catch(e) {}
@@ -5338,7 +5373,7 @@ function csDateInputValue(val) {
       // 알리고 API 설정은 ERP스크립트 서버(PropertiesService)에서 조회 — ★ sendAligo도 ERP_URL로 호출해야 함(RESERVE_URL에는 해당 action 없음)
       let result = 'API미연동';
       try {
-        const settingsRes = await fetch(`${ERP_URL}?action=getAligoSettings`);
+        const settingsRes = await fetchWithRetry(`${ERP_URL}?action=getAligoSettings`);
         const settingsData = await settingsRes.json();
         const s = settingsData.settings || {};
         if (s.apiKey && s.userId && s.sender) {
@@ -5347,7 +5382,7 @@ function csDateInputValue(val) {
             apiKey: s.apiKey, userId: s.userId, sender: s.sender,
             receiver: phone, msg
           });
-          const res = await fetch(`${ERP_URL}?${params}`);
+          const res = await fetchWithRetry(`${ERP_URL}?${params}`);
           const data = await res.json();
           result = data.status === 'ok' ? '발송성공' : ('발송실패:' + (data.message||''));
         }
@@ -5358,7 +5393,7 @@ function csDateInputValue(val) {
       // 발송 내역 기록
       try {
         const typeLabel = { confirm: '예약확정', cancel: '예약취소', today: '당일안내' }[templateKey] || templateKey;
-        await fetch(`${RESERVE_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result })}`);
+        await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result })}`);
       } catch(e) {}
 
       return { ok: result === '발송성공', msg, result };
@@ -5419,7 +5454,7 @@ function csDateInputValue(val) {
       const noticeJson = JSON.stringify(_monthlyData);
       try {
         const params = new URLSearchParams({ action: 'saveMonthlyNotice', notice: noticeJson });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
@@ -5444,7 +5479,7 @@ function csDateInputValue(val) {
 
     async function loadMonthlyNoticeEditor() {
       try {
-        const res = await fetch(`${RESERVE_URL}?action=getMonthlyNotice`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getMonthlyNotice`);
         const data = await res.json();
         if (data.status === 'ok' && data.notice) {
           try {
@@ -5484,7 +5519,7 @@ function csDateInputValue(val) {
       const tbody = document.getElementById('smsLogBody');
       if (!tbody) return;
       try {
-        const res = await fetch(`${RESERVE_URL}?action=getSmsLog`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsLog`);
         const data = await res.json();
         if (!data.rows || !data.rows.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="admin-empty">내역이 없습니다.</td></tr>';
@@ -5572,7 +5607,7 @@ function csDateInputValue(val) {
           // 로컬 캐시 먼저 표시
           memoArea.value = localStorage.getItem(`memo_${uid}`) || '';
           try {
-            const res = await fetch(`${RESERVE_URL}?action=getMemo&userId=${encodeURIComponent(uid)}`);
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=getMemo&userId=${encodeURIComponent(uid)}`);
             const data = await res.json();
             if (data.status === 'ok' && data.memo !== undefined) {
               memoArea.value = data.memo;
@@ -5587,7 +5622,7 @@ function csDateInputValue(val) {
           const content = memoArea.value;
           localStorage.setItem(`memo_${uid}`, content);
           try {
-            await fetch(RESERVE_URL, {
+            await fetchWithRetry(RESERVE_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain' },
               body: JSON.stringify({ action: 'saveMemo', userId: uid, memo: content })
@@ -6229,7 +6264,7 @@ window.goMyInfo = function() {
   const user = window._currentUser;
   if (user) {
     // nocache 파라미터로 캐시 우회
-    fetch(`${RESERVE_URL}?action=getEmployees&nocache=${Date.now()}`)
+    fetchWithRetry(`${RESERVE_URL}?action=getEmployees&nocache=${Date.now()}`)
       .then(r => r.json())
       .then(data => {
         if (data.status === 'ok') {
@@ -6759,7 +6794,7 @@ function initExcelUpload() {
     const lastEl = document.getElementById('lastUploadTime');
     if (lastEl) {
         lastEl.textContent = '업로드 시간 확인 중...';
-        fetch(`${ERP_URL}?spreadsheetId=${SHEET_CONFIG.ID_STOCK}`)
+        fetchWithRetry(`${ERP_URL}?spreadsheetId=${SHEET_CONFIG.ID_STOCK}`)
             .then(r => r.json())
             .then(data => {
                 if (data.uploadTime) {
@@ -6859,7 +6894,7 @@ function initExcelUpload() {
             // 3. 전체 데이터 한 번에 전송
             statusEl.textContent = '구글시트에 전송 중...';
 
-            const res = await fetch(ERP_URL, {
+            const res = await fetchWithRetry(ERP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({
@@ -8602,7 +8637,7 @@ if ('serviceWorker' in navigator) {
 
   async function checkNewReservations() {
     try {
-      const res = await fetch(`${RESERVE_URL}?action=getReservations`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
       const data = await res.json();
       if (data.status !== 'ok') return;
       const pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
@@ -8671,7 +8706,7 @@ if ('serviceWorker' in navigator) {
 
     try {
       const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
-      const res = await fetch(`${RESERVE_URL}?${params}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         alert('삭제 완료!');
@@ -8709,7 +8744,7 @@ if ('serviceWorker' in navigator) {
         reqRevisit: r.revisitConsult||'', reqQuote: r.reqQuote||'',
         workTiming: r.workTiming||'', workPeriod: r.workPeriod||'',
       });
-      await fetch(`${RESERVE_URL}?${params}`);
+      await fetchWithRetry(`${RESERVE_URL}?${params}`);
     } catch(e) { console.error('자동저장 실패:', e); }
   };
 
@@ -8729,7 +8764,7 @@ if ('serviceWorker' in navigator) {
     document.body.appendChild(notif);
 
     try {
-      const res = await fetch(`${RESERVE_URL}?action=importFromDaouSheet`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=importFromDaouSheet`);
       const data = await res.json();
       if (data.status === 'ok') {
         notif.textContent = `${data.count}건 변환 완료!`;
@@ -8892,7 +8927,7 @@ if ('serviceWorker' in navigator) {
           action: 'bulkImportConsults',
           data: JSON.stringify(chunk),
         });
-        const res = await fetch(`${RESERVE_URL}?${params}`);
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
         if (data.status === 'ok') {
           imported += data.count || chunk.length;
@@ -9126,7 +9161,7 @@ if ('serviceWorker' in navigator) {
         approverIds,
         isHead: user.isHead ? 'true' : 'false'
       });
-      const res  = await fetch(`${RESERVE_URL}?${params}`);
+      const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         msg.textContent = '신청 완료!';
@@ -9144,7 +9179,7 @@ if ('serviceWorker' in navigator) {
     if (!confirm('휴가 신청을 취소하시겠습니까?')) return;
     try {
       const params = new URLSearchParams({ action:'cancelLeave', rowIdx, id: user.id });
-      const res  = await fetch(`${RESERVE_URL}?${params}`);
+      const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         loadLeaveData();
@@ -9176,7 +9211,7 @@ if ('serviceWorker' in navigator) {
     const user = window._currentUser;
     if (!user) return;
     try {
-      const res  = await fetch(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
+      const res  = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
       const data = await res.json();
       if (data.status === 'ok') {
         _allLeaves = data.rows || [];
@@ -9244,7 +9279,7 @@ if ('serviceWorker' in navigator) {
     const user = window._currentUser;
     try {
       const params = new URLSearchParams({ action:'approveLeave', rowIdx, approveAction: action, approverRole, approverId: user.id });
-      const res  = await fetch(`${RESERVE_URL}?${params}`);
+      const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') loadLeaveData();
       else alert('처리 실패: ' + (data.message||''));
@@ -9318,7 +9353,7 @@ if ('serviceWorker' in navigator) {
 
   window.loadOrgTab = async function() {
     try {
-      const res  = await fetch(`${RESERVE_URL}?action=getEmployees`);
+      const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
       const data = await res.json();
       if (data.status !== 'ok') return;
       const emps = data.rows || [];
@@ -9330,7 +9365,7 @@ if ('serviceWorker' in navigator) {
 
   window.loadAdminLeaveTable = async function() {
     try {
-      const res  = await fetch(`${RESERVE_URL}?action=getEmployees`);
+      const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
       const data = await res.json();
       if (data.status !== 'ok') return;
       const emps = data.rows || [];
@@ -9520,7 +9555,7 @@ if ('serviceWorker' in navigator) {
     const msg = document.getElementById('usedLeaveMsg_' + id);
     try {
       const params = new URLSearchParams({ action:'updateEmployeeInfo', id, usedLeave: val });
-      const res = await fetch(`${RESERVE_URL}?${params}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         if (msg) { msg.style.color = '#1a7a45'; msg.textContent = '저장됨'; }
@@ -9541,7 +9576,7 @@ if ('serviceWorker' in navigator) {
     if (!user || !tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오는 중...</td></tr>';
     try {
-      const res  = await fetch(RESERVE_URL + '?action=getLeaves&id=' + encodeURIComponent(user.id) + '&role=' + encodeURIComponent(user.role||'staff'));
+      const res  = await fetchWithRetry(RESERVE_URL + '?action=getLeaves&id=' + encodeURIComponent(user.id) + '&role=' + encodeURIComponent(user.role||'staff'));
       const data = await res.json();
       if (data.status === 'ok') {
         _approvalRows = (data.rows||[]).filter(function(r) {
@@ -9595,7 +9630,7 @@ if ('serviceWorker' in navigator) {
     if (!confirm(action === 'approve' ? '승인하시겠습니까?' : '반려하시겠습니까?')) return;
     try {
       const params = new URLSearchParams({ action:'approveLeave', rowIdx: rowIdx, approveAction: action, approverRole: approverRole, approverId: user.id });
-      const res  = await fetch(RESERVE_URL + '?' + params.toString());
+      const res  = await fetchWithRetry(RESERVE_URL + '?' + params.toString());
       const data = await res.json();
       if (data.status === 'ok') {
         loadApprovalList();
