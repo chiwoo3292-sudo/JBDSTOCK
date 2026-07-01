@@ -6095,22 +6095,25 @@ function renderHamburgerItems() {
       if (!label) return '';
       if (!isTabVisible(id)) return '';
       const checked = visible.includes(id);
-      return `<div class="hamburger-menu-item hamburger-edit-item" draggable="true"
+      return `<div class="hamburger-menu-item hamburger-edit-item"
         data-tabid="${id}"
-        ondragstart="hamburgerDragStart(event)"
         ondragover="hamburgerDragOver(event)"
         ondragleave="hamburgerDragLeave(event)"
         ondrop="hamburgerDrop(event)"
-        ondragend="hamburgerDragEnd(event)"
-        ontouchstart="hamburgerTouchStart(event)"
-        ontouchmove="hamburgerTouchMove(event)"
-        ontouchend="hamburgerTouchEnd(event)"
-        style="cursor:grab;transition:background .1s;">
+        style="transition:background .1s;">
         <span style="display:flex;align-items:center;gap:10px;">
-          <span style="color:#ccc;font-size:16px;cursor:grab;">⠿</span>
+          <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleTabVisible('${id}',this.checked)">
           <span>${label}</span>
         </span>
-        <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleTabVisible('${id}',this.checked)">
+        <span class="hamburger-drag-handle" draggable="true" data-tabid="${id}"
+          ondragstart="hamburgerDragStart(event)"
+          ondragend="hamburgerDragEnd(event)"
+          ontouchstart="hamburgerTouchStart(event)"
+          ontouchmove="hamburgerTouchMove(event)"
+          ontouchend="hamburgerTouchEnd(event)"
+          style="cursor:grab;color:#bbb;padding:6px 8px;touch-action:none;display:flex;align-items:center;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+        </span>
       </div>`;
     }).filter(Boolean).join('');
   } else {
@@ -6134,7 +6137,8 @@ window.toggleHamburgerEdit = function() {
 let _dragSrcId = null;
 window.hamburgerDragStart = function(e) {
   _dragSrcId = e.currentTarget.dataset.tabid;
-  e.currentTarget.style.opacity = '0.4';
+  const row = e.currentTarget.closest('.hamburger-edit-item') || e.currentTarget;
+  row.style.opacity = '0.4';
 };
 window.hamburgerDragOver = function(e) {
   e.preventDefault();
@@ -6167,10 +6171,10 @@ window.hamburgerDrop = function(e) {
   }
 };
 window.hamburgerDragEnd = function(e) {
-  e.currentTarget.style.opacity = '';
   document.querySelectorAll('.hamburger-edit-item').forEach(el => {
     el.style.background = '';
     el.style.borderTop = '';
+    el.style.opacity = '';
   });
   _dragSrcId = null;
 };
@@ -6181,10 +6185,11 @@ let _touchDragEl = null;
 let _touchClone = null;
 
 window.hamburgerTouchStart = function(e) {
-  const el = e.currentTarget;
-  _touchDragSrcId = el.dataset.tabid;
-  _touchDragEl = el;
-  el.style.opacity = '0.4';
+  const handle = e.currentTarget;
+  const row = handle.closest('.hamburger-edit-item') || handle;
+  _touchDragSrcId = handle.dataset.tabid;
+  _touchDragEl = row;
+  row.style.opacity = '0.4';
 };
 
 window.hamburgerTouchMove = function(e) {
