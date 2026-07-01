@@ -1574,7 +1574,7 @@
     <div class="rsv-card">
       <div class="rsv-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>쇼룸 시간 관리</div>
       <div class="slot-date-row">
-        <input type="date" id="slotDate">
+        <input type="date" id="slotDate" onchange="loadSlots()">
         <button onclick="loadSlots()" style="background:#111;color:#fff;border:none;cursor:pointer;">불러오기</button>
       </div>
       <div id="slotGrid" class="slot-grid"></div>
@@ -2258,8 +2258,8 @@
 
   <div class="dw-search-controls">
     <div class="dw-search-box">
-      <input type="text" id="csSearch" placeholder="텍스트 검색" oninput="renderConsultList()">
-      <span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+      <input type="text" id="csSearch" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter') renderConsultList()">
+      <span class="icon" onclick="renderConsultList()" style="cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
     </div>
     <button class="dw-cond-btn" onclick="toggleCondPanel()">+ 조건추가</button>
   </div>
@@ -2583,6 +2583,7 @@
   let allConsults = [];
   let _consultsCache = null;      // 마지막으로 받은 상담 데이터 캐시 (최근 100건)
   let _consultsFullCache = null;  // 전체검색 시 1회 조회해 캐시하는 전체 상담 데이터
+  let _consultsFullLoading = false; // 전체검색 요청 중복 방지 가드 (돋보기 연타/Enter 연타 대비)
   let _consultsLoading = false;   // 현재 서버 요청 진행 중 여부
   let selectedConsult = null;
   let csCurrentFilter = '전체';
@@ -2892,12 +2893,20 @@
     if (q) {
       if (!_consultsFullCache) {
         const bodyEl = document.getElementById('csTableBody');
-        if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
-        try {
-          const res = await fetch(`${RESERVE_URL}?action=getConsultsFull`);
-          const data = await res.json();
-          if (data.status === 'ok') _consultsFullCache = data.rows || [];
-        } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
+        if (_consultsFullLoading) {
+          // 이미 다른 요청이 진행 중이면 그 요청이 끝날 때까지만 대기 (중복 fetch 방지)
+          if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
+          while (_consultsFullLoading) { await new Promise(r => setTimeout(r, 100)); }
+        } else {
+          _consultsFullLoading = true;
+          if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
+          try {
+            const res = await fetch(`${RESERVE_URL}?action=getConsultsFull`);
+            const data = await res.json();
+            if (data.status === 'ok') _consultsFullCache = data.rows || [];
+          } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
+          finally { _consultsFullLoading = false; }
+        }
       }
       if (_consultsFullCache) allConsults = _consultsFullCache;
     } else if (_consultsCache) {
