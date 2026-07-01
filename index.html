@@ -290,13 +290,13 @@
     .calc-form select, 
     input[type="text"], 
     input[type="number"] {
-        height: calc(var(--ui-scale) * 44px) !important; /* 손가락으로 터치하기 편한 두께 */
+        height: max(calc(var(--ui-scale) * 44px), 36px) !important; /* 손가락으로 터치하기 편한 두께 */
         font-size: calc(var(--ui-scale) * 14px) !important;
     }
     
     /* 모바일 면적 입력창 폰트 미세 조절 */
     .calc-area-input {
-        height: calc(var(--ui-scale) * 64px) !important;
+        height: max(calc(var(--ui-scale) * 64px), 48px) !important;
         font-size: calc(var(--ui-scale) * 24px) !important;
     }
 
@@ -353,7 +353,7 @@
     .product-add select, 
     .product-add input[type="text"], 
     .product-add button {
-        height: calc(var(--ui-scale) * 44px) !important; /* 손가락 터치하기 미스 안 나는 두께 */
+        height: max(calc(var(--ui-scale) * 44px), 36px) !important; /* 손가락 터치하기 미스 안 나는 두께 */
         font-size: calc(var(--ui-scale) * 14px) !important; /* 아이폰 줌인 현상 방지 */
     }
 
@@ -428,7 +428,7 @@
     .quick-copy-row button {
         font-size: calc(var(--ui-scale) * 12px) !important;
         padding: 0 calc(var(--ui-scale) * 6px) !important;
-        min-height: calc(var(--ui-scale) * 42px) !important;
+        min-height: max(calc(var(--ui-scale) * 42px), 36px) !important;
     }
 
     /* 7. 하단 액션 버튼 모바일에서 가득 차게 */
@@ -438,7 +438,7 @@
     }
     .right-actions-bottom button {
         flex: 1 !important; /* 버튼들이 반반씩 이쁘게 나눠 가짐 */
-        min-height: calc(var(--ui-scale) * 40px) !important;
+        min-height: max(calc(var(--ui-scale) * 40px), 34px) !important;
         font-size: calc(var(--ui-scale) * 13px) !important;
     }
 
@@ -495,7 +495,7 @@
         min-width: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
-        height: calc(var(--ui-scale) * 40px) !important;
+        height: max(calc(var(--ui-scale) * 40px), 34px) !important;
         font-size: calc(var(--ui-scale) * 14px) !important;
         padding: 0 calc(var(--ui-scale) * 22px) 0 calc(var(--ui-scale) * 4px) !important;
         background-color: #f7f7f7 !important;
@@ -3695,8 +3695,12 @@ function csDateInputValue(val) {
 
 <div class="myi-wrap">
 
+  <div id="myiGuestNotice" style="display:none;background:#F3EADB;border:1px solid #E5D9C6;border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:12.5px;color:#8A6A3D;">
+    게스트 계정은 개인정보가 없어 화면 표시 설정만 이용하실 수 있어요.
+  </div>
+
   <!-- 프로필 카드 -->
-  <div class="myi-profile-card" style="justify-content:space-between;">
+  <div class="myi-profile-card" id="myiProfileCard" style="justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:22px;flex:1;">
       <div class="myi-avatar" id="myiAvatar">?</div>
       <div class="myi-profile-info">
@@ -3721,7 +3725,7 @@ function csDateInputValue(val) {
     </div>
   </div>
 
-  <div class="myi-grid">
+  <div class="myi-grid" id="myiInfoGrid">
     <!-- 근무정보 카드 -->
     <div class="myi-card">
       <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>근무 정보</div>
@@ -3782,7 +3786,7 @@ function csDateInputValue(val) {
     <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>화면 표시 설정</div>
     <p style="font-size:12.5px;color:#888;margin:0 0 14px;">모바일 화면의 여백·글자 크기를 조절해 더 많은 정보를 한눈에 볼 수 있어요. 이 기기에서 내 계정으로 로그인할 때마다 설정한 값이 그대로 유지됩니다.</p>
     <div id="uiDensityOptions" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-      <button type="button" class="ui-density-btn" data-density="0.72" onclick="setUiDensity('0.72')">
+      <button type="button" class="ui-density-btn" data-density="0.65" onclick="setUiDensity('0.65')">
         <span style="display:block;font-weight:800;font-size:13px;">매우 촘촘</span>
         <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">최대로 보기</span>
       </button>
@@ -3794,7 +3798,7 @@ function csDateInputValue(val) {
         <span style="display:block;font-weight:800;font-size:13px;">기본</span>
         <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">표준 크기</span>
       </button>
-      <button type="button" class="ui-density-btn" data-density="1.15" onclick="setUiDensity('1.15')">
+      <button type="button" class="ui-density-btn" data-density="1.3" onclick="setUiDensity('1.3')">
         <span style="display:block;font-weight:800;font-size:13px;">넓게</span>
         <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">크게 보기</span>
       </button>
@@ -3802,7 +3806,7 @@ function csDateInputValue(val) {
   </div>
 
   <!-- 비밀번호 변경 -->
-  <div class="myi-pw-card">
+  <div class="myi-pw-card" id="myiPwChangeCard">
     <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>비밀번호 변경</div>
     <div class="myi-pw-grid">
       <input type="password" id="miCurPw" placeholder="현재 비밀번호">
@@ -3814,7 +3818,7 @@ function csDateInputValue(val) {
   </div>
 
   <div class="myi-footer">
-    <button class="myi-btn-request" onclick="openInfoRequestModal()">정보 수정 신청</button>
+    <button class="myi-btn-request" id="myiRequestBtn" onclick="openInfoRequestModal()">정보 수정 신청</button>
     <button class="myi-btn-close" onclick="setTab('pricingTab')">닫기</button>
   </div>
 
@@ -4464,6 +4468,12 @@ function csDateInputValue(val) {
             if (leaveItem) leaveItem.style.display = 'flex';
             const myBtn = document.getElementById('myInfoTabBtn');
             if (myBtn) myBtn.style.display = '';
+            // 직원 전용 내정보 항목들 표시 (게스트→직원 전환 대비 초기화)
+            ['myiGuestNotice'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.display = '';
+            });
             if (userData.role === 'admin') {
                 const adminBtn = document.getElementById('adminTabBtn');
                 if (adminBtn) adminBtn.style.display = '';
@@ -4484,7 +4494,16 @@ function csDateInputValue(val) {
             if (userText) userText.textContent = '게스트';
             if (userSub) userSub.textContent = '게스트 접속';
             const myInfoItem = document.getElementById('userDropdownMyInfo');
-            if (myInfoItem) myInfoItem.style.display = 'none';
+            // ★ 게스트도 "내 정보"(화면 표시 설정)에는 접근 가능하게 열어줌 — 개인정보는 없으니 관련 카드만 숨김
+            if (myInfoItem) myInfoItem.style.display = 'flex';
+            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.display = 'none';
+            });
+            const guestNotice = document.getElementById('myiGuestNotice');
+            if (guestNotice) guestNotice.style.display = 'block';
+            // ★ 게스트 최상단 메뉴 제한: 단가표/계산기/재고현황/견적서/메모장 5개만 노출
+            applyTabPermissions('pricingTab,calculatorTab,stockTab,invoiceTab,memoTab', 'guest');
         }
 
         const lastTab = localStorage.getItem('baram_last_tab');
@@ -4565,6 +4584,13 @@ function csDateInputValue(val) {
     }
     // 허용탭 제어
     function applyTabPermissions(allowedTabs, role) {
+        // ★ 이전 세션(게스트 등)에서 숨겨졌던 탭이 남아있지 않도록 먼저 전부 노출로 리셋
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            const tab = btn.dataset.tab;
+            if (tab === 'myInfoTab' || tab === 'adminTab' || tab === 'orgTab') return;
+            btn.style.display = '';
+        });
+
         // orgTab은 무조건 admin만
         const orgBtn = document.getElementById('orgTabBtn');
         if (orgBtn && role !== 'admin') orgBtn.style.display = 'none';
