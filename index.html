@@ -4,55 +4,22 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
 <script>
-// ── 진단용: 항상 화면 구석에 상태 표시 (원인 파악되면 이 스크립트 블록은 제거 예정) ──
+// ── 윅스(Wix) iframe 안 모바일 접속 시, 정상 작동하는 실제 시스템 주소로 자동 이동 ──
+// Wix Studio에서 이 iframe 위젯의 모바일 박스 폭이 320px로 고정되어 있고 에디터 UI로는
+// 조절이 불가능하다고 확인됨(스케일링이 아니라 상자 자체가 좁은 것). 뷰포트 보정으로는
+// 해결 안 되는 문제라, 모바일+iframe 조건이면 최상위 창을 GitHub Pages 주소로 이동시켜
+// 정상적으로 화면 전체를 쓰는 실제 페이지로 넘어가도록 처리.
+// 직접 접속(최상위 창)이거나 PC(iframe이어도 화면이 넓은 경우)는 건드리지 않음.
 (function () {
   try {
     var isIframe = (window.self !== window.top);
-    var realWidth = (window.screen && window.screen.width) ? window.screen.width : 0;
-    var showDebug = function () {
-      var renderedWidth = document.documentElement.clientWidth;
-      var badge = document.createElement('div');
-      badge.textContent = 'iframe:' + isIframe + ' / screen:' + realWidth + ' / rendered:' + renderedWidth + ' / dpr:' + (window.devicePixelRatio || '?');
-      badge.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:999999;background:#000;color:#0f0;font-size:11px;padding:4px 8px;border-radius:6px;font-family:monospace;opacity:0.9;';
-      if (document.body) document.body.appendChild(badge);
-    };
-    document.addEventListener('DOMContentLoaded', showDebug);
-    window.addEventListener('load', showDebug);
-  } catch (e) {
-    try {
-      var errBadge = document.createElement('div');
-      errBadge.textContent = '진단스크립트 오류: ' + e.message;
-      errBadge.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:999999;background:#900;color:#fff;font-size:11px;padding:4px 8px;border-radius:6px;';
-      document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(errBadge); });
-    } catch(e2) {}
-  }
-})();
-</script>
-<script>
-// ── 윅스(Wix) iframe 스케일링 보정 ──
-// 윅스에 iframe/외부URL로 삽입된 경우, 실제 폰 화면보다 훨씬 넓은 "가상 데스크탑 너비"로
-// 페이지가 렌더링되고 그걸 통째로 축소해서 보여주는 경우가 있음(윅스 iframe 특성).
-// → 실제 물리적 화면 너비(screen.width, iframe 안에서도 진짜 값을 반환함)를 기준으로
-//   뷰포트를 강제로 다시 설정해서, 모바일 미디어쿼리가 정상적으로 발동하도록 보정.
-// 직접 접속(최상위 창)일 땐 아무 것도 건드리지 않음.
-(function () {
-  try {
-    if (window.self === window.top) return; // iframe 안이 아니면(직접 접속) 그대로 둠
-    var realWidth = (window.screen && window.screen.width) ? window.screen.width : 0;
-    var check = function () {
-      if (!realWidth) return;
-      var renderedWidth = document.documentElement.clientWidth;
-      if (renderedWidth > realWidth * 1.25) {
-        var meta = document.querySelector('meta[name="viewport"]');
-        if (meta) {
-          meta.setAttribute('content', 'width=' + realWidth + ', initial-scale=1.0, maximum-scale=3.0, user-scalable=yes');
-        }
-      }
-    };
-    check();
-    document.addEventListener('DOMContentLoaded', check);
-    window.addEventListener('load', check);
-  } catch (e) { /* 보정 실패해도 페이지 자체는 정상 동작해야 하므로 무시 */ }
+    if (!isIframe) return;
+    var isMobile = (window.screen && window.screen.width)
+      ? window.screen.width <= 768
+      : /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    if (!isMobile) return;
+    window.top.location.href = 'https://chiwoo3292-sudo.github.io/JBDSTOCK/';
+  } catch (e) { /* 리다이렉트 실패해도 페이지 자체는 그대로 보여야 하므로 무시 */ }
 })();
 </script>
 <title>지복득마루시스템</title>
