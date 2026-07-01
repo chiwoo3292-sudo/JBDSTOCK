@@ -1604,12 +1604,43 @@
 
 <script>
 (function(){
-  const DEFAULT_SLOTS = [
+  // 평일(월~금): 10:00~17:00, 30분 단위 = 14개
+  const WEEKDAY_SLOTS = [
     '10:00~10:30','10:30~11:00','11:00~11:30','11:30~12:00',
     '12:00~12:30','12:30~13:00','13:00~13:30','13:30~14:00',
     '14:00~14:30','14:30~15:00','15:00~15:30','15:30~16:00',
     '16:00~16:30','16:30~17:00'
   ];
+  // 토요일: 10:00~16:00, 30분 단위 = 12개 (평일보다 마감시간 1시간 이름)
+  const SATURDAY_SLOTS = [
+    '10:00~10:30','10:30~11:00','11:00~11:30','11:30~12:00',
+    '12:00~12:30','12:30~13:00','13:00~13:30','13:30~14:00',
+    '14:00~14:30','14:30~15:00','15:00~15:30','15:30~16:00'
+  ];
+
+  let holidayMap = {}; // { "2026-01-01": "신정", ... } — 소비자 예약폼과 동일 소스
+  let currentSlots = WEEKDAY_SLOTS; // 현재 선택된 날짜 기준 슬롯 목록 (동적으로 바뀜)
+
+  async function loadAdminHolidays() {
+    try {
+      const res = await fetch(`${RESERVE_URL}?action=getHolidays`);
+      const data = await res.json();
+      if (data.status === 'ok' && data.holidays) holidayMap = data.holidays;
+    } catch (e) {
+      console.warn('공휴일 정보 로드 실패:', e.message);
+    }
+  }
+
+  // 날짜(YYYY-MM-DD) 기준 슬롯 목록 결정: 평일 14개 / 토요일 12개 / 일요일·공휴일 0개
+  function getSlotsForDate(dateStr) {
+    if (holidayMap[dateStr]) return [];
+    const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return WEEKDAY_SLOTS;
+    const dow = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay();
+    if (dow === 0) return []; // 일요일
+    if (dow === 6) return SATURDAY_SLOTS;
+    return WEEKDAY_SLOTS;
+  }
 
   let allReservations = [];
   let selectedRsv = null;
@@ -1820,13 +1851,23 @@
     const date = document.getElementById('slotDate').value;
     if (!date) { alert('날짜를 선택해주세요.'); return; }
     document.getElementById('slotMsg').textContent = '불러오는 중...';
+
+    currentSlots = getSlotsForDate(date); // 평일14 / 토12 / 일요일·공휴일 0
     slotState = {};
-    DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
+    currentSlots.forEach(s => slotState[s] = 'open');
+
+    if (currentSlots.length === 0) {
+      const reason = holidayMap[date] ? `공휴일(${holidayMap[date]})` : '일요일';
+      document.getElementById('slotGrid').innerHTML = `<div style="grid-column:1/-1;padding:16px;text-align:center;color:#888;">${reason} — 예약 운영일이 아닙니다.</div>`;
+      document.getElementById('slotMsg').textContent = '';
+      return;
+    }
+
     try {
       const res = await fetch(`${RESERVE_URL}?action=getSlots&date=${date}`);
       const data = await res.json();
       if (data.status === 'ok' && data.closedSlots) {
-        data.closedSlots.forEach(s => slotState[s] = 'closed');
+        data.closedSlots.forEach(s => { if (s in slotState) slotState[s] = 'closed'; });
       }
       document.getElementById('slotMsg').textContent = '';
     } catch(e) {
@@ -1837,7 +1878,7 @@
 
   // ── 슬롯 그리드 렌더링 ──
   function renderSlotGrid() {
-    document.getElementById('slotGrid').innerHTML = DEFAULT_SLOTS.map(s => `
+    document.getElementById('slotGrid').innerHTML = currentSlots.map(s => `
       <div class="slot-cell${slotState[s]==='closed'?' closed':''}" onclick="toggleSlot('${s}')">
         ${s}<br><span style="font-size:10px;font-weight:400;">${slotState[s]==='closed'?'마감':'오픈'}</span>
       </div>
@@ -1854,6 +1895,7 @@
   window.saveSlots = async function() {
     const date = document.getElementById('slotDate').value;
     if (!date) { alert('날짜를 선택해주세요.'); return; }
+    if (currentSlots.length === 0) { alert('해당 날짜는 예약 운영일이 아니라 저장할 슬롯이 없습니다.'); return; }
     const closedSlots = Object.entries(slotState).filter(([,v])=>v==='closed').map(([k])=>k);
     document.getElementById('slotMsg').textContent = '저장 중...';
     try {
@@ -1873,7 +1915,8 @@
 
   // ── 슬롯 초기화 (전체 오픈) ──
   window.resetSlots = function() {
-    DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
+    if (currentSlots.length === 0) return;
+    currentSlots.forEach(s => slotState[s] = 'open');
     renderSlotGrid();
     document.getElementById('slotMsg').textContent = '전체 오픈으로 초기화되었습니다. 저장 버튼을 눌러주세요.';
   };
@@ -1882,15 +1925,18 @@
   window.closeAllSlots = async function() {
     const date = document.getElementById('slotDate').value;
     if (!date) { alert('날짜를 선택해주세요.'); return; }
+    if (currentSlots.length === 0) { alert('해당 날짜는 예약 운영일이 아니라 마감 처리할 슬롯이 없습니다.'); return; }
     if (!confirm(`${date} 전체 타임을 마감 처리하고 저장할까요?`)) return;
-    DEFAULT_SLOTS.forEach(s => slotState[s] = 'closed');
+    currentSlots.forEach(s => slotState[s] = 'closed');
     renderSlotGrid();
     await saveSlots();
   };
 
-  // 초기 슬롯 그리드 렌더
-  DEFAULT_SLOTS.forEach(s => slotState[s] = 'open');
-  renderSlotGrid();
+  // 초기 슬롯 그리드 렌더 — 공휴일 데이터를 먼저 불러온 뒤 오늘 날짜 기준으로 표시
+  (async function initSlotGrid() {
+    await loadAdminHolidays();
+    await window.loadSlots();
+  })();
 })();
 </script>
 
@@ -2535,7 +2581,8 @@
 <script>
 (function(){
   let allConsults = [];
-  let _consultsCache = null;      // 마지막으로 받은 상담 데이터 캐시
+  let _consultsCache = null;      // 마지막으로 받은 상담 데이터 캐시 (최근 100건)
+  let _consultsFullCache = null;  // 전체검색 시 1회 조회해 캐시하는 전체 상담 데이터
   let _consultsLoading = false;   // 현재 서버 요청 진행 중 여부
   let selectedConsult = null;
   let csCurrentFilter = '전체';
@@ -2730,6 +2777,7 @@
 
   // ── 목록 불러오기 ──
   window.loadConsults = async function(force) {
+    if (force) _consultsFullCache = null; // 강제 새로고침 시 전체검색 캐시도 초기화
     // 캐시가 있으면 즉시 화면에 표시 (stale-while-revalidate)
     if (_consultsCache && !force) {
       allConsults = _consultsCache;
@@ -2839,6 +2887,23 @@
   window.renderConsultList = async function() {
     const map = await loadAllStaffMap();
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
+
+    // ★ 검색어가 있으면 전체 데이터로 전환(최초 1회만 서버조회 후 캐시), 검색어를 지우면 최근 100건으로 복귀
+    if (q) {
+      if (!_consultsFullCache) {
+        const bodyEl = document.getElementById('csTableBody');
+        if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
+        try {
+          const res = await fetch(`${RESERVE_URL}?action=getConsultsFull`);
+          const data = await res.json();
+          if (data.status === 'ok') _consultsFullCache = data.rows || [];
+        } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
+      }
+      if (_consultsFullCache) allConsults = _consultsFullCache;
+    } else if (_consultsCache) {
+      allConsults = _consultsCache; // 검색어 없으면 최근 100건 목록으로 복귀
+    }
+    window._allConsultsRef = allConsults;
 
     // 원본 인덱스를 함께 보관
     let list = allConsults.map((r, origIdx) => ({ ...r, _origIdx: origIdx })).filter(r => {
