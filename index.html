@@ -27,6 +27,17 @@
     check();
     document.addEventListener('DOMContentLoaded', check);
     window.addEventListener('load', check);
+
+    // ── 진단용: 값 확인 편하게 화면 구석에 잠깐 표시 (원인 파악되면 이 블록은 나중에 제거) ──
+    var showDebug = function () {
+      var renderedWidth = document.documentElement.clientWidth;
+      var badge = document.createElement('div');
+      badge.textContent = 'screen:' + realWidth + ' / rendered:' + renderedWidth;
+      badge.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:999999;background:#000;color:#0f0;font-size:11px;padding:4px 8px;border-radius:6px;font-family:monospace;opacity:0.85;';
+      document.body.appendChild(badge);
+    };
+    document.addEventListener('DOMContentLoaded', showDebug);
+    window.addEventListener('load', showDebug);
   } catch (e) { /* 보정 실패해도 페이지 자체는 정상 동작해야 하므로 무시 */ }
 })();
 </script>
