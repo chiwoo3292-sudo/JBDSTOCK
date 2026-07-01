@@ -22,11 +22,9 @@
       if (document.getElementById('wixExitOverlay')) return;
       var overlay = document.createElement('div');
       overlay.id = 'wixExitOverlay';
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#F4EFE6;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:"Pretendard","Noto Sans KR",sans-serif;text-align:center;';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:"Pretendard","Noto Sans KR",sans-serif;text-align:center;';
       overlay.innerHTML =
-        '<div style="width:64px;height:64px;border-radius:16px;background:#A2693E;display:flex;align-items:center;justify-content:center;margin-bottom:22px;box-shadow:0 6px 16px rgba(162,105,62,0.28);">' +
-          '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' +
-        '</div>' +
+        '<img src="https://raw.githubusercontent.com/chiwoo3292-sudo/JBDSTOCK/refs/heads/main/지복득마루메인로고.jpg" alt="지복득마루" style="width:120px;height:auto;margin-bottom:22px;">' +
         '<div style="font-family:\'Noto Serif KR\',serif;font-size:22px;font-weight:500;color:#2B2521;letter-spacing:0.32em;margin-left:0.32em;margin-bottom:14px;">지복득마루</div>' +
         '<div style="font-size:13.5px;color:#7a6f61;line-height:1.6;margin-bottom:28px;max-width:280px;">모바일에서는 더 넓고 편한 화면으로<br>보여드리기 위해 페이지를 이동합니다</div>' +
         '<button id="wixExitBtn" style="background:#A2693E;color:#fff;border:none;padding:16px 36px;border-radius:12px;font-size:15px;font-weight:800;box-shadow:0 6px 18px rgba(162,105,62,0.35);cursor:pointer;font-family:inherit;">사내시스템에 접속합니다</button>';
