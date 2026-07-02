@@ -3547,16 +3547,23 @@ function csDateInputValue(val) {
     const results = document.getElementById('cfRevisitResults');
     if (!q) { results.innerHTML = ''; return; }
 
-    // ★ 최근 100건만이 아니라 전체 데이터에서 검색 (오래전 방문 고객도 찾을 수 있도록)
-    if (!_consultsFullCache) {
-      results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">전체 데이터에서 검색 중...</div>';
-      try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
-        const data = await res.json();
-        if (data.status === 'ok') _consultsFullCache = data.rows || [];
-      } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
+    let pool;
+
+    if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+      // Firestore 실시간 동기화 중이면 allConsults가 이미 전체 데이터 → 바로 검색
+      pool = allConsults;
+    } else {
+      // Apps Script 방식: 전체 데이터 1회 조회 후 캐시
+      if (!_consultsFullCache) {
+        results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">전체 데이터에서 검색 중...</div>';
+        try {
+          const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
+          const data = await res.json();
+          if (data.status === 'ok') _consultsFullCache = data.rows || [];
+        } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
+      }
+      pool = _consultsFullCache || allConsults;
     }
-    const pool = _consultsFullCache || allConsults;
 
     const matched = pool.filter(r =>
       (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
