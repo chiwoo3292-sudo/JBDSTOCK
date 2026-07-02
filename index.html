@@ -62,43 +62,28 @@
 </script>
 <script>
 // ── Wix iframe 높이 자동 조절 (postMessage) ──
-// iframe 안에서 현재 문서 높이를 부모(Wix)에 실시간 전송
-// Wix Velo 코드가 수신해서 iframe 높이를 딱 맞게 조절 → 이중스크롤 해소
 (function () {
   try {
-    if (window.self === window.top) return; // iframe 안이 아니면 무시
-
+    if (window.self === window.top) return;
     var lastHeight = 0;
-
     function sendHeight() {
-      // scrollHeight: 실제 콘텐츠 전체 높이
       var h = Math.max(
         document.body.scrollHeight,
         document.body.offsetHeight,
         document.documentElement.scrollHeight,
         document.documentElement.offsetHeight
       );
-      if (h === lastHeight) return; // 변화 없으면 전송 안 함
+      if (h === lastHeight) return;
       lastHeight = h;
       window.parent.postMessage({ type: 'jbdHEIGHT', height: h }, '*');
     }
-
-    // DOM 준비 후 즉시 전송
     document.addEventListener('DOMContentLoaded', sendHeight);
     window.addEventListener('load', sendHeight);
-
-    // 탭 전환, 로그인 등으로 높이가 바뀔 때마다 전송
-    // ResizeObserver로 body 크기 변화 감지
     if (window.ResizeObserver) {
       var ro = new ResizeObserver(sendHeight);
-      document.addEventListener('DOMContentLoaded', function () {
-        ro.observe(document.body);
-      });
+      document.addEventListener('DOMContentLoaded', function () { ro.observe(document.body); });
     }
-
-    // 폴백: 300ms 간격으로 주기적 체크 (ResizeObserver 미지원 환경)
     setInterval(sendHeight, 300);
-
   } catch (e) {}
 })();
 </script>
@@ -214,7 +199,7 @@
   button:active { transform:translateY(1px); }
   button.secondary { background:#FFFDFA; color:#A2693E; border-color:#E5D9C6; box-shadow:none; }
   button.secondary:hover { background:#F6EEE1; border-color:#DCCDB4; }
-  .scroll { max-height:730px; overflow:auto; border:1px solid #eee; border-radius:14px; }
+  .scroll { max-height:730px; overflow:auto; border:1px solid #eee; border-radius:14px; scrollbar-width:thin; }
   table { width:100%; border-collapse:collapse; }
   th, td { padding:11px 10px; border-bottom:1px solid #F0E8DA; text-align:left; vertical-align:top; font-size:13px; line-height:1.45; font-variant-numeric:tabular-nums; }
   th { background:#F7F1E7; color:#978B7C; font-size:11.5px; font-weight:600; position:sticky; top:0; z-index:1; border-bottom:1.5px solid #E5D9C6; }
@@ -439,7 +424,7 @@
        (카드/레이아웃이 넓은 표 때문에 페이지를 밀어내 줌아웃되는 현상 차단) */
     .wrap {
         max-width: 100% !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
     }
     #pricingTab .layout,
     #pricingTab .card,
@@ -1599,7 +1584,7 @@
 <section id="reservationTab" class="tab-panel" style="display:none;">
 <style>
   /* ── 예약관리 전용 스타일 ── */
-  .rsv-wrap { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; overflow-x:hidden; }
+  .rsv-wrap { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; overflow-x:clip; }
   @media(max-width:900px){ .rsv-wrap { grid-template-columns: 1fr; } }
 
   .rsv-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
@@ -3988,7 +3973,7 @@ function csDateInputValue(val) {
 
 <section id="myInfoTab" class="tab-panel" style="display:none;">
 <style>
-  .myi-wrap { max-width:960px; margin:0 auto; padding:12px 0; overflow-x:hidden; }
+  .myi-wrap { max-width:960px; margin:0 auto; padding:12px 0; overflow-x:clip; }
 
   /* 프로필 카드 */
   .myi-profile-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px 28px; margin-bottom:16px; display:flex; align-items:center; gap:22px; }
@@ -4219,7 +4204,7 @@ function csDateInputValue(val) {
 <!-- ============================================================ -->
 <section id="smsTab" class="tab-panel" style="display:none;">
 <style>
-  .sms-wrap { max-width:860px; margin:0 auto; padding:10px 0; overflow-x:hidden; }
+  .sms-wrap { max-width:860px; margin:0 auto; padding:10px 0; overflow-x:clip; }
   .sms-header { font-size:20px; font-weight:800; color:#222; margin-bottom:6px; }
   .sms-desc { font-size:13px; color:#888; margin-bottom:20px; }
   .sms-template-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
