@@ -112,7 +112,7 @@
   .tabs-wrap { 
     position:sticky; top:0; z-index:1000;
     display:flex; align-items:center; gap:8px; margin-bottom:6px;
-    background:rgba(244,239,230,0.82); -webkit-backdrop-filter:saturate(1.4) blur(10px); backdrop-filter:saturate(1.4) blur(10px); padding:10px 12px; border-bottom:1px solid #E7DDCB;
+    background:rgba(244,239,230,0.82); -webkit-backdrop-filter:saturate(1.4) blur(10px); backdrop-filter:saturate(1.4) blur(10px); padding:14px 12px; border-bottom:1px solid #E7DDCB;
   }
   .hamburger-btn { min-width:36px; height:36px; border:1px solid #E5D9C6; border-radius:8px; background:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
   .hamburger-btn span { display:block; width:16px; height:2px; background:#978B7C; border-radius:2px; }
@@ -140,7 +140,7 @@
   .user-dropdown-header .udh-sub { font-size:11.5px; color:#999; margin-top:2px; }
 
   /* 햄버거 메뉴 드롭다운 */
-  .hamburger-menu { display:none; position:fixed; top:0; left:0; width:280px; height:100vh; background:#fff; z-index:99998; box-shadow:4px 0 20px rgba(0,0,0,0.12); overflow-y:auto; flex-direction:column; }
+  .hamburger-menu { display:none; position:fixed; top:0; left:0; width:280px; height:100vh; height:100dvh; background:#fff; z-index:99998; box-shadow:4px 0 20px rgba(0,0,0,0.12); overflow-y:auto; flex-direction:column; }
   .hamburger-menu.open { display:flex; }
   .hamburger-menu-header { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid #eee; position:sticky; top:0; background:#fff; z-index:1; }
   .hamburger-menu-header h3 { font-size:15px; font-weight:800; margin:0; }
@@ -329,7 +329,7 @@
 
 /* 잠금 오버레이 */
 #authOverlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    position: fixed; top: 0; left: 0; width: 100vw; height:100vh; height:100dvh;
     background: #f5f5f5; z-index: 99999; display: flex;
     align-items: center; justify-content: center; padding: 0; margin: 0;
 }
@@ -748,7 +748,7 @@
         </div>
       </div>
 
-   <div class="pricing-right-col" style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px; height: calc(100vh - 130px); max-height: calc(100vh - 130px);">
+   <div class="pricing-right-col" style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px; height: calc(100vh - 130px); height: calc(100dvh - 130px); max-height: calc(100vh - 130px); max-height: calc(100dvh - 130px);">
         <div class="card" id="captureArea">
           <div class="right-head">
             <h2 class="title" style="margin-bottom:0;">단가 안내</h2>
@@ -914,7 +914,7 @@
   </section>
 
 <section id="memoTab" class="tab-panel" style="display:none;">
-    <div class="card" style="display: flex; flex-direction: column; height: calc(100vh - 130px); max-height: calc(100vh - 130px); box-sizing: border-box;">
+    <div class="card" style="display: flex; flex-direction: column; height: calc(100vh - 130px); height: calc(100dvh - 130px); max-height: calc(100vh - 130px); max-height: calc(100dvh - 130px); box-sizing: border-box;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-shrink: 0;">
         <h2 class="title" style="margin-bottom:0;">업무 메모</h2>
         <button type="button" id="clearMemo" style="background:#ff4d4d; color:white; border:none; border-radius:4px; padding:6px 12px; cursor:pointer; font-size:13px;">전체삭제</button>
@@ -1562,7 +1562,7 @@
   .rsv-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
   .rsv-card-title { font-size:15px; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
 
-  .rsv-list { display:flex; flex-direction:column; gap:8px; max-height:600px; overflow-y:auto; }
+  .rsv-list { display:flex; flex-direction:column; gap:8px; }
   .rsv-item { border:1px solid #eee; border-radius:12px; padding:14px 16px; cursor:pointer; transition:all 0.15s; }
   .rsv-item:hover { border-color:#111; background:#fafafa; }
   .rsv-item.selected { border-color:#111; background:#f5f5f5; }
@@ -2221,7 +2221,7 @@
   .dw-search-line .dw-search-right span { cursor:pointer; }
   .dw-search-line .dw-dropdown { border:1px solid #ddd; border-radius:5px; padding:4px 9px; font-size:12px; color:#666; }
 
-  .dw-search-controls { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .dw-search-controls { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
 
   /* 통합 검색창: 입력+아이콘 한 덩어리 */
   .dw-search-box { display:flex; align-items:center; border:1px solid #ddd; border-radius:6px; padding:0 10px; height:36px; width:340px; max-width:100%; background:#fff; flex:0 0 340px; }
@@ -2231,8 +2231,8 @@
 
   .dw-cond-btn { border:1px solid #ddd; border-radius:6px; padding:0 14px; height:36px; font-size:12.5px; font-weight:700; color:#555; background:#fff; cursor:pointer; white-space:nowrap; }
 
-  .dw-count-toolbar-row { display:flex; align-items:center; margin-bottom:8px; }
-  .dw-count-line { font-size:13px; color:#222; font-weight:500; }
+  .dw-count-toolbar-row { display:flex; align-items:center; margin-bottom:4px; }
+  .dw-count-line { font-size:12.5px; color:#222; font-weight:500; }
   .dw-count-line strong { font-weight:700; }
 
   .dw-filter-chips { display:flex; gap:6px; margin-left:auto; }
@@ -2240,7 +2240,7 @@
   .dw-chip.on { background:#222; color:#fff; border-color:#222; }
 
   /* 툴바 */
-  .dw-toolbar { display:flex; align-items:center; gap:16px; padding:9px 2px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; margin-bottom:0; }
+  .dw-toolbar { display:flex; align-items:center; gap:16px; padding:6px 2px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; margin-bottom:0; }
   .dw-toolbar-item { display:flex; align-items:center; gap:5px; font-size:12.5px; color:#444; font-weight:700; cursor:pointer; background:#fff; border:1.5px solid #D8C7AE; border-radius:8px; padding:7px 14px; transition:background .12s, border-color .12s; }
   .dw-toolbar-item:hover { background:#F3EADB; border-color:#A2693E; }
   .dw-toolbar-item .ic { font-size:13px; }
@@ -2346,7 +2346,7 @@
     .dw-form-page {
       width: 100%;
       max-width: 100%;
-      max-height: 100vh;
+      max-height:100vh; max-height:100dvh;
       height: 100%;
       border-radius: 0;
       padding: calc(var(--ui-scale) * 18px) calc(var(--ui-scale) * 16px) calc(var(--ui-scale) * 48px);
@@ -2437,7 +2437,7 @@
   <div class="dw-search-controls">
     <div class="dw-search-box">
       <input type="text" id="csSearch" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchConsultAndRefresh();}">
-      <span class="icon" onclick="searchConsultAndRefresh()" style="cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+      <span class="icon" onclick="searchConsultAndRefresh()" style="cursor:pointer;pointer-events:auto;padding:6px;margin:-6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
     </div>
     <button class="dw-cond-btn" id="csCondBtn" onclick="toggleCondPanel()">+ 조건추가</button>
   </div>
@@ -2509,7 +2509,7 @@
   </div>
 
   <!-- 페이지네이션 -->
-  <div id="csPagination" style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:14px;font-size:13px;"></div>
+  <div id="csPagination" style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;"></div>
 
 </div>
 
@@ -4121,6 +4121,17 @@ function csDateInputValue(val) {
     </div>
   </div>
 
+  <!-- 내 홈 화면 설정 -->
+  <div class="myi-pw-card" id="myiHomeTabCard">
+    <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>내 홈 화면 설정</div>
+    <p style="font-size:12.5px;color:#888;margin:0 0 14px;">로그인하면 바로 보여줄 화면을 골라주세요. 설정 안 하면 기본으로 "내 정보" 화면이 뜹니다. 어느 기기로 로그인하든 동일하게 적용됩니다.</p>
+    <div style="display:flex;gap:8px;">
+      <select id="miHomeTabSelect" style="flex:1;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;"></select>
+      <button onclick="saveMyHomeTab()" style="padding:9px 18px;background:#A2693E;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap;">저장</button>
+    </div>
+    <div id="miHomeTabMsg" style="font-size:11.5px;color:#1a7a45;margin-top:8px;"></div>
+  </div>
+
   <!-- 비밀번호 변경 -->
   <div class="myi-pw-card" id="myiPwChangeCard">
     <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>비밀번호 변경</div>
@@ -4786,7 +4797,7 @@ function csDateInputValue(val) {
             if (myBtn) myBtn.style.display = '';
             // 직원 전용 내정보 항목들 표시 (게스트→직원 전환 대비 초기화)
             ['myiGuestNotice'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn'].forEach(id => {
+            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard'].forEach(id => {
               const el = document.getElementById(id);
               if (el) el.style.display = '';
             });
@@ -4812,7 +4823,7 @@ function csDateInputValue(val) {
             const myInfoItem = document.getElementById('userDropdownMyInfo');
             // ★ 게스트도 "내 정보"(화면 표시 설정)에는 접근 가능하게 열어줌 — 개인정보는 없으니 관련 카드만 숨김
             if (myInfoItem) myInfoItem.style.display = 'flex';
-            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn'].forEach(id => {
+            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard'].forEach(id => {
               const el = document.getElementById(id);
               if (el) el.style.display = 'none';
             });
@@ -4825,22 +4836,16 @@ function csDateInputValue(val) {
         const lastTab = localStorage.getItem('baram_last_tab');
         if (loginType === 'user') {
             if (typeof setTab === 'function') {
-              if (userData.role === 'admin') {
-                setTab('adminTab');
-              } else {
-                setTab('myInfoTab');
-              }
+              // ★ 개인 홈 화면 설정이 있으면 그걸로, 없으면 기본값 "내 정보"로 이동 (역할 무관)
+              const target = (userData.homeTab && document.getElementById(userData.homeTab)) ? userData.homeTab : 'myInfoTab';
+              setTab(target);
             }
             setTimeout(() => {
               if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
             }, 300);
-        } else if (lastTab && document.getElementById(lastTab) && typeof setTab === 'function') {
-            setTab(lastTab);
-            if (lastTab === 'reservationTab') {
-              setTimeout(() => {
-                if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
-              }, 300);
-            }
+        } else if (typeof setTab === 'function') {
+            // 게스트도 기본은 내 정보 화면
+            setTab('myInfoTab');
         }
         setTimeout(() => {
           if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
@@ -6312,6 +6317,7 @@ function setTab(tabId, fromPopstate) {
     let saved = '1';
     try { saved = localStorage.getItem(getUiDensityStorageKey()) || '1'; } catch(_) {}
     applyUiDensity(saved);
+    if (typeof populateHomeTabSelect === 'function') populateHomeTabSelect();
   }
   if (tabId === 'adminTab' && typeof loadEmployees === 'function') {
     // 직원목록 + 수정신청목록 + 연차현황 병렬 로드
@@ -6370,6 +6376,44 @@ const TAB_LABELS = {
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
   memoTab:'메모장', noticeTab:'공지게시판', adminTab:'관리자', smsTab:'문자발송', orgTab:'조직도'
+};
+
+// ── 내 홈 화면 설정 ──
+window.populateHomeTabSelect = function() {
+  const sel = document.getElementById('miHomeTabSelect');
+  if (!sel) return;
+  const current = (window._currentUser && window._currentUser.homeTab) || '';
+  let html = `<option value="">내 정보 (기본값)</option>`;
+  Object.keys(TAB_LABELS).forEach(id => {
+    // 본인이 접근 가능한(탭바에 실제 보이는) 탭만 선택지로 표시
+    const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+    if (btn && btn.style.display !== 'none') {
+      html += `<option value="${id}"${current === id ? ' selected' : ''}>${TAB_LABELS[id]}</option>`;
+    }
+  });
+  sel.innerHTML = html;
+};
+
+window.saveMyHomeTab = async function() {
+  const sel = document.getElementById('miHomeTabSelect');
+  const homeTab = sel ? sel.value : '';
+  const msg = document.getElementById('miHomeTabMsg');
+  const id = window._currentUser ? window._currentUser.id : '';
+  if (!id) { if (msg) msg.textContent = '로그인 정보가 없습니다.'; return; }
+  if (msg) msg.textContent = '저장 중...';
+  try {
+    const params = new URLSearchParams({ action: 'saveMyHomeTab', id, homeTab });
+    const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      window._currentUser.homeTab = homeTab;
+      if (msg) { msg.textContent = '저장되었습니다!'; setTimeout(() => { msg.textContent = ''; }, 2500); }
+    } else {
+      if (msg) msg.textContent = '저장 실패: ' + (data.message || '');
+    }
+  } catch (e) {
+    if (msg) msg.textContent = '오류: ' + e.message;
+  }
 };
 const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 
@@ -10123,7 +10167,7 @@ if ('serviceWorker' in navigator) {
     #orgLeaveList .leave-bar-wrap { order:3; flex-basis:100%; }
   }
   @media (max-width:600px) {
-    #orgChartWrap .org-tree { zoom:0.62; }
+    #orgChartWrap .org-tree { zoom:0.5; }
   }
 </style>
 
@@ -10141,7 +10185,7 @@ if ('serviceWorker' in navigator) {
   <div id="orgEmpOverlay" onclick="closeOrgEmpPanel()" style="display:none;position:fixed;top:56px;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);z-index:601;"></div>
 
   <!-- 사원목록 슬라이드 패널 -->
-  <div id="orgEmpPanel" style="display:none;position:fixed;top:56px;left:0;width:260px;height:calc(100vh - 56px);background:#F7F1E7;z-index:602;box-shadow:4px 0 20px rgba(0,0,0,0.12);overflow-y:auto;padding:20px 16px;box-sizing:border-box;">
+  <div id="orgEmpPanel" style="display:none;position:fixed;top:56px;left:0;width:260px;height:calc(100vh - 56px); height: calc(100dvh - 56px);background:#F7F1E7;z-index:602;box-shadow:4px 0 20px rgba(0,0,0,0.12);overflow-y:auto;padding:20px 16px;box-sizing:border-box;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:14px;font-weight:800;color:#A2693E;">사원 목록</div>
       <button onclick="closeOrgEmpPanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
@@ -10150,7 +10194,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- 조직도 전체 배경 -->
-  <div style="padding:24px 16px;min-height:calc(100vh - 120px);">
+  <div style="padding:24px 16px;min-height:calc(100vh - 120px); min-height: calc(100dvh - 120px);">
     <div id="orgChartWrap" style="text-align:center;overflow-x:auto;padding-bottom:8px;"></div>
   </div>
 </section>
@@ -10162,7 +10206,7 @@ if ('serviceWorker' in navigator) {
 <!--  휴가신청 슬라이드 패널                                            -->
 <!-- ================================================================ -->
 <div id="leaveOverlay" onclick="closeLeavePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;"></div>
-<div id="leavePanel" style="display:none;position:fixed;top:0;right:0;width:min(420px,100vw);height:100vh;background:#fff;z-index:10001;box-shadow:-4px 0 24px rgba(0,0,0,0.12);overflow-y:auto;flex-direction:column;">
+<div id="leavePanel" style="display:none;position:fixed;top:0;right:0;width:min(420px,100vw);height:100vh; height:100dvh;background:#fff;z-index:10001;box-shadow:-4px 0 24px rgba(0,0,0,0.12);overflow-y:auto;flex-direction:column;">
   <div style="padding:20px 20px 0;border-bottom:1px solid #eee;margin-bottom:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:16px;font-weight:800;color:#222;">휴가신청</div>
