@@ -3402,6 +3402,7 @@
     document.getElementById('cfAuthor').textContent = '자동입력';
     document.getElementById('csFormOverlay').classList.add('open');
     document.body.classList.add('overlay-open');
+    const fp1 = document.querySelector('.dw-form-page'); if (fp1) fp1.scrollTop = 0;
   };
 
 function csDateInputValue(val) {
@@ -3715,9 +3716,8 @@ function csDateInputValue(val) {
 
     document.getElementById('csFormOverlay').classList.add('open');
     document.body.classList.add('overlay-open');
+    const fp2 = document.querySelector('.dw-form-page'); if (fp2) fp2.scrollTop = 0;
   };
-
-  window.closeConsultForm = function() {
     document.getElementById('csFormOverlay').classList.remove('open');
     document.body.classList.remove('overlay-open');
   };
@@ -8587,10 +8587,9 @@ function renderInvoice() {
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
     } else if (unit1 === 'PY') {
-        const boxMeta = buildBoxMetaStr('PY');
         document.getElementById('pvRemarks').innerHTML =
             `<div class="inv-remarks-title">REMARKS</div>
-단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/PY${boxMeta}<br>
+단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/PY<br>
 <span class="inv-red">실측 후 물량은 상이할 수 있음</span><br>
 <span class="inv-red">걸레받이 별도</span><br>
 시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드 - 친환경 황토풀 사용 기준<br>
@@ -8598,10 +8597,9 @@ function renderInvoice() {
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
     } else {
-        const boxMeta = buildBoxMetaStr('M2');
         document.getElementById('pvRemarks').innerHTML =
             `<div class="inv-remarks-title">REMARKS</div>
-단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/M2${boxMeta}<br>
+단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/M2<br>
 <span class="inv-red">실측 후 물량은 상이할 수 있음</span><br>
 <span class="inv-red">걸레받이 별도</span><br>
 시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드 - 친환경 황토풀 사용 기준<br>
