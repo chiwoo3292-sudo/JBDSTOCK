@@ -1043,7 +1043,7 @@
 .inv-actions button { min-height:40px; font-size:13px; }
 
 /* ---- 견적서 미리보기 ---- */
-.inv-preview-wrap { background:#fff; border:1px solid #e0e0e0; border-radius:18px; padding:20px; }
+.inv-preview-wrap { background:#fff; border:1px solid #e0e0e0; border-radius:18px; padding:20px; overflow-x:auto; }
 .inv-preview-label { font-size:11px; color:#888; font-weight:600; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
 
 /* A4 견적서 본체 */
@@ -1556,7 +1556,7 @@
 <section id="reservationTab" class="tab-panel" style="display:none;">
 <style>
   /* ── 예약관리 전용 스타일 ── */
-  .rsv-wrap { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .rsv-wrap { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; overflow-x:hidden; }
   @media(max-width:900px){ .rsv-wrap { grid-template-columns: 1fr; } }
 
   .rsv-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
@@ -3945,7 +3945,7 @@ function csDateInputValue(val) {
 
 <section id="myInfoTab" class="tab-panel" style="display:none;">
 <style>
-  .myi-wrap { max-width:960px; margin:0 auto; padding:12px 0; }
+  .myi-wrap { max-width:960px; margin:0 auto; padding:12px 0; overflow-x:hidden; }
 
   /* 프로필 카드 */
   .myi-profile-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px 28px; margin-bottom:16px; display:flex; align-items:center; gap:22px; }
@@ -4037,6 +4037,7 @@ function csDateInputValue(val) {
     <div id="cardViewerOverlay" onclick="closeCardViewer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;align-items:center;justify-content:center;">
       <img id="cardViewerImg" src="" alt="명함 원본"
         style="max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.5);object-fit:contain;">
+      <button onclick="event.stopPropagation();downloadCardImage();" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#A2693E;border:none;border-radius:999px;padding:12px 26px;font-size:13.5px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(0,0,0,0.3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>다운로드</button>
       <button onclick="closeCardViewer()" style="position:fixed;top:18px;right:18px;background:rgba(255,255,255,0.18);border:none;border-radius:50%;width:40px;height:40px;font-size:22px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
     </div>
   </div>
@@ -4175,7 +4176,7 @@ function csDateInputValue(val) {
 <!-- ============================================================ -->
 <section id="smsTab" class="tab-panel" style="display:none;">
 <style>
-  .sms-wrap { max-width:860px; margin:0 auto; padding:10px 0; }
+  .sms-wrap { max-width:860px; margin:0 auto; padding:10px 0; overflow-x:hidden; }
   .sms-header { font-size:20px; font-weight:800; color:#222; margin-bottom:6px; }
   .sms-desc { font-size:13px; color:#888; margin-bottom:20px; }
   .sms-template-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
@@ -6264,6 +6265,27 @@ function closeCardViewer() {
   const overlay = document.getElementById('cardViewerOverlay');
   if (overlay) overlay.style.display = 'none';
   document.body.style.overflow = '';
+}
+
+async function downloadCardImage() {
+  const img = document.getElementById('cardViewerImg');
+  const src = img ? img.src : '';
+  if (!src) return;
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '명함.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    // 다운로드 강제 실패 시(일부 모바일 브라우저 등) 새 탭에서 열어 길게 눌러 저장하도록 폴백
+    window.open(src, '_blank');
+  }
 }
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeCardViewer();
