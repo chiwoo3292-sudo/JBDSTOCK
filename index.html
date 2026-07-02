@@ -2250,7 +2250,7 @@
   /* 테이블 (엑셀 스타일 리사이즈) */
   .dw-table-scroll { overflow-x:auto; }
   table.dw-table { border-collapse:collapse; font-size:12.5px; table-layout:fixed; min-width:100%; }
-  table.dw-table thead th { position:relative; padding:8px 8px; text-align:center; font-weight:700; color:#A2693E; background:#F3EADB; border:1.5px solid #C9B695; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
+  table.dw-table thead th { position:relative; padding:8px 8px; text-align:center; font-weight:800; color:#fff; background:#A2693E; border:1.5px solid #8a5730; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
   table.dw-table tbody td { padding:6.5px 8px; text-align:center; border:1.5px solid #C9B695; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   table.dw-table tbody tr { cursor:pointer; }
   table.dw-table tbody tr:hover { background:#F3EADB; }
@@ -2495,11 +2495,11 @@
           <th style="width:46px;">No.<span class="dw-col-resizer"></span></th>
           <th style="width:34px;"><input type="checkbox" class="dw-checkbox" disabled><span class="dw-col-resizer"></span></th>
           <th style="width:90px; cursor:pointer;" onclick="toggleSort('status')">상태 <span id="sort-status"></span><span class="dw-col-resizer"></span></th>
-          <th style="width:250px; cursor:pointer;" onclick="toggleSort('counselor')">상담자 <span id="sort-counselor"></span><span class="dw-col-resizer"></span></th>
-          <th style="width:100px; cursor:pointer;" onclick="toggleSort('name')">성함 <span id="sort-name"></span><span class="dw-col-resizer"></span></th>
-          <th style="cursor:pointer;" onclick="toggleSort('company')">업체명 <span id="sort-company"></span><span class="dw-col-resizer"></span></th>
-          <th style="width:160px; cursor:pointer;" onclick="toggleSort('date')">일정 <span id="sort-date">▼</span><span class="dw-col-resizer"></span></th>
-          <th style="width:140px;">연락처<span class="dw-col-resizer"></span></th>
+          <th style="width:110px; cursor:pointer;" onclick="toggleSort('counselor')">상담자 <span id="sort-counselor"></span><span class="dw-col-resizer"></span></th>
+          <th style="width:90px; cursor:pointer;" onclick="toggleSort('name')">성함 <span id="sort-name"></span><span class="dw-col-resizer"></span></th>
+          <th style="width:200px; cursor:pointer;" onclick="toggleSort('company')">업체명 <span id="sort-company"></span><span class="dw-col-resizer"></span></th>
+          <th style="width:150px; cursor:pointer;" onclick="toggleSort('date')">일정 <span id="sort-date">▼</span><span class="dw-col-resizer"></span></th>
+          <th style="width:130px;">연락처<span class="dw-col-resizer"></span></th>
         </tr>
       </thead>
       <tbody id="csTableBody">
