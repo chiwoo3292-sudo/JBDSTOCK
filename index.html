@@ -192,7 +192,8 @@
  .quick-copy-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; align-items:stretch; margin-bottom:12px; }
   .quick-copy-label { grid-column:1 / -1; color:#777; font-size:12px; margin-bottom:2px; }
   .quick-preview-trigger { position:relative; }
-  .quick-preview-trigger .secondary { width:100%; }
+  .quick-preview-trigger .secondary { width:100%; transition:background .15s, color .15s, transform .15s; }
+  .quick-preview-trigger .secondary.copy-selected { background:#A2693E !important; color:#fff !important; border-color:#A2693E !important; transform:scale(0.96); }
   .quick-preview { position:fixed; display:none; width:300px; max-height:260px; overflow:auto; padding:14px; border:1px solid #ddd; border-radius:12px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.18); font-size:12px; line-height:1.6; color:#333; white-space:pre-wrap; z-index:99990; }
   #quickPreviewBackdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:99989; }
   #quickPreviewBackdrop.show { display:block; }
@@ -6916,7 +6917,15 @@ function initApp() {
   $('calcAreaInput').addEventListener('input',runCalculator);
   $('calcLossRateInput').addEventListener('input',runCalculator);
   $('calcResetBtn').addEventListener('click',resetCalculator);
-  document.querySelectorAll('.js-copy-template').forEach(btn=>btn.addEventListener('click',()=>{ copyToClipboard(templates[btn.dataset.template] || ''); btn.blur(); }));
+  document.querySelectorAll('.js-copy-template').forEach(btn=>btn.addEventListener('click',()=>{
+    if (btn.classList.contains('copy-selected')) return; // 연타 방지
+    btn.classList.add('copy-selected');
+    setTimeout(() => {
+      copyToClipboard(templates[btn.dataset.template] || '');
+      btn.classList.remove('copy-selected');
+      btn.blur();
+    }, 220);
+  }));
 
   /* ── 퀵 미리보기 툴팁: position:fixed 위치 계산 ── */
   (function(){
