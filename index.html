@@ -172,7 +172,7 @@
   button:active { transform:translateY(1px); }
   button.secondary { background:#FFFDFA; color:#A2693E; border-color:#E5D9C6; box-shadow:none; }
   button.secondary:hover { background:#F6EEE1; border-color:#DCCDB4; }
-  .scroll { max-height:730px; overflow:auto; border:1px solid #eee; border-radius:14px; }
+  .scroll { max-height:min(730px, calc(100dvh - 180px)); overflow:auto; border:1px solid #eee; border-radius:14px; }
   table { width:100%; border-collapse:collapse; }
   th, td { padding:11px 10px; border-bottom:1px solid #F0E8DA; text-align:left; vertical-align:top; font-size:13px; line-height:1.45; font-variant-numeric:tabular-nums; }
   th { background:#F7F1E7; color:#978B7C; font-size:11.5px; font-weight:600; position:sticky; top:0; z-index:1; border-bottom:1.5px solid #E5D9C6; }
@@ -749,7 +749,7 @@
         </div>
       </div>
 
-   <div class="pricing-right-col" style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px; height: calc(100vh - 130px); height: calc(100dvh - 130px); max-height: calc(100vh - 130px); max-height: calc(100dvh - 130px);">
+   <div class="pricing-right-col" style="display: grid; grid-template-rows: auto auto; gap: 14px;">
         <div class="card" id="captureArea">
           <div class="right-head">
             <h2 class="title" style="margin-bottom:0;">단가 안내</h2>
@@ -915,12 +915,12 @@
   </section>
 
 <section id="memoTab" class="tab-panel" style="display:none;">
-    <div class="card" style="display: flex; flex-direction: column; height: calc(100vh - 130px); height: calc(100dvh - 130px); max-height: calc(100vh - 130px); max-height: calc(100dvh - 130px); box-sizing: border-box;">
+    <div class="card" style="display: flex; flex-direction: column; box-sizing: border-box;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-shrink: 0;">
         <h2 class="title" style="margin-bottom:0;">업무 메모</h2>
         <button type="button" id="clearMemo" style="background:#ff4d4d; color:white; border:none; border-radius:4px; padding:6px 12px; cursor:pointer; font-size:13px;">전체삭제</button>
       </div>
-      <textarea id="workMemo" spellcheck="false" style="width:100%; flex: 1; min-height: 200px; padding:15px; border:1px solid #ddd; border-radius:8px; font-size:15px; line-height:1.6; resize:none; box-sizing:border-box; background:#fdfdfd; overflow-y:auto;" placeholder="업무 내용을 자유롭게 입력하세요..."></textarea>
+      <textarea id="workMemo" spellcheck="false" style="width:100%; min-height: calc(100dvh - 200px); padding:15px; border:1px solid #ddd; border-radius:8px; font-size:15px; line-height:1.6; resize:vertical; box-sizing:border-box; background:#fdfdfd;" placeholder="업무 내용을 자유롭게 입력하세요..."></textarea>
     </div>
 </section>
 
@@ -3868,7 +3868,7 @@ function csDateInputValue(val) {
     <div class="notice-detail-meta" id="noticeDetailMeta"></div>
     <div class="notice-detail-content" id="noticeDetailContent"></div>
     <div class="notice-modal-footer">
-      <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open')">닫기</button>
+      <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open');document.body.style.overflow='';">닫기</button>
     </div>
   </div>
 </div>
@@ -3911,10 +3911,11 @@ function csDateInputValue(val) {
     document.getElementById('noticeDetailMeta').textContent = `${n.category||'일반'} · ${n.author||''} · ${(n.date||'').slice(0,10)}`;
     document.getElementById('noticeDetailContent').textContent = n.content||'';
     document.getElementById('noticeDetailModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
   };
 
-  window.openNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.add('open'); };
-  window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); };
+  window.openNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.add('open'); document.body.style.overflow='hidden'; };
+  window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); document.body.style.overflow=''; };
 
   window.submitNotice = async function() {
     const title = document.getElementById('noticeTitle').value.trim();
@@ -10225,7 +10226,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- 조직도 전체 배경 -->
-  <div style="padding:24px 16px;min-height:calc(100vh - 120px); min-height: calc(100dvh - 120px);">
+  <div style="padding:24px 16px;">
     <div id="orgChartWrap" style="text-align:center;overflow-x:auto;padding-bottom:8px;"></div>
   </div>
 </section>
