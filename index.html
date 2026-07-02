@@ -29,9 +29,6 @@
 </script>
 <script>
 // ── 윅스(Wix) iframe 안 모바일 접속 시, 정상 화면으로 이동하는 버튼 표시 ──
-// 자동 리다이렉트는 최신 브라우저 보안 정책(사용자 제스처 없는 최상위 창 이동 차단)에
-// 걸려서 조용히 무시되는 걸 확인함 → 사용자가 직접 누르는 버튼 방식으로 변경.
-// 클릭이라는 확실한 사용자 행동이 있어야 브라우저가 이동을 허용해줌.
 (function () {
   try {
     var isIframe = (window.self !== window.top);
@@ -57,7 +54,7 @@
     };
     document.addEventListener('DOMContentLoaded', showButton);
     window.addEventListener('load', showButton);
-  } catch (e) { /* 실패해도 페이지 자체는 그대로 보여야 하므로 무시 */ }
+  } catch (e) {}
 })();
 </script>
 <script>
@@ -776,7 +773,7 @@
         </div>
       </div>
 
-   <div class="pricing-right-col" style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px; height: calc(100vh - 130px); height: calc(100dvh - 130px); max-height: calc(100vh - 130px); max-height: calc(100dvh - 130px);">
+   <div class="pricing-right-col" style="display: grid; grid-template-rows: auto auto; gap: 14px;">
         <div class="card" id="captureArea">
           <div class="right-head">
             <h2 class="title" style="margin-bottom:0;">단가 안내</h2>
@@ -841,7 +838,7 @@
     </div>
   </section>
 
-  <section id="calculatorTab" class="tab-panel">
+  <section id="calculatorTab" class="tab-panel" style="display:none;">
     <div class="calc-layout">
       <div class="card">
         <h2 class="title">단가 계산기</h2>
@@ -942,16 +939,16 @@
   </section>
 
 <section id="memoTab" class="tab-panel" style="display:none;">
-    <div class="card" style="display: flex; flex-direction: column; height: calc(100vh - 130px); height: calc(100dvh - 130px); max-height: calc(100vh - 130px); max-height: calc(100dvh - 130px); box-sizing: border-box;">
+    <div class="card" style="display: flex; flex-direction: column; box-sizing: border-box;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-shrink: 0;">
         <h2 class="title" style="margin-bottom:0;">업무 메모</h2>
         <button type="button" id="clearMemo" style="background:#ff4d4d; color:white; border:none; border-radius:4px; padding:6px 12px; cursor:pointer; font-size:13px;">전체삭제</button>
       </div>
-      <textarea id="workMemo" spellcheck="false" style="width:100%; flex: 1; min-height: 200px; padding:15px; border:1px solid #ddd; border-radius:8px; font-size:15px; line-height:1.6; resize:none; box-sizing:border-box; background:#fdfdfd; overflow-y:auto;" placeholder="업무 내용을 자유롭게 입력하세요..."></textarea>
+      <textarea id="workMemo" spellcheck="false" style="width:100%; min-height: calc(100dvh - 200px); padding:15px; border:1px solid #ddd; border-radius:8px; font-size:15px; line-height:1.6; resize:vertical; box-sizing:border-box; background:#fdfdfd;" placeholder="업무 내용을 자유롭게 입력하세요..."></textarea>
     </div>
 </section>
 
-<section id="stockTab" class="tab-panel">
+<section id="stockTab" class="tab-panel" style="display:none;">
     <div class="content-card">
 
         <!-- 타이틀 + 시계 -->
@@ -3895,7 +3892,7 @@ function csDateInputValue(val) {
     <div class="notice-detail-meta" id="noticeDetailMeta"></div>
     <div class="notice-detail-content" id="noticeDetailContent"></div>
     <div class="notice-modal-footer">
-      <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open')">닫기</button>
+      <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open');">닫기</button>
     </div>
   </div>
 </div>
@@ -3938,9 +3935,10 @@ function csDateInputValue(val) {
     document.getElementById('noticeDetailMeta').textContent = `${n.category||'일반'} · ${n.author||''} · ${(n.date||'').slice(0,10)}`;
     document.getElementById('noticeDetailContent').textContent = n.content||'';
     document.getElementById('noticeDetailModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
   };
 
-  window.openNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.add('open'); };
+  window.openNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.add('open'); document.body.style.overflow='hidden'; };
   window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); };
 
   window.submitNotice = async function() {
@@ -4021,10 +4019,7 @@ function csDateInputValue(val) {
   .myi-pw-msg { text-align:center; font-size:12px; color:#555; margin-top:6px; }
 
   /* 화면 표시 설정 (모바일 밀도) */
-  .ui-density-btn { background:#fff; border:1.5px solid #e0e0e0; border-radius:10px; padding:14px 6px; cursor:pointer; text-align:center; transition:border-color .15s, background .15s; color:#444; }
-  .ui-density-btn:hover { border-color:#cbb89a; }
-  .ui-density-btn.active { border-color:#A2693E; background:#FBF7F0; color:#A2693E; }
-  .ui-density-btn.active span:first-child { color:#A2693E; }
+
 
   /* 하단 버튼 */
   .myi-footer { display:flex; justify-content:center; gap:10px; margin-top:8px; }
@@ -4129,26 +4124,35 @@ function csDateInputValue(val) {
   <!-- 화면 표시 설정 -->
   <div class="myi-pw-card">
     <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>화면 표시 설정</div>
-    <p style="font-size:12.5px;color:#888;margin:0 0 14px;">모바일 화면의 여백·글자 크기를 조절해 더 많은 정보를 한눈에 볼 수 있어요. 이 기기에서 내 계정으로 로그인할 때마다 설정한 값이 그대로 유지됩니다.</p>
-    <div id="uiDensityOptions" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-      <button type="button" class="ui-density-btn" data-density="0.65" onclick="setUiDensity('0.65')">
-        <span style="display:block;font-weight:800;font-size:13px;">매우 촘촘</span>
-        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">최대로 보기</span>
-      </button>
-      <button type="button" class="ui-density-btn" data-density="0.85" onclick="setUiDensity('0.85')">
-        <span style="display:block;font-weight:800;font-size:13px;">촘촘하게</span>
-        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">정보 많이 보기</span>
-      </button>
-      <button type="button" class="ui-density-btn" data-density="1" onclick="setUiDensity('1')">
-        <span style="display:block;font-weight:800;font-size:13px;">기본</span>
-        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">표준 크기</span>
-      </button>
-      <button type="button" class="ui-density-btn" data-density="1.3" onclick="setUiDensity('1.3')">
-        <span style="display:block;font-weight:800;font-size:13px;">넓게</span>
-        <span style="display:block;font-size:10.5px;color:#999;margin-top:2px;">크게 보기</span>
-      </button>
+    <p style="font-size:12.5px;color:#888;margin:0 0 18px;">여백·글자 크기를 조절해 더 많은 정보를 한눈에 볼 수 있어요. 이 기기에서 내 계정으로 로그인할 때마다 설정한 값이 그대로 유지됩니다.</p>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:12px;color:#999;white-space:nowrap;flex-shrink:0;">작게</span>
+      <div style="flex:1;position:relative;">
+        <input type="range" id="uiScaleSlider" min="50" max="150" step="1" value="100"
+          style="width:100%;height:4px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,#A2693E 0%,#A2693E 50%,#e0e0e0 50%,#e0e0e0 100%);border-radius:2px;outline:none;cursor:pointer;">
+      </div>
+      <span style="font-size:12px;color:#999;white-space:nowrap;flex-shrink:0;">크게</span>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-size:12px;color:#A2693E;font-weight:700;">
+      현재: <span id="uiScaleLabel">100</span>%
+      <button type="button" onclick="resetUiScale()" style="margin-left:10px;background:none;border:1px solid #ddd;border-radius:6px;padding:2px 10px;font-size:11px;color:#999;font-weight:600;cursor:pointer;min-height:auto;">초기화</button>
     </div>
   </div>
+  <style>
+    #uiScaleSlider::-webkit-slider-thumb {
+      -webkit-appearance:none; appearance:none;
+      width:22px; height:22px; border-radius:50%;
+      background:#A2693E; cursor:pointer;
+      box-shadow:0 2px 6px rgba(162,105,62,0.4);
+      border:2px solid #fff;
+    }
+    #uiScaleSlider::-moz-range-thumb {
+      width:22px; height:22px; border-radius:50%;
+      background:#A2693E; cursor:pointer;
+      box-shadow:0 2px 6px rgba(162,105,62,0.4);
+      border:2px solid #fff;
+    }
+  </style>
 
   <!-- 내 홈 화면 설정 -->
   <div class="myi-pw-card" id="myiHomeTabCard">
@@ -6364,9 +6368,15 @@ function setTab(tabId, fromPopstate) {
   }
   if (tabId === 'noticeTab' && typeof loadNotices === 'function') loadNotices();
   if (tabId === 'myInfoTab' && typeof applyUiDensity === 'function') {
-    let saved = '1';
-    try { saved = localStorage.getItem(getUiDensityStorageKey()) || '1'; } catch(_) {}
+    let saved = '100';
+    try { saved = localStorage.getItem(getUiDensityStorageKey()) || '100'; } catch(_) {}
     applyUiDensity(saved);
+    // 슬라이더 이벤트 재연결 (탭 재진입 시 슬라이더가 새로 렌더됐을 수 있으므로)
+    const slider = document.getElementById('uiScaleSlider');
+    if (slider && !slider._scaleListenerAttached) {
+      slider.addEventListener('input', function() { setUiDensity(this.value); });
+      slider._scaleListenerAttached = true;
+    }
     if (typeof populateHomeTabSelect === 'function') populateHomeTabSelect();
   }
   if (tabId === 'adminTab' && typeof loadEmployees === 'function') {
@@ -8061,27 +8071,47 @@ function addInvoiceItem() {
 // ── 화면 표시 설정 (모바일 정보 밀도: 촘촘하게/기본/넓게) ──
 const UI_DENSITY_KEY = 'baram_ui_density';
 function getUiDensityStorageKey() {
-    // 로그인한 사용자별로 분리 저장 (같은 기기를 여러 직원이 같이 써도 각자 설정 유지)
     const uid = window._currentUser && window._currentUser.id;
     return uid ? `${UI_DENSITY_KEY}_${uid}` : UI_DENSITY_KEY;
 }
 function applyUiDensity(value) {
-    const v = String(value || '1');
-    document.documentElement.style.setProperty('--ui-scale', v);
-    document.querySelectorAll('.ui-density-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.density === v);
-    });
+    // value: 슬라이더 정수값(50~150) 또는 구형 소수값(0.65~1.3) 모두 호환
+    let pct = parseFloat(value);
+    // 구형 소수값(1 이하 소수 or 1.x) → 퍼센트로 변환
+    if (pct <= 2) pct = Math.round(pct * 100);
+    pct = Math.max(50, Math.min(150, pct));
+    const scale = pct / 100;
+    document.documentElement.style.setProperty('--ui-scale', scale);
+    // 슬라이더 UI 동기화
+    const slider = document.getElementById('uiScaleSlider');
+    const label = document.getElementById('uiScaleLabel');
+    if (slider) {
+        slider.value = pct;
+        // 트랙 채워진 비율 업데이트
+        const ratio = (pct - 50) / (150 - 50) * 100;
+        slider.style.background = `linear-gradient(to right,#A2693E 0%,#A2693E ${ratio}%,#e0e0e0 ${ratio}%,#e0e0e0 100%)`;
+    }
+    if (label) label.textContent = pct;
 }
 function setUiDensity(value) {
     applyUiDensity(value);
-    try { localStorage.setItem(getUiDensityStorageKey(), value); } catch(_) {}
-    // 견적서 탭이 열려있다면 비율 재계산
+    try { localStorage.setItem(getUiDensityStorageKey(), String(value)); } catch(_) {}
     if (typeof updateInvoiceScale === 'function') setTimeout(updateInvoiceScale, 30);
 }
+function resetUiScale() {
+    setUiDensity(100);
+}
 function initUiDensity() {
-    let saved = '1';
-    try { saved = localStorage.getItem(getUiDensityStorageKey()) || '1'; } catch(_) {}
+    let saved = '100';
+    try { saved = localStorage.getItem(getUiDensityStorageKey()) || '100'; } catch(_) {}
     applyUiDensity(saved);
+    // 슬라이더 이벤트 연결
+    const slider = document.getElementById('uiScaleSlider');
+    if (slider) {
+        slider.addEventListener('input', function() {
+            setUiDensity(this.value);
+        });
+    }
 }
 document.addEventListener('DOMContentLoaded', initUiDensity);
 
@@ -10252,7 +10282,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- 조직도 전체 배경 -->
-  <div style="padding:24px 16px;min-height:calc(100vh - 120px); min-height: calc(100dvh - 120px);">
+  <div style="padding:24px 16px;">
     <div id="orgChartWrap" style="text-align:center;overflow-x:auto;padding-bottom:8px;"></div>
   </div>
 </section>
