@@ -36,10 +36,69 @@
   try {
     var isIframe = (window.self !== window.top);
     if (!isIframe) return;
+
     var isMobile = (window.screen && window.screen.width)
       ? window.screen.width <= 768
       : /Mobi|Android|iPhone/i.test(navigator.userAgent);
-    if (!isMobile) return;
+
+    // ── PC + iframe: 이중스크롤 방지 ──
+    // Wix iframe 안에서는 iframe 자체 스크롤 + body 스크롤이 겹쳐 우측에 스크롤바 2개 생김
+    // → html/body를 height:100%/overflow:hidden으로 고정하고
+    //   .wrap에서만 스크롤되도록 위임
+    if (!isMobile) {
+      var applyIframeScrollFix = function () {
+        document.documentElement.style.height = '100%';
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.height = '100%';
+        document.body.style.overflow = 'hidden';
+        // mainSection을 flex column으로
+        var main = document.getElementById('mainSection');
+        if (main) {
+          main.style.height = '100%';
+          main.style.display = main.style.display === 'none' ? 'none' : 'flex';
+          main.style.flexDirection = 'column';
+        }
+        // tabs-wrap은 flex-shrink:0으로 높이 고정
+        var tabsWrap = document.querySelector('.tabs-wrap');
+        if (tabsWrap) {
+          tabsWrap.style.flexShrink = '0';
+          tabsWrap.style.position = 'relative'; // sticky 해제
+        }
+        // .wrap이 나머지 공간 채우며 단일 스크롤
+        var wrap = document.querySelector('.wrap');
+        if (wrap) {
+          wrap.style.flex = '1';
+          wrap.style.overflowY = 'auto';
+          wrap.style.overflowX = 'hidden';
+          wrap.style.boxSizing = 'border-box';
+          wrap.style.minHeight = '0';
+        }
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyIframeScrollFix);
+      } else {
+        applyIframeScrollFix();
+      }
+      window.addEventListener('load', applyIframeScrollFix);
+      // mainSection이 로그인 후 display:flex로 바뀔 때도 재적용
+      var origUnlock = window.unlockBody;
+      document.addEventListener('mainSectionShown', applyIframeScrollFix);
+      // MutationObserver로 mainSection display 변경 감지
+      var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          if (m.target.id === 'mainSection' && m.attributeName === 'style') {
+            applyIframeScrollFix();
+          }
+        });
+      });
+      document.addEventListener('DOMContentLoaded', function() {
+        var main = document.getElementById('mainSection');
+        if (main) observer.observe(main, { attributes: true, attributeFilter: ['style'] });
+      });
+      return;
+    }
+
+    // ── 모바일 + iframe: 정상 화면으로 이동 버튼 표시 ──
     var showButton = function () {
       if (document.getElementById('wixExitOverlay')) return;
       var overlay = document.createElement('div');
@@ -4780,7 +4839,11 @@ function csDateInputValue(val) {
 
     function unlock(loginType, userData) {
         if (lockSection) lockSection.style.display = 'none';
-        if (mainSection) mainSection.style.display = 'block';
+        if (mainSection) {
+          mainSection.style.display = 'block';
+          // Wix iframe PC 모드 스크롤 픽스 재적용 트리거
+          document.dispatchEvent(new CustomEvent('mainSectionShown'));
+        }
         unlockBody();
         window.scrollTo(0, 0);
         // 뒤로가기 시 직전 탭으로 이동하도록, 로그인 완료 시점을 히스토리 기준점으로 고정
