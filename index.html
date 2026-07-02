@@ -3718,6 +3718,8 @@ function csDateInputValue(val) {
     document.body.classList.add('overlay-open');
     const fp2 = document.querySelector('.dw-form-page'); if (fp2) fp2.scrollTop = 0;
   };
+
+  window.closeConsultForm = function() {
     document.getElementById('csFormOverlay').classList.remove('open');
     document.body.classList.remove('overlay-open');
   };
