@@ -105,14 +105,13 @@
 .grid-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
   .grid-tabs .quick-preview-trigger .secondary { width: 100%; min-height: 44px; padding: 0 4px; border: 1px solid #d8d8d8; border-radius: 8px; background: #fff; color: #444; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; }
   * { box-sizing:border-box; }
-  html { height: 100%; }
-  body { margin:0; font-family:'Pretendard','Noto Sans KR', sans-serif; background:#F4EFE6; color:#2B2521; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; height: 100%; overflow: hidden; }
+  body { margin:0; font-family:'Pretendard','Noto Sans KR', sans-serif; background:#F4EFE6; color:#2B2521; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
   [spellcheck], input, textarea, td, th, select { -webkit-spellcheck: false; }
   td, th { -webkit-user-modify: read-only; }
-  .wrap { max-width:1880px; margin:0 auto; padding:10px; flex:1; overflow-y:auto; overflow-x:hidden; }
+  .wrap { max-width:1880px; margin:0 auto; padding:10px; }
   .tabs-wrap { 
-    position:sticky; top:0; z-index:1000; flex-shrink:0;
-    display:flex; align-items:center; gap:8px; margin-bottom:0;
+    position:sticky; top:0; z-index:1000;
+    display:flex; align-items:center; gap:8px; margin-bottom:6px;
     background:rgba(244,239,230,0.82); -webkit-backdrop-filter:saturate(1.4) blur(10px); backdrop-filter:saturate(1.4) blur(10px); padding:14px 12px; border-bottom:1px solid #E7DDCB;
   }
   .hamburger-btn { min-width:36px; height:36px; border:1px solid #E5D9C6; border-radius:8px; background:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
@@ -399,7 +398,6 @@
     .wrap {
         max-width: 100% !important;
         overflow-x: hidden !important;
-        overflow-y: auto !important;
     }
     #pricingTab .layout,
     #pricingTab .card,
@@ -645,7 +643,7 @@
     </div>
 </section>
 
-<section id="mainSection" style="display:none; height:100%; flex-direction:column;">
+<section id="mainSection" style="display:none;">
   <div class="tabs-wrap no-capture">
     <button class="hamburger-btn no-capture" onclick="openHamburger()" title="전체 메뉴">
       <span></span><span></span><span></span>
@@ -816,7 +814,7 @@
     </div>
   </section>
 
-  <section id="calculatorTab" class="tab-panel">
+  <section id="calculatorTab" class="tab-panel" style="display:none;">
     <div class="calc-layout">
       <div class="card">
         <h2 class="title">단가 계산기</h2>
@@ -926,7 +924,7 @@
     </div>
 </section>
 
-<section id="stockTab" class="tab-panel">
+<section id="stockTab" class="tab-panel" style="display:none;">
     <div class="content-card">
 
         <!-- 타이틀 + 시계 -->
@@ -4769,17 +4767,16 @@ function csDateInputValue(val) {
         if (ls) ls.style.display = 'flex';
     }
     function unlockBody() {
-        document.body.style.overflow = 'hidden'; /* body scroll 방지 유지 - .wrap에서 단일 스크롤 */
+        document.body.style.overflow = '';
         const ls = document.getElementById('lockSection');
         if (ls) ls.style.display = 'none';
     }
 
     function unlock(loginType, userData) {
         if (lockSection) lockSection.style.display = 'none';
-        if (mainSection) mainSection.style.display = 'flex';
+        if (mainSection) mainSection.style.display = 'block';
         unlockBody();
-        const wrapEl = document.querySelector('.wrap');
-        if (wrapEl) wrapEl.scrollTop = 0;
+        window.scrollTo(0, 0);
         // 뒤로가기 시 직전 탭으로 이동하도록, 로그인 완료 시점을 히스토리 기준점으로 고정
         try { history.replaceState({ tab: null }, '', ''); } catch(_) {}
 
@@ -6255,8 +6252,7 @@ function resetViewportZoom() {
   setTimeout(() => {
     meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes');
   }, 50);
-  const wrap = document.querySelector('.wrap');
-  if (wrap) wrap.scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 function openCardViewer(src) {
@@ -6270,6 +6266,7 @@ function openCardViewer(src) {
 function closeCardViewer() {
   const overlay = document.getElementById('cardViewerOverlay');
   if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 async function downloadCardImage() {
@@ -6665,6 +6662,7 @@ function applyTabOrder() {
 function closeHamburger() {
   document.getElementById('hamburgerMenu').classList.remove('open');
   document.getElementById('hamburgerOverlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 window.toggleTabVisible = function(tabId, checked) {
