@@ -60,6 +60,48 @@
   } catch (e) { /* 실패해도 페이지 자체는 그대로 보여야 하므로 무시 */ }
 })();
 </script>
+<script>
+// ── Wix iframe 높이 자동 조절 (postMessage) ──
+// iframe 안에서 현재 문서 높이를 부모(Wix)에 실시간 전송
+// Wix Velo 코드가 수신해서 iframe 높이를 딱 맞게 조절 → 이중스크롤 해소
+(function () {
+  try {
+    if (window.self === window.top) return; // iframe 안이 아니면 무시
+
+    var lastHeight = 0;
+
+    function sendHeight() {
+      // scrollHeight: 실제 콘텐츠 전체 높이
+      var h = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
+      if (h === lastHeight) return; // 변화 없으면 전송 안 함
+      lastHeight = h;
+      window.parent.postMessage({ type: 'jbdHEIGHT', height: h }, '*');
+    }
+
+    // DOM 준비 후 즉시 전송
+    document.addEventListener('DOMContentLoaded', sendHeight);
+    window.addEventListener('load', sendHeight);
+
+    // 탭 전환, 로그인 등으로 높이가 바뀔 때마다 전송
+    // ResizeObserver로 body 크기 변화 감지
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(sendHeight);
+      document.addEventListener('DOMContentLoaded', function () {
+        ro.observe(document.body);
+      });
+    }
+
+    // 폴백: 300ms 간격으로 주기적 체크 (ResizeObserver 미지원 환경)
+    setInterval(sendHeight, 300);
+
+  } catch (e) {}
+})();
+</script>
 <title>지복득마루시스템</title>
 
 <!-- ── PWA 설정 ── -->
