@@ -2241,16 +2241,17 @@
 
   /* 툴바 */
   .dw-toolbar { display:flex; align-items:center; gap:16px; padding:9px 2px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; margin-bottom:0; }
-  .dw-toolbar-item { display:flex; align-items:center; gap:4px; font-size:12.5px; color:#555; font-weight:600; cursor:pointer; background:none; border:none; padding:0; }
+  .dw-toolbar-item { display:flex; align-items:center; gap:5px; font-size:12.5px; color:#444; font-weight:700; cursor:pointer; background:#fff; border:1.5px solid #D8C7AE; border-radius:8px; padding:7px 14px; transition:background .12s, border-color .12s; }
+  .dw-toolbar-item:hover { background:#F3EADB; border-color:#A2693E; }
   .dw-toolbar-item .ic { font-size:13px; }
   .dw-toolbar-spacer { flex:1; }
   .dw-toolbar-select { border:1px solid #ddd; border-radius:5px; padding:4px 4px; font-size:12px; color:#555; width:50px; }
 
   /* 테이블 (엑셀 스타일 리사이즈) */
   .dw-table-scroll { overflow-x:auto; }
-  table.dw-table { border-collapse:collapse; font-size:13px; table-layout:fixed; min-width:100%; }
-  table.dw-table thead th { position:relative; padding:10px 8px; text-align:center; font-weight:700; color:#A2693E; background:#F3EADB; border:1px solid #E5D9C6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
-  table.dw-table tbody td { padding:11px 8px; text-align:center; border:1px solid #E5D9C6; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  table.dw-table { border-collapse:collapse; font-size:12.5px; table-layout:fixed; min-width:100%; }
+  table.dw-table thead th { position:relative; padding:8px 8px; text-align:center; font-weight:700; color:#A2693E; background:#F3EADB; border:1.5px solid #C9B695; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
+  table.dw-table tbody td { padding:6.5px 8px; text-align:center; border:1.5px solid #C9B695; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   table.dw-table tbody tr { cursor:pointer; }
   table.dw-table tbody tr:hover { background:#F3EADB; }
 
@@ -2475,14 +2476,14 @@
 
   <div class="dw-toolbar">
     <button class="dw-toolbar-item" onclick="openManualRegister()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>등록</button>
-    <button class="dw-toolbar-item" onclick="deleteCheckedConsults()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>삭제</button>
+    <button class="dw-toolbar-item" onclick="deleteCheckedConsults()" style="color:#c0392b;border-color:#e6b0aa;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>삭제</button>
     <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#A2693E;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="downloadConsultCSV()">↓ 목록 다운로드(CSV)</button>
-    <button class="dw-toolbar-item" onclick="migrateConsultsToFirestore()" style="color:#2c5fc4;font-weight:700;">⇪ Firestore 이전(최초 1회)</button>
+    <button class="dw-toolbar-item" onclick="migrateConsultsToFirestore()" style="color:#2c5fc4;font-weight:700;">⇪ Firestore 동기화</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize" onchange="currentPage=1;renderConsultList()">
-      <option value="10" selected>10</option>
-      <option value="20">20</option>
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
       <option value="30">30</option>
     </select>
   </div>
@@ -3064,7 +3065,7 @@
     updateActiveFilterBadges();
   };
 
-  function updateActiveFilterBadges() {
+  window.updateActiveFilterBadges = function updateActiveFilterBadges() {
     const el = document.getElementById('csActiveFilters');
     if (!el) return;
     const badges = [];
@@ -3454,23 +3455,22 @@ function csDateInputValue(val) {
   };
 
   // ── 쇼룸상담 목록 CSV 다운로드 ──
-  // ── Firestore 최초 마이그레이션 (구글시트 기존 데이터 → Firestore, 최초 1회만 실행) ──
+  // ── Firestore 마이그레이션 (구글시트 → Firestore, 몇 번을 실행해도 안전 — 내용 기반 고정ID로 덮어쓰기) ──
   window.migrateConsultsToFirestore = async function() {
     if (!window.USE_FIRESTORE_CONSULTS || !window.fsDB) { alert('Firestore가 초기화되지 않았습니다.'); return; }
-    if (!confirm('구글시트의 기존 쇼룸상담 데이터를 전부 Firestore로 복사합니다.\n이미 한 번 실행했다면 데이터가 중복 생성되니 최초 1회만 실행해주세요.\n계속할까요?')) return;
-
-    try {
-      const existing = await window.fsDB.collection('consults').limit(1).get();
-      if (!existing.empty) {
-        if (!confirm('Firestore에 이미 데이터가 있습니다. 그래도 계속하면 중복될 수 있습니다. 정말 계속할까요?')) return;
-      }
-    } catch (e) { alert('Firestore 확인 오류: ' + e.message); return; }
+    if (!confirm('구글시트의 쇼룸상담 데이터를 Firestore로 동기화합니다.\n(날짜+시간+연락처+성함 기준으로 겹치는 건은 덮어쓰기 되어 중복 생성되지 않습니다.)\n계속할까요?')) return;
 
     const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
     const data = await res.json();
     if (data.status !== 'ok') { alert('구글시트 데이터 조회 실패: ' + (data.message||'')); return; }
     const rows = data.rows || [];
     if (!rows.length) { alert('이전할 데이터가 없습니다.'); return; }
+
+    // 내용 기반 고정 문서ID 생성 (같은 상담 데이터면 항상 같은 ID → 재실행해도 덮어쓰기만 됨, 중복 X)
+    function makeStableId(r) {
+      const raw = `${r.date||''}_${r.time||''}_${r.phone||'nophone'}_${r.name||'noname'}`;
+      return raw.replace(/[^a-zA-Z0-9가-힣_-]/g, '_').slice(0, 400);
+    }
 
     let done = 0;
     const CHUNK = 400; // Firestore batch 1회 최대 500건 제한, 여유있게 400씩
@@ -3479,17 +3479,17 @@ function csDateInputValue(val) {
         const chunk = rows.slice(i, i + CHUNK);
         const batch = window.fsDB.batch();
         chunk.forEach(r => {
-          const docRef = window.fsDB.collection('consults').doc();
           const { _rowIndex, ...fields } = r; // _rowIndex는 시트 전용 값이라 제외
-          batch.set(docRef, fields);
+          const docRef = window.fsDB.collection('consults').doc(makeStableId(r));
+          batch.set(docRef, fields); // 같은 ID면 덮어쓰기, 새 ID면 새로 생성
         });
         await batch.commit();
         done += chunk.length;
-        console.log(`Firestore 이전 진행: ${done}/${rows.length}`);
+        console.log(`Firestore 동기화 진행: ${done}/${rows.length}`);
       }
-      alert(`Firestore 이전 완료! 총 ${done}건 복사되었습니다.`);
+      alert(`Firestore 동기화 완료! 총 ${done}건 처리되었습니다. (같은 건은 덮어쓰기됨, 중복 없음)`);
     } catch (e) {
-      alert(`이전 중 오류 발생 (${done}건까지 완료됨): ` + e.message);
+      alert(`동기화 중 오류 발생 (${done}건까지 완료됨): ` + e.message);
     }
   };
 
@@ -6690,6 +6690,7 @@ window.setDateFilter = function(el) {
   else { el.classList.add('on'); csDateFilter = el.dataset.dateFilter; }
   currentPage = 1;
   if (typeof renderConsultList === 'function') renderConsultList();
+  if (typeof updateActiveFilterBadges === 'function') updateActiveFilterBadges();
 };
 
 // 초기 즐겨찾기 + 순서 적용
