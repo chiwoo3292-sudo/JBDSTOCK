@@ -5,6 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<!-- ── Firebase (쇼룸상담 실시간 동기화용) ── -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  window.USE_FIRESTORE_CONSULTS = true; // 쇼룸상담을 Firestore 실시간 동기화로 사용할지 여부
+  try {
+    const firebaseConfig = {
+      apiKey: "AIzaSyDWUU2Fz1s9taDWAkt7Uz_NdwG6qB9UxhQ",
+      authDomain: "jibokdeukmaru-2cb6a.firebaseapp.com",
+      projectId: "jibokdeukmaru-2cb6a",
+      storageBucket: "jibokdeukmaru-2cb6a.firebasestorage.app",
+      messagingSenderId: "519034532583",
+      appId: "1:519034532583:web:a9cc6bf7a8b2f136922842"
+    };
+    firebase.initializeApp(firebaseConfig);
+    window.fsDB = firebase.firestore();
+  } catch (e) {
+    console.error('Firebase 초기화 실패:', e);
+    window.USE_FIRESTORE_CONSULTS = false; // 초기화 실패 시 기존 Apps Script 방식으로 자동 폴백
+  }
+</script>
 <script>
 // ── 윅스(Wix) iframe 안 모바일 접속 시, 정상 화면으로 이동하는 버튼 표시 ──
 // 자동 리다이렉트는 최신 브라우저 보안 정책(사용자 제스처 없는 최상위 창 이동 차단)에
@@ -2408,24 +2430,15 @@
 
 <div class="dw-wrap">
 
-  <div class="dw-header">
-    <div class="dw-header-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg></div>
-    <h2>쇼룸 상담</h2>
-    <div class="dw-header-spacer"></div>
-    <button class="dw-refresh-btn" onclick="loadConsults(true)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>새로고침</button>
-  </div>
-
-  <div style="margin-bottom:8px;border-bottom:1px solid #e3e3e3;"></div>
-
   <div class="dw-search-line">
   </div>
 
   <div class="dw-search-controls">
     <div class="dw-search-box">
-      <input type="text" id="csSearch" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter') renderConsultList()">
-      <span class="icon" onclick="renderConsultList()" style="cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+      <input type="text" id="csSearch" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchConsultAndRefresh();}">
+      <span class="icon" onclick="searchConsultAndRefresh()" style="cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
     </div>
-    <button class="dw-cond-btn" onclick="toggleCondPanel()">+ 조건추가</button>
+    <button class="dw-cond-btn" id="csCondBtn" onclick="toggleCondPanel()">+ 조건추가</button>
   </div>
 
   <!-- 조건 패널 -->
@@ -2465,6 +2478,7 @@
     <button class="dw-toolbar-item" onclick="deleteCheckedConsults()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>삭제</button>
     <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#A2693E;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="downloadConsultCSV()">↓ 목록 다운로드(CSV)</button>
+    <button class="dw-toolbar-item" onclick="migrateConsultsToFirestore()" style="color:#2c5fc4;font-weight:700;">⇪ Firestore 이전(최초 1회)</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize" onchange="currentPage=1;renderConsultList()">
       <option value="10" selected>10</option>
@@ -2946,7 +2960,42 @@
   }
 
   // ── 목록 불러오기 ──
+  // ── 돋보기 버튼: 검색 + 새로고침 통합 (새로고침 버튼 삭제하고 이걸로 대체) ──
+  window.searchConsultAndRefresh = async function() {
+    const q = (document.getElementById('csSearch').value || '').trim();
+    if (q) {
+      _consultsFullCache = null; // 매번 최신 데이터 기준으로 검색되도록 캐시 초기화 후 재검색
+      await renderConsultList();
+    } else {
+      await loadConsults(true); // 검색어 없으면 최근 100건 강제 새로고침
+    }
+  };
+
+  // ── Firestore 실시간 동기화 (쇼룸상담) ──
+  let _fsConsultUnsubscribe = null;
+  function startConsultRealtimeSync() {
+    if (_fsConsultUnsubscribe) { renderConsultList(); return; } // 이미 구독 중이면 다시 구독하지 않고 그냥 재렌더
+    const bodyEl = document.getElementById('csTableBody');
+    if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">실시간 연결 중...</td></tr>';
+    _fsConsultUnsubscribe = window.fsDB.collection('consults').onSnapshot(function(snapshot) {
+      allConsults = snapshot.docs.map(function(doc) {
+        const d = doc.data();
+        d._docId = doc.id; // Firestore 문서 ID (수정/삭제 시 사용)
+        return d;
+      });
+      window._allConsultsRef = allConsults;
+      renderConsultList();
+    }, function(err) {
+      console.error('Firestore 실시간 동기화 오류:', err);
+      if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">실시간 연결 실패: ' + err.message + '</td></tr>';
+    });
+  }
+
   window.loadConsults = async function(force) {
+    if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+      startConsultRealtimeSync();
+      return;
+    }
     if (force) _consultsFullCache = null; // 강제 새로고침 시 전체검색 캐시도 초기화
     // 캐시가 있으면 즉시 화면에 표시 (stale-while-revalidate)
     if (_consultsCache && !force) {
@@ -2996,7 +3045,11 @@
 
   window.toggleCondPanel = function() {
     const p = document.getElementById('csCondPanel');
-    if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    const btn = document.getElementById('csCondBtn');
+    if (!p) return;
+    const willOpen = p.style.display === 'none';
+    p.style.display = willOpen ? 'block' : 'none';
+    if (btn) btn.textContent = willOpen ? '− 조건추가' : '+ 조건추가';
   };
 
   window.resetAllFilters = function() {
@@ -3016,14 +3069,30 @@
     if (!el) return;
     const badges = [];
     if (csCurrentFilter && csCurrentFilter !== '전체') {
-      badges.push(`<span style="background:#A2693E;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${csCurrentFilter} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>`);
+      badges.push(`<span onclick="clearStatusFilter()" style="cursor:pointer;background:#A2693E;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${csCurrentFilter} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>`);
     }
     if (csDateFilter) {
       const label = csDateFilter === 'today' ? '금일' : csDateFilter === '1day' ? '1일전' : '2일전';
-      badges.push(`<span style="background:#2c5fc4;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${label} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>`);
+      badges.push(`<span onclick="clearDateFilter()" style="cursor:pointer;background:#2c5fc4;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${label} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>`);
     }
     el.innerHTML = badges.join('');
   }
+
+  window.clearStatusFilter = function() {
+    csCurrentFilter = '전체';
+    document.querySelectorAll('.dw-chip[data-filter]').forEach(c => c.classList.toggle('on', c.dataset.filter === '전체'));
+    currentPage = 1;
+    renderConsultList();
+    updateActiveFilterBadges();
+  };
+
+  window.clearDateFilter = function() {
+    csDateFilter = null;
+    document.querySelectorAll('.dw-chip[data-date-filter]').forEach(c => c.classList.remove('on'));
+    currentPage = 1;
+    renderConsultList();
+    updateActiveFilterBadges();
+  };
 
   // setCsFilter/setDateFilter 후 배지 업데이트
   const _origSetCsFilter = window.setCsFilter;
@@ -3058,28 +3127,31 @@
     const map = await loadAllStaffMap();
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
 
-    // ★ 검색어가 있으면 전체 데이터로 전환(최초 1회만 서버조회 후 캐시), 검색어를 지우면 최근 100건으로 복귀
-    if (q) {
-      if (!_consultsFullCache) {
-        const bodyEl = document.getElementById('csTableBody');
-        if (_consultsFullLoading) {
-          // 이미 다른 요청이 진행 중이면 그 요청이 끝날 때까지만 대기 (중복 fetch 방지)
-          if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
-          while (_consultsFullLoading) { await new Promise(r => setTimeout(r, 100)); }
-        } else {
-          _consultsFullLoading = true;
-          if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
-          try {
-            const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
-            const data = await res.json();
-            if (data.status === 'ok') _consultsFullCache = data.rows || [];
-          } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
-          finally { _consultsFullLoading = false; }
+    // ★ Firestore 실시간 동기화 중이면 allConsults가 이미 전체 데이터로 항상 채워져 있어 별도 조회 불필요
+    if (!window.USE_FIRESTORE_CONSULTS) {
+      // ★ 검색어가 있으면 전체 데이터로 전환(최초 1회만 서버조회 후 캐시), 검색어를 지우면 최근 100건으로 복귀
+      if (q) {
+        if (!_consultsFullCache) {
+          const bodyEl = document.getElementById('csTableBody');
+          if (_consultsFullLoading) {
+            // 이미 다른 요청이 진행 중이면 그 요청이 끝날 때까지만 대기 (중복 fetch 방지)
+            if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
+            while (_consultsFullLoading) { await new Promise(r => setTimeout(r, 100)); }
+          } else {
+            _consultsFullLoading = true;
+            if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
+            try {
+              const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
+              const data = await res.json();
+              if (data.status === 'ok') _consultsFullCache = data.rows || [];
+            } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
+            finally { _consultsFullLoading = false; }
+          }
         }
+        if (_consultsFullCache) allConsults = _consultsFullCache;
+      } else if (_consultsCache) {
+        allConsults = _consultsCache; // 검색어 없으면 최근 100건 목록으로 복귀
       }
-      if (_consultsFullCache) allConsults = _consultsFullCache;
-    } else if (_consultsCache) {
-      allConsults = _consultsCache; // 검색어 없으면 최근 100건 목록으로 복귀
     }
     window._allConsultsRef = allConsults;
 
@@ -3382,6 +3454,45 @@ function csDateInputValue(val) {
   };
 
   // ── 쇼룸상담 목록 CSV 다운로드 ──
+  // ── Firestore 최초 마이그레이션 (구글시트 기존 데이터 → Firestore, 최초 1회만 실행) ──
+  window.migrateConsultsToFirestore = async function() {
+    if (!window.USE_FIRESTORE_CONSULTS || !window.fsDB) { alert('Firestore가 초기화되지 않았습니다.'); return; }
+    if (!confirm('구글시트의 기존 쇼룸상담 데이터를 전부 Firestore로 복사합니다.\n이미 한 번 실행했다면 데이터가 중복 생성되니 최초 1회만 실행해주세요.\n계속할까요?')) return;
+
+    try {
+      const existing = await window.fsDB.collection('consults').limit(1).get();
+      if (!existing.empty) {
+        if (!confirm('Firestore에 이미 데이터가 있습니다. 그래도 계속하면 중복될 수 있습니다. 정말 계속할까요?')) return;
+      }
+    } catch (e) { alert('Firestore 확인 오류: ' + e.message); return; }
+
+    const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
+    const data = await res.json();
+    if (data.status !== 'ok') { alert('구글시트 데이터 조회 실패: ' + (data.message||'')); return; }
+    const rows = data.rows || [];
+    if (!rows.length) { alert('이전할 데이터가 없습니다.'); return; }
+
+    let done = 0;
+    const CHUNK = 400; // Firestore batch 1회 최대 500건 제한, 여유있게 400씩
+    try {
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const chunk = rows.slice(i, i + CHUNK);
+        const batch = window.fsDB.batch();
+        chunk.forEach(r => {
+          const docRef = window.fsDB.collection('consults').doc();
+          const { _rowIndex, ...fields } = r; // _rowIndex는 시트 전용 값이라 제외
+          batch.set(docRef, fields);
+        });
+        await batch.commit();
+        done += chunk.length;
+        console.log(`Firestore 이전 진행: ${done}/${rows.length}`);
+      }
+      alert(`Firestore 이전 완료! 총 ${done}건 복사되었습니다.`);
+    } catch (e) {
+      alert(`이전 중 오류 발생 (${done}건까지 완료됨): ` + e.message);
+    }
+  };
+
   window.downloadConsultCSV = function() {
     if (!allConsults.length) { alert('다운로드할 데이터가 없습니다.'); return; }
     const headers = ['상담날짜','상담시간','처리상태','상담자','성함','연락처','업체명','현장주소','평수','시공예정일','선호제품','전달사항','지난상담이력'];
@@ -3626,6 +3737,41 @@ function csDateInputValue(val) {
     };
 
     document.getElementById('cfMsg').textContent = '저장 중...';
+
+    if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+      try {
+        const fsDoc = {
+          submittedAt: selectedConsult ? (selectedConsult.submittedAt || new Date().toISOString()) : new Date().toISOString(),
+          date: payload.date, time: payload.time,
+          visitorType: payload.visitorType, visitCount: payload.visitCount,
+          revisit: payload.visitStatus,
+          name: payload.name, phone: payload.phone, company: payload.company, address: payload.address,
+          spaceType: payload.spaceType, size: payload.size,
+          floor: selectedConsult ? (selectedConsult.floor || '') : '',
+          elevator: payload.elevator, workDate: payload.workDate, products: payload.products,
+          memo: selectedConsult ? (selectedConsult.memo || '') : '',
+          status: payload.statusField, counselor: payload.counselor, content: payload.content,
+          sampleGiven: payload.reqSample, cardGiven: payload.reqCard, revisitConsult: payload.reqRevisit,
+          priceInfo: payload.priceInfo, workTiming: payload.workTiming, workPeriod: payload.workPeriod,
+          reqQuote: payload.reqQuote,
+          oldVisitDate: selectedConsult ? (selectedConsult.oldVisitDate || '') : '',
+          pastHistory: payload.pastHistory,
+        };
+        if (selectedConsult && selectedConsult._docId) {
+          await window.fsDB.collection('consults').doc(selectedConsult._docId).set(fsDoc, { merge: true });
+        } else {
+          await window.fsDB.collection('consults').add(fsDoc);
+        }
+        closeConsultForm(); // 실시간 리스너가 알아서 목록을 갱신해줌
+        // 구글시트에도 백그라운드로 미러링 (백업/열람용, 실패해도 Firestore 저장은 이미 완료된 상태라 무시)
+        fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams(payload)}`).catch(() => {});
+        return;
+      } catch (e) {
+        document.getElementById('cfMsg').textContent = 'Firestore 저장 오류: ' + e.message;
+        return;
+      }
+    }
+
     try {
       const params = new URLSearchParams(payload);
       const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
@@ -8928,17 +9074,36 @@ if ('serviceWorker' in navigator) {
     if (!checkboxes.length) { alert('삭제할 항목을 선택해주세요.'); return; }
 
     const rowIndexes = [];
+    const docIds = [];
     checkboxes.forEach(cb => {
       const tr = cb.closest('tr');
       if (tr) {
         const origIdx = parseInt(tr.dataset.origIdx);
         const r = window._allConsultsRef && !isNaN(origIdx) ? window._allConsultsRef[origIdx] : null;
         if (r && r._rowIndex) rowIndexes.push(r._rowIndex);
+        if (r && r._docId) docIds.push(r._docId);
       }
     });
 
-    if (!rowIndexes.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
-    if (!confirm(`${rowIndexes.length}건을 삭제하시겠습니까?`)) return;
+    if (!rowIndexes.length && !docIds.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
+    if (!confirm(`${docIds.length || rowIndexes.length}건을 삭제하시겠습니까?`)) return;
+
+    if (window.USE_FIRESTORE_CONSULTS && window.fsDB && docIds.length) {
+      try {
+        const batch = window.fsDB.batch();
+        docIds.forEach(id => batch.delete(window.fsDB.collection('consults').doc(id)));
+        await batch.commit();
+        alert('삭제 완료!'); // 실시간 리스너가 알아서 목록 갱신
+        // 시트 쪽도 백그라운드로 미러링 삭제 시도 (백업용, 실패해도 무시)
+        if (rowIndexes.length) {
+          const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
+          fetchWithRetry(`${RESERVE_URL}?${params}`).catch(() => {});
+        }
+      } catch (e) {
+        alert('Firestore 삭제 오류: ' + e.message);
+      }
+      return;
+    }
 
     try {
       const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
