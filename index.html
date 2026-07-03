@@ -5108,6 +5108,8 @@ function csDateInputValue(val) {
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
             if (tab === 'myInfoTab' || tab === 'adminTab' || tab === 'orgTab') return;
+            // emailTab은 모든 사원에게 항상 표시 (allowedTabs 무관)
+            if (tab === 'emailTab') return;
             if (!allowed.includes(tab)) btn.style.display = 'none';
         });
     }
