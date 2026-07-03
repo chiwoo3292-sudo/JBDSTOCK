@@ -6383,9 +6383,10 @@ function setTab(tabId, fromPopstate) {
     const badge = document.getElementById('rsvPendingBadge');
     if (badge) badge.style.display = 'none';
   } else {
-    // 다른 탭으로 이동 시 대기 건 있으면 N뱃지 다시 표시
-    if (typeof window._triggerRsvCheck === 'function') {
-      setTimeout(window._triggerRsvCheck, 500);
+    // 탭 이동 시 N뱃지 상태만 갱신 (별도 API 호출 없이 기존 카운트 기준으로 표시)
+    const _rsvBadge = document.getElementById('rsvPendingBadge');
+    if (_rsvBadge && window._lastPendingCount > 0) {
+      _rsvBadge.style.display = 'inline-flex';
     }
   }
   if (tabId === 'consultTab' && typeof loadConsults === 'function') {
@@ -9164,8 +9165,11 @@ if ('serviceWorker' in navigator) {
 
 <script>
 (function(){
-  // ── 5. 예약 알림 배너 + Web Push (1분 polling) ──
+  // ── 5. 예약 알림 배너 + Web Push ──
+  // lastKnownRsvCount: -1 = 아직 첫 체크 전 (기준값 미설정)
   let lastKnownRsvCount = -1;
+  window._lastPendingCount = 0;
+
   // Web Push 권한 요청
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
@@ -9183,12 +9187,15 @@ if ('serviceWorker' in navigator) {
       const data = await res.json();
       if (data.status !== 'ok') return;
       const pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
+      const count = pending.length;
 
-      // 예약관리 탭 빨간 N 뱃지: 대기 건 있으면 항상 표시
+      // 전역 카운트 갱신 (setTab N뱃지 복원용)
+      window._lastPendingCount = count;
+
+      // ── N뱃지: 대기 건 있고 예약관리 탭이 열려있지 않을 때만 표시 ──
       const badge = document.getElementById('rsvPendingBadge');
       if (badge) {
-        if (pending.length > 0) {
-          // 예약관리 탭이 현재 열려있지 않을 때만 N뱃지 표시
+        if (count > 0) {
           const rsvTab = document.getElementById('reservationTab');
           const isRsvOpen = rsvTab && rsvTab.style.display !== 'none';
           badge.style.display = isRsvOpen ? 'none' : 'inline-flex';
@@ -9197,35 +9204,44 @@ if ('serviceWorker' in navigator) {
         }
       }
 
-      // 팝업 알림: 첫 체크는 기준값만 저장, 이후부터 대기 건 있으면 팝업
+      // ── 첫 체크: 기준값만 저장, 알람 없음 ──
       if (lastKnownRsvCount === -1) {
-        lastKnownRsvCount = pending.length;
+        lastKnownRsvCount = count;
         return;
       }
-      if (pending.length > 0) {
-        const newest = pending.sort((a,b) => (b.receiptNo||'').localeCompare(a.receiptNo||''))[0];
-        showRsvAlert(newest, pending.length);
-        sendWebPush('예약 대기', `${newest.name||'고객'}님 외 ${pending.length}건 대기 중`);
+
+      // ── Web Push: 대기 건이 이전보다 증가했을 때만 1회 발송 ──
+      if (count > lastKnownRsvCount) {
+        const increased = count - lastKnownRsvCount;
+        sendWebPush(
+          '새 예약 접수',
+          `신규 예약 ${increased}건이 접수되었습니다. (전체 대기 ${count}건)`
+        );
       }
-      lastKnownRsvCount = pending.length;
+
+      // ── 배너: 5분 주기 체크 시 대기 건 있으면 통합 메시지로 표시 ──
+      if (count > 0) {
+        showRsvAlert(count);
+      }
+
+      lastKnownRsvCount = count;
     } catch(e) { /* 네트워크 오류 무시 */ }
   }
 
-  function showRsvAlert(rsv, newCount) {
+  function showRsvAlert(count) {
     const banner = document.getElementById('rsvAlertBanner');
-    document.getElementById('rsvAlertBody').innerHTML = `
-      <strong>${rsv.name||'고객'}</strong>님 외 ${newCount > 1 ? newCount + '건' : ''}<br>
-      ${rsv.date||''} ${rsv.time ? rsv.time.split('~')[0] : ''} · ${rsv.phone||''}
-    `;
+    document.getElementById('rsvAlertBody').innerHTML =
+      `예약 대기 <strong>${count}건</strong>이 있습니다.`;
     const now = new Date();
-    document.getElementById('rsvAlertTime').textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('rsvAlertTime').textContent =
+      `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
     banner.style.display = 'block';
     setTimeout(() => { banner.style.display = 'none'; }, 8000);
   }
 
   // 5분마다 체크
   setInterval(checkNewReservations, 5 * 60000);
-  // 로그인 후 즉시 첫 체크 (unlock 함수에서 호출)
+  // 로그인 후 즉시 첫 체크 (unlock 함수에서 호출) — 단 1회만 실행됨
   window._triggerRsvCheck = checkNewReservations;
 
   // ── 6. 삭제 기능 ──
