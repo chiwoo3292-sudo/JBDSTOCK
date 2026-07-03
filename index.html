@@ -5108,7 +5108,7 @@ function csDateInputValue(val) {
             if (orgBtn && userData.role === 'admin') {
               orgBtn.style.display = '';
             }
-            setTimeout(() => { initAfterLogin(userData); }, 500);
+            setTimeout(() => { initAfterLogin(userData); }, 1000);
         } else {
             if (userInitial) userInitial.textContent = 'G';
             if (badge) badge.classList.add('guest');
@@ -5129,39 +5129,49 @@ function csDateInputValue(val) {
 
         const lastTab = localStorage.getItem('baram_last_tab');
         if (loginType === 'user') {
-            if (typeof setTab === 'function') {
-              // ★ 개인 홈 화면 설정이 있으면 그걸로, 없으면 기본값 "내 정보"로 이동 (역할 무관)
-              const target = (userData.homeTab && document.getElementById(userData.homeTab)) ? userData.homeTab : 'myInfoTab';
-              setTab(target);
-            }
+            // setTab을 200ms 후 실행 — 초기 렌더링과 API 호출 분리
+            setTimeout(() => {
+              if (typeof setTab === 'function') {
+                const target = (userData.homeTab && document.getElementById(userData.homeTab)) ? userData.homeTab : 'myInfoTab';
+                setTab(target);
+              }
+            }, 200);
+            // 월별휴무 에디터는 초기 로딩 완료 후 여유있게 실행
             setTimeout(() => {
               if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
-            }, 300);
+            }, 2000);
         } else if (typeof setTab === 'function') {
-            // 게스트도 기본은 내 정보 화면
             setTab('myInfoTab');
         }
+        // 예약 알림 체크는 가장 마지막에 (4초 후)
         setTimeout(() => {
           if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
-        }, 3000);
+        }, 4000);
     }
 
     async function initAfterLogin(userData) {
       try {
-        const empRes = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-        const empData = await empRes.json();
-        if (empData.rows) window._allEmployees = empData.rows;
+        // ── 직원 전체 목록: Firestore 우선, Apps Script 폴백 ──
+        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+          const snapshot = await window.fsDB.collection('employees').get();
+          window._allEmployees = snapshot.docs.map(doc => doc.data());
+        } else {
+          const empRes = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+          const empData = await empRes.json();
+          if (empData.rows) window._allEmployees = empData.rows;
+        }
       } catch(e) {}
 
       if (userData.isManager || userData.isHead) {
-        // 드롭다운 결재대기 메뉴 표시
         const approvalDropdown = document.getElementById('userDropdownApproval');
         if (approvalDropdown) approvalDropdown.style.display = '';
-        // 탭 순서 재적용 (사용자가 저장한 순서 반영)
         if (typeof applyTabOrder === 'function') applyTabOrder();
-        await checkLeavePending(userData);
-        if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
-        window._leaveBadgeTimer = setInterval(() => checkLeavePending(userData), 30000);
+        // 결재대기 체크는 직원 목록 로드 후 약간 딜레이
+        setTimeout(async () => {
+          await checkLeavePending(userData);
+          if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
+          window._leaveBadgeTimer = setInterval(() => checkLeavePending(userData), 30000);
+        }, 800);
       }
     }
 
