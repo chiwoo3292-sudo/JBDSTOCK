@@ -64,12 +64,20 @@
     if (window.self === window.top) return;
     var lastHeight = 0;
     function sendHeight() {
-      var h = Math.max(
-        document.body.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.scrollHeight,
-        document.documentElement.offsetHeight
-      );
+      // lockSection(position:fixed)은 실제 문서 높이에 포함하지 않도록
+      // mainSection이 보이면 그 높이를 기준으로, 아니면 body 기준으로 계산
+      var mainEl = document.getElementById('mainSection');
+      var h;
+      if (mainEl && mainEl.style.display !== 'none') {
+        h = Math.max(mainEl.scrollHeight, mainEl.offsetHeight);
+      } else {
+        h = Math.max(
+          document.body.scrollHeight,
+          document.body.offsetHeight,
+          document.documentElement.scrollHeight,
+          document.documentElement.offsetHeight
+        );
+      }
       if (h === lastHeight) return;
       lastHeight = h;
       window.parent.postMessage({ type: 'jbdHEIGHT', height: h }, '*');
@@ -80,7 +88,10 @@
       var ro = new ResizeObserver(sendHeight);
       document.addEventListener('DOMContentLoaded', function () { ro.observe(document.body); });
     }
-    setInterval(sendHeight, 300);
+    // 300ms → 800ms: Wix가 잦은 높이 변경으로 잘못 계산하는 빈도 줄이기
+    setInterval(sendHeight, 800);
+    // mainSection 노출 직후 즉시 1회 전송을 위해 전역 노출
+    window._sendIframeHeight = sendHeight;
   } catch (e) {}
 })();
 </script>
@@ -129,7 +140,7 @@
 .grid-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
   .grid-tabs .quick-preview-trigger .secondary { width: 100%; min-height: 44px; padding: 0 4px; border: 1px solid #d8d8d8; border-radius: 8px; background: #fff; color: #444; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:'Pretendard','Noto Sans KR', sans-serif; background:#F4EFE6; color:#2B2521; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  body { margin:0; font-family:'Pretendard','Noto Sans KR', sans-serif; background:#F4EFE6; color:#2B2521; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow-x:hidden; overflow-y:auto; }
   [spellcheck], input, textarea, td, th, select { -webkit-spellcheck: false; }
   td, th { -webkit-user-modify: read-only; }
   .wrap { max-width:1880px; margin:0 auto; padding:10px; }
@@ -3252,8 +3263,9 @@
       }
       const counselorDisplay = attachTitle(r.counselor || '', map);
 
-      // 모바일: 카드형
-      if (window.innerWidth <= 768) {
+      // 모바일: 카드형 (iframe 환경에서 innerWidth가 좁게 찍히는 오판 방지 — screen.width 우선)
+      const _isMobileCard = (window.screen && window.screen.width) ? window.screen.width <= 768 : window.innerWidth <= 768;
+      if (_isMobileCard) {
         return `
           <tr onclick="openConsultNewTab(${r._origIdx})" data-orig-idx="${r._origIdx}" style="cursor:pointer;">
             <td colspan="8" style="padding:0;border:none;">
@@ -4806,7 +4818,9 @@ function csDateInputValue(val) {
         if (ls) ls.style.display = 'flex';
     }
     function unlockBody() {
-        document.body.style.overflow = '';
+        // 빈 문자열 대신 removeProperty로 인라인 스타일 완전 제거
+        document.body.style.removeProperty('overflow');
+        document.documentElement.style.removeProperty('overflow');
         const ls = document.getElementById('lockSection');
         if (ls) ls.style.display = 'none';
     }
@@ -4816,6 +4830,12 @@ function csDateInputValue(val) {
         if (mainSection) mainSection.style.display = 'block';
         unlockBody();
         window.scrollTo(0, 0);
+        // iframe 환경에서 mainSection 노출 직후 높이 즉시 전송
+        try {
+          if (window.self !== window.top && typeof window._sendIframeHeight === 'function') {
+            setTimeout(window._sendIframeHeight, 50);
+          }
+        } catch(_) {}
         // 뒤로가기 시 직전 탭으로 이동하도록, 로그인 완료 시점을 히스토리 기준점으로 고정
         try { history.replaceState({ tab: null }, '', ''); } catch(_) {}
 
@@ -5179,7 +5199,7 @@ function csDateInputValue(val) {
             };
             const sorted = [...data.rows].sort((a,b) => getTitleRank(a.title) - getTitleRank(b.title));
 
-            const isMobile = window.innerWidth <= 768;
+            const isMobile = (window.screen && window.screen.width) ? window.screen.width <= 768 : window.innerWidth <= 768;
             const allTabIds = ALL_TABS.map(t => t.id);
 
             // 허용탭 계산: 저장된 값 그대로 사용 (자동 추가 없음)
@@ -6978,7 +6998,7 @@ function initApp() {
     let activePreview = null;
 
     function positionPreview(trigger, preview) {
-      const isMobile = window.innerWidth <= 768;
+      const isMobile = (window.screen && window.screen.width) ? window.screen.width <= 768 : window.innerWidth <= 768;
       preview.style.display = 'block';
 
       if (isMobile) {
@@ -8126,7 +8146,7 @@ document.addEventListener('DOMContentLoaded', initUiDensity);
 
 // 모바일에서 A4 미리보기 scale 동적 계산
 function updateInvoiceScale() {
-    const isMob = window.innerWidth <= 768;
+    const isMob = (window.screen && window.screen.width) ? window.screen.width <= 768 : window.innerWidth <= 768;
     if (!isMob) return;
     // overflow-x:auto 인 div를 정확히 targeting
     const wrap = document.querySelector('#invoiceTab .inv-preview-wrap > div[style]');
