@@ -697,7 +697,7 @@
       <button type="button" class="tab-btn" data-tab="noticeTab">공지게시판</button>
       <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
-      <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn" style="display:none;">이메일</button>
+      <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn">이메일</button>
       <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" style="display:none;">조직도</button>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
@@ -5135,10 +5135,6 @@ function csDateInputValue(val) {
         const orgBtn = document.getElementById('orgTabBtn');
         if (orgBtn && role !== 'admin') orgBtn.style.display = 'none';
 
-        // emailTab: allowedTabs에 포함된 사원만 표시
-        const emailBtn = document.getElementById('emailTabBtn');
-        if (emailBtn) emailBtn.style.display = 'none'; // 기본 숨김, 아래에서 허용 시 열림
-
         if (role === 'admin') return;
         if (allowedTabs === 'ALL' || allowedTabs === undefined || allowedTabs === null) return;
         const allowed = String(allowedTabs).split(',').map(s => s.trim()).filter(Boolean);
@@ -5338,7 +5334,7 @@ function csDateInputValue(val) {
       {id:'consultTab',label:'쇼룸상담'},{id:'reservationTab',label:'예약관리'},
       {id:'cardScanTab',label:'명함스캐닝'},{id:'contactsTab',label:'연락처'},
       {id:'floorplanTab',label:'면적분석'},{id:'memoTab',label:'메모장'},
-      {id:'noticeTab',label:'공지게시판'},{id:'smsTab',label:'문자발송'},{id:'emailTab',label:'이메일'}
+      {id:'noticeTab',label:'공지게시판'},{id:'emailTab',label:'이메일'},{id:'smsTab',label:'문자발송'}
     ];
 
     window.loadEmployees = async function() {
@@ -6791,7 +6787,7 @@ function renderHamburgerItems() {
 
   // 권한 탭: 버튼이 존재하고 display가 ''(표시중)인 것만 포함
   // display:none이어도 권한 탭(approvalTab,orgTab,smsTab)은 별도 처리
-  const PERM_TABS = ['adminTab', 'approvalTab', 'orgTab', 'smsTab', 'emailTab', 'myInfoTab'];
+  const PERM_TABS = ['adminTab', 'approvalTab', 'orgTab', 'smsTab', 'myInfoTab'];
 
   function isTabVisible(id) {
     const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
