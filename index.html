@@ -1704,6 +1704,13 @@
   //   ERP_URL     = ERP스크립트(재고·연락처 appendRow) 배포 URL
   var RESERVE_URL = 'https://script.google.com/macros/s/AKfycbyA2-Dp_MlixvFD6nRBGUtxuDPesDW1wG-zVXUN9GlIhm3Fd2fTiaVuDDhpoUaOQp32aA/exec';
   var ERP_URL = 'https://script.google.com/macros/s/AKfycbyUOVwnhgY-njzN2zxLVFi4Gf7r1YamdZ0-7sCCWG39DLo7Wck2fl44PBAhfS0YQTju/exec';
+  // 관리자 탭에서 변경한 URL이 있으면 localStorage 값으로 덮어씀
+  (function() {
+    const savedReserve = localStorage.getItem('baram_reserve_url');
+    const savedErp = localStorage.getItem('baram_erp_url');
+    if (savedReserve) RESERVE_URL = savedReserve;
+    if (savedErp) ERP_URL = savedErp;
+  })();
 
   // ════════════════════════════════════════════════════════════
   //  fetchWithRetry - RESERVE_URL/ERP_URL 대상 공통 fetch 래퍼
@@ -4576,6 +4583,105 @@ function csDateInputValue(val) {
     </div>
     <div id="orgLeaveList"></div>
   </div>
+
+  <!-- API 연동 통합 설정 -->
+  <div class="admin-card" style="margin-top:20px;">
+    <div class="admin-section-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+      API 연동 설정
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- 알리고 SMS -->
+      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          알리고 SMS API
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">API Key</label>
+            <input type="password" id="adminAligoApiKey" placeholder="알리고 API Key" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">User ID</label>
+            <input type="text" id="adminAligoUserId" placeholder="알리고 아이디" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">발신번호</label>
+            <input type="text" id="adminAligoSender" placeholder="예: 0215767736" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+          <span id="adminAligoSaved" style="font-size:12px;color:#1a7a45;font-weight:700;display:none;">✓ 저장됨</span>
+          <button onclick="adminSaveAligoSettings()" class="admin-btn primary" style="padding:8px 20px;">저장</button>
+        </div>
+      </div>
+
+      <!-- Google Gemini API -->
+      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Google Gemini API
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+          <input type="password" id="adminGeminiKey" placeholder="AIza... 형태의 키 입력" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;">
+          <button onclick="adminSaveGeminiKey()" class="admin-btn primary" style="padding:8px 20px;white-space:nowrap;">저장</button>
+        </div>
+        <div id="adminGeminiStatus" style="font-size:11px;color:#aaa;"></div>
+      </div>
+
+      <!-- Apps Script URL -->
+      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Apps Script 배포 URL
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">RESERVE 스크립트 URL</label>
+            <input type="text" id="adminReserveUrl" placeholder="https://script.google.com/macros/s/..." style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:11px;box-sizing:border-box;font-family:monospace;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">ERP 스크립트 URL</label>
+            <input type="text" id="adminErpUrl" placeholder="https://script.google.com/macros/s/..." style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:11px;box-sizing:border-box;font-family:monospace;">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:11px;color:#aaa;">※ 변경 시 즉시 적용됩니다. 잘못된 URL 입력 시 시스템이 동작하지 않을 수 있습니다.</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="adminUrlSaved" style="font-size:12px;color:#1a7a45;font-weight:700;display:none;">✓ 저장됨</span>
+            <button onclick="adminSaveUrls()" class="admin-btn primary" style="padding:8px 20px;">저장</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Workspace (준비 중) -->
+      <div style="border:1px dashed #D8C7AE;border-radius:10px;padding:18px;background:#FDFAF6;">
+        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+          Google Workspace 메일 연동
+          <span style="font-size:10px;background:#E5D9C6;color:#A2693E;border-radius:4px;padding:2px 7px;margin-left:8px;font-weight:700;">준비중</span>
+        </div>
+        <div style="font-size:12px;color:#B8A898;line-height:1.7;">
+          Workspace 도입 후 Admin SDK OAuth 설정을 여기서 관리합니다.<br>
+          계정 생성 / 그룹 이메일 / 별칭 / 메일 라우팅 설정이 가능해집니다.
+        </div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;opacity:.5;pointer-events:none;">
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">Workspace Admin OAuth Client ID</label>
+            <input type="text" placeholder="연동 후 입력" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;" disabled>
+          </div>
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">Workspace 도메인</label>
+            <input type="text" placeholder="jibokdeukmaru.com" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;" disabled>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 </section>
 
@@ -5898,6 +6004,79 @@ function csDateInputValue(val) {
       return { ok: result === '발송성공', msg, result };
     };
 
+  // ── 관리자 탭 API 통합 설정 함수 ──
+  window.loadAdminApiSettings = async function() {
+    // 알리고 설정 로드 (ERP스크립트 PropertiesService)
+    try {
+      const res = await fetchWithRetry(`${ERP_URL}?action=getAligoSettings`);
+      const data = await res.json();
+      if (data.status === 'ok' && data.settings) {
+        const s = data.settings;
+        if (document.getElementById('adminAligoApiKey')) document.getElementById('adminAligoApiKey').value = s.apiKey || '';
+        if (document.getElementById('adminAligoUserId')) document.getElementById('adminAligoUserId').value = s.userId || '';
+        if (document.getElementById('adminAligoSender')) document.getElementById('adminAligoSender').value = s.sender || '';
+      }
+    } catch(e) {}
+
+    // Gemini API Key 로드 (localStorage)
+    const geminiKey = localStorage.getItem('baram_gemini_key');
+    if (geminiKey && document.getElementById('adminGeminiKey')) {
+      document.getElementById('adminGeminiKey').value = geminiKey;
+      document.getElementById('adminGeminiStatus').textContent = '저장된 키가 있습니다.';
+      document.getElementById('adminGeminiStatus').style.color = '#4caf50';
+    }
+
+    // Apps Script URL 로드 (현재 하드코딩된 값 표시)
+    if (document.getElementById('adminReserveUrl')) document.getElementById('adminReserveUrl').value = RESERVE_URL;
+    if (document.getElementById('adminErpUrl')) document.getElementById('adminErpUrl').value = ERP_URL;
+  };
+
+  window.adminSaveAligoSettings = async function() {
+    const apiKey = document.getElementById('adminAligoApiKey').value.trim();
+    const userId = document.getElementById('adminAligoUserId').value.trim();
+    const sender = document.getElementById('adminAligoSender').value.trim();
+    try {
+      const params = new URLSearchParams({ action: 'saveAligoSettings', apiKey, userId, sender });
+      const res = await fetchWithRetry(`${ERP_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        // 문자발송 탭 input과도 동기화
+        if (document.getElementById('aligoApiKey')) document.getElementById('aligoApiKey').value = apiKey;
+        if (document.getElementById('aligoUserId')) document.getElementById('aligoUserId').value = userId;
+        if (document.getElementById('aligoSender')) document.getElementById('aligoSender').value = sender;
+        const el = document.getElementById('adminAligoSaved');
+        if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2500); }
+      }
+    } catch(e) { alert('알리고 설정 저장 실패: ' + e.message); }
+  };
+
+  window.adminSaveGeminiKey = function() {
+    const key = document.getElementById('adminGeminiKey').value.trim();
+    const statusEl = document.getElementById('adminGeminiStatus');
+    if (!key) { if (statusEl) { statusEl.textContent = '키를 입력해주세요.'; statusEl.style.color = '#f44336'; } return; }
+    localStorage.setItem('baram_gemini_key', key);
+    // 면적분석 탭 input과도 동기화
+    if (document.getElementById('fpApiKey')) document.getElementById('fpApiKey').value = key;
+    if (statusEl) { statusEl.textContent = '저장 완료!'; statusEl.style.color = '#4caf50'; }
+  };
+
+  window.adminSaveUrls = function() {
+    const newReserveUrl = document.getElementById('adminReserveUrl').value.trim();
+    const newErpUrl = document.getElementById('adminErpUrl').value.trim();
+    if (!newReserveUrl || !newErpUrl) { alert('URL을 입력해주세요.'); return; }
+    if (!newReserveUrl.startsWith('https://script.google.com') || !newErpUrl.startsWith('https://script.google.com')) {
+      if (!confirm('Apps Script URL 형식이 아닙니다. 계속 저장하시겠습니까?')) return;
+    }
+    // 런타임에 전역 변수 즉시 교체
+    window.RESERVE_URL = newReserveUrl;
+    window.ERP_URL = newErpUrl;
+    // localStorage에도 저장 (새로고침 후에도 유지)
+    localStorage.setItem('baram_reserve_url', newReserveUrl);
+    localStorage.setItem('baram_erp_url', newErpUrl);
+    const el = document.getElementById('adminUrlSaved');
+    if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2500); }
+  };
+
     // ── 월별 휴무안내 편집 ──
     let _monthlyData = {};
     let _selectedMonth = String(new Date().getMonth() + 1);
@@ -6471,6 +6650,7 @@ function setTab(tabId, fromPopstate) {
       typeof loadInfoRequests === 'function' ? loadInfoRequests() : Promise.resolve(),
       typeof loadAdminLeaveTable === 'function' ? loadAdminLeaveTable() : Promise.resolve()
     ]);
+    if (typeof loadAdminApiSettings === 'function') loadAdminApiSettings();
   }
   if (tabId === 'memoTab') {
     document.dispatchEvent(new CustomEvent('tabChanged', { detail: 'memoTab' }));
