@@ -3010,6 +3010,15 @@
 
   // ── Firestore 실시간 동기화 (쇼룸상담) ──
   let _fsConsultUnsubscribe = null;
+  function stopConsultRealtimeSync() {
+    if (_fsConsultUnsubscribe) {
+      try { _fsConsultUnsubscribe(); } catch(e) {}
+      _fsConsultUnsubscribe = null;
+    }
+  }
+  // 페이지 언로드 시 구독 해제 (리스너 누적 방지)
+  window.addEventListener('beforeunload', stopConsultRealtimeSync);
+
   function startConsultRealtimeSync() {
     if (_fsConsultUnsubscribe) { renderConsultList(); return; } // 이미 구독 중이면 다시 구독하지 않고 그냥 재렌더
     const bodyEl = document.getElementById('csTableBody');
@@ -3913,7 +3922,7 @@ function csDateInputValue(val) {
     <div class="notice-detail-meta" id="noticeDetailMeta"></div>
     <div class="notice-detail-content" id="noticeDetailContent"></div>
     <div class="notice-modal-footer">
-      <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open');">닫기</button>
+      <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open');document.body.style.removeProperty('overflow');">닫기</button>
     </div>
   </div>
 </div>
@@ -3960,7 +3969,7 @@ function csDateInputValue(val) {
   };
 
   window.openNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.add('open'); document.body.style.overflow='hidden'; };
-  window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); };
+  window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); document.body.style.removeProperty('overflow'); };
 
   window.submitNotice = async function() {
     const title = document.getElementById('noticeTitle').value.trim();
@@ -6325,7 +6334,7 @@ function openCardViewer(src) {
 function closeCardViewer() {
   const overlay = document.getElementById('cardViewerOverlay');
   if (overlay) overlay.style.display = 'none';
-  document.body.style.overflow = '';
+  document.body.style.removeProperty('overflow');
 }
 
 async function downloadCardImage() {
@@ -6728,7 +6737,7 @@ function applyTabOrder() {
 function closeHamburger() {
   document.getElementById('hamburgerMenu').classList.remove('open');
   document.getElementById('hamburgerOverlay').classList.remove('open');
-  document.body.style.overflow = '';
+  document.body.style.removeProperty('overflow');
 }
 
 window.toggleTabVisible = function(tabId, checked) {
@@ -7048,7 +7057,8 @@ function initApp() {
       positionPreview(trigger, preview);
       activePreview = preview;
       const bd = document.getElementById('quickPreviewBackdrop');
-      if (bd && window.innerWidth <= 768) bd.classList.add('show');
+      const _isMobPreview = (window.screen && window.screen.width) ? window.screen.width <= 768 : window.innerWidth <= 768;
+      if (bd && _isMobPreview) bd.classList.add('show');
     }
 
     function hidePreview(trigger) {
@@ -8594,7 +8604,7 @@ function renderInvoice() {
                 }
             }
         }
-        if (window.innerWidth <= 768) setTimeout(updateInvoiceScale, 30);
+        if ((window.screen && window.screen.width ? window.screen.width : window.innerWidth) <= 768) setTimeout(updateInvoiceScale, 30);
         return;
     }
 
@@ -8631,7 +8641,7 @@ function renderInvoice() {
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
     }
     // 모바일: 내용 변경 후 높이 재계산
-    if (window.innerWidth <= 768) setTimeout(updateInvoiceScale, 30);
+    if ((window.screen && window.screen.width ? window.screen.width : window.innerWidth) <= 768) setTimeout(updateInvoiceScale, 30);
 }
 
 function printInvoice() {
