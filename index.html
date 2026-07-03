@@ -10959,18 +10959,82 @@ if ('serviceWorker' in navigator) {
   .em-detail-body { flex:1; overflow-y:auto; padding:20px 16px; font-size:13px; line-height:1.8; color:#333; white-space:pre-wrap; }
   .em-detail-close { margin-left:auto; }
 
-  /* 반응형 */
+  /* 반응형 모바일 */
   @media (max-width:768px) {
-    .em-sidebar { width:52px; min-width:52px; }
-    .em-sidebar-header { display:none; }
-    .em-compose-btn span { display:none; }
-    .em-compose-btn { padding:10px 0; margin:10px 6px; }
-    .em-folder-item span { display:none; }
-    .em-folder-item { justify-content:center; padding:10px 0; }
-    .em-folder-badge, .em-folder-count { display:none; }
-    .em-mail-sender { width:90px; min-width:70px; }
+    /* 전체 레이아웃 */
+    .em-layout { flex-direction:column; height:auto; min-height:0; }
+
+    /* 사이드바 완전 숨김 */
+    .em-sidebar { display:none !important; }
+
+    /* 메인 영역 전체 폭 */
+    .em-main { width:100%; height:calc(100dvh - 160px); min-height:400px; }
+
+    /* 툴바: 한 줄, 새로고침 버튼 텍스트 숨기고 아이콘만 */
+    .em-toolbar { padding:8px 10px; gap:6px; flex-wrap:nowrap; }
+    .em-toolbar-title { font-size:13px; white-space:nowrap; }
+    .em-toolbar-count { display:none; }
+    .em-toolbar-right { gap:6px; flex-shrink:0; }
+    .em-search-box { min-width:0; flex:1; }
+    .em-search-box input { width:80px; min-width:0; }
+    .em-toolbar-btn { padding:6px 8px; white-space:nowrap; font-size:0; gap:0; flex-shrink:0; }
+    .em-toolbar-btn svg { display:block; width:16px; height:16px; }
+
+    /* 메일 목록: 카드형 */
+    .em-mail-check, .em-mail-flag, .em-mail-icon { display:none !important; }
+    .em-mail-row { flex-wrap:wrap; padding:10px 12px; gap:2px; align-items:flex-start; }
+    .em-mail-sender { width:calc(100% - 70px); min-width:0; font-size:13px; font-weight:700; color:#222; }
+    .em-mail-subject { width:100%; font-size:12px; color:#666; margin-top:2px; }
+    .em-mail-time { width:70px; min-width:0; font-size:11px; text-align:right; flex-shrink:0; }
+
+    /* 메일쓰기 헤더: 제목 + 버튼 2줄 */
+    .em-compose-header { flex-wrap:wrap; gap:6px; padding:8px 10px; }
+    .em-compose-title { font-size:13px; white-space:nowrap; }
+    .em-compose-actions { flex:1; justify-content:flex-end; gap:5px; flex-wrap:nowrap; min-width:0; }
+    .em-compose-send-btn { padding:6px 10px; font-size:11px; gap:4px; white-space:nowrap; flex-shrink:0; }
+    .em-compose-send-btn svg { width:12px; height:12px; }
+    .em-compose-draft-btn { padding:6px 8px; font-size:11px; white-space:nowrap; flex-shrink:0; }
+    .em-compose-close-btn { padding:4px 8px; font-size:16px; flex-shrink:0; }
+    .em-compose-msg { display:none; }
+
+    /* 메일쓰기 필드 */
+    .em-compose-field { padding:0 10px; }
+    .em-compose-field label { width:52px; font-size:11px; }
+    .em-compose-field input, .em-compose-field select { font-size:12px; padding:9px 0; }
+
+    /* AI 작성 바: 입력+버튼 한 줄, 너무 길면 줄바꿈 */
+    .em-compose-ai-bar { padding:8px 10px; gap:6px; flex-wrap:nowrap; }
+    .em-compose-ai-input { flex:1; font-size:11px; padding:7px 10px; min-width:0; }
+    .em-compose-ai-btn { padding:7px 10px; font-size:11px; white-space:nowrap; flex-shrink:0; }
+
+    /* 상세보기 */
+    .em-detail-subject { font-size:13px; }
+    .em-detail-meta { flex-wrap:wrap; gap:4px; font-size:11px; }
+    .em-detail-actions { flex-wrap:wrap; gap:6px; }
+    .em-detail-action-btn { padding:6px 10px; font-size:11px; }
+    .em-detail-body { padding:12px 10px; font-size:13px; }
   }
 </style>
+
+<!-- 모바일 하단 탭바 -->
+<div class="em-mobile-tabbar" id="emMobileTabbar" style="display:none;border-top:1px solid #E5D9C6;background:#fff;flex-shrink:0;">
+  <button class="em-mobile-tab active" data-folder="inbox" onclick="setEmailFolder('inbox',null);emMobileTabSwitch(this)" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:3px;font-size:10px;color:#A2693E;font-weight:700;border:none;background:transparent;cursor:pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+    받은메일
+  </button>
+  <button class="em-mobile-tab" data-folder="sent" onclick="setEmailFolder('sent',null);emMobileTabSwitch(this)" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:3px;font-size:10px;color:#aaa;font-weight:600;border:none;background:transparent;cursor:pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    보낸메일
+  </button>
+  <button class="em-mobile-tab" data-folder="draft" onclick="setEmailFolder('draft',null);emMobileTabSwitch(this)" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:3px;font-size:10px;color:#aaa;font-weight:600;border:none;background:transparent;cursor:pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    임시저장
+  </button>
+  <button class="em-mobile-tab" onclick="openEmailCompose()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:3px;font-size:10px;color:#aaa;font-weight:600;border:none;background:transparent;cursor:pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+    메일쓰기
+  </button>
+</div>
 
 <div class="em-layout">
   <!-- 좌측 사이드바 -->
@@ -11129,6 +11193,31 @@ if ('serviceWorker' in navigator) {
 (function(){
   window.USE_GMAIL_API = false;
 
+  // 모바일 감지 및 탭바/사이드바 처리
+  function checkEmailMobile() {
+    const isMob = (window.screen && window.screen.width) ? window.screen.width <= 768 : window.innerWidth <= 768;
+    const tabbar = document.getElementById('emMobileTabbar');
+    const sidebar = document.querySelector('#emailTab .em-sidebar');
+    if (isMob) {
+      if (tabbar) tabbar.style.display = 'flex';
+      if (sidebar) sidebar.style.display = 'none';
+    } else {
+      if (tabbar) tabbar.style.display = 'none';
+      if (sidebar) sidebar.style.display = 'flex';
+    }
+  }
+
+  window.emMobileTabSwitch = function(btn) {
+    document.querySelectorAll('#emMobileTabbar .em-mobile-tab').forEach(t => {
+      t.style.color = '#aaa';
+      t.style.fontWeight = '600';
+    });
+    if (btn) {
+      btn.style.color = '#A2693E';
+      btn.style.fontWeight = '700';
+    }
+  };
+
   // ── 발신자 시그니처 HTML 생성 ──
   function buildEmailSignature(user) {
     if (!user) return '';
@@ -11238,6 +11327,9 @@ if ('serviceWorker' in navigator) {
   window.loadEmailTab = function() {
     const user = window._currentUser;
     if (!user) return;
+
+    // 모바일/PC 레이아웃 적용
+    checkEmailMobile();
 
     // 발신 주소 드롭다운
     const sel = document.getElementById('emailFrom');
