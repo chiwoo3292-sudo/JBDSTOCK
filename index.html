@@ -10404,160 +10404,282 @@ if ('serviceWorker' in navigator) {
 <!-- ============================================================ -->
 <section id="emailTab" class="tab-panel" style="display:none;">
 <style>
-  .email-wrap { max-width:900px; margin:0 auto; padding:10px 0; }
-  .email-header { font-size:20px; font-weight:800; color:#222; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
-  .email-desc { font-size:13px; color:#888; margin-bottom:20px; }
-  .email-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px; margin-bottom:20px; }
-  .email-card-title { font-size:14px; font-weight:800; color:#A2693E; margin-bottom:16px; display:flex; align-items:center; gap:7px; }
-  .email-field { margin-bottom:14px; }
-  .email-field label { display:block; font-size:12px; font-weight:700; color:#888; margin-bottom:5px; }
-  .email-field input, .email-field select, .email-field textarea {
-    width:100%; padding:10px 13px; border:1px solid #ddd; border-radius:8px;
-    font-size:13px; font-family:inherit; box-sizing:border-box; color:#222;
-    background:#fafafa; transition:border-color .15s;
+  /* ── 이메일 탭 레이아웃 ── */
+  .em-layout { display:flex; height:calc(100vh - 120px); min-height:500px; gap:0; background:#F4EFE6; }
+
+  /* 좌측 사이드바 */
+  .em-sidebar { width:200px; min-width:160px; background:#fff; border-right:1px solid #E5D9C6; display:flex; flex-direction:column; flex-shrink:0; }
+  .em-sidebar-header { padding:16px 14px 10px; font-size:16px; font-weight:800; color:#222; border-bottom:1px solid #F0E8DC; }
+  .em-compose-btn { margin:12px 14px; padding:10px 0; background:#A2693E; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:background .14s; }
+  .em-compose-btn:hover { background:#4A3526; }
+  .em-folder-list { flex:1; overflow-y:auto; padding:6px 0; }
+  .em-folder-item { display:flex; align-items:center; gap:8px; padding:9px 16px; font-size:13px; color:#555; cursor:pointer; border-radius:8px; margin:1px 6px; transition:background .12s; }
+  .em-folder-item:hover { background:#F3EADB; color:#A2693E; }
+  .em-folder-item.active { background:#F3EADB; color:#A2693E; font-weight:700; }
+  .em-folder-item svg { flex-shrink:0; opacity:.7; }
+  .em-folder-item.active svg { opacity:1; }
+  .em-folder-badge { margin-left:auto; background:#e74c3c; color:#fff; border-radius:999px; padding:1px 7px; font-size:10px; font-weight:800; }
+  .em-folder-count { margin-left:auto; font-size:11px; color:#bbb; }
+
+  /* 우측 메인 영역 */
+  .em-main { flex:1; display:flex; flex-direction:column; overflow:hidden; background:#fff; }
+
+  /* 메인 툴바 */
+  .em-toolbar { display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid #F0E8DC; background:#FDFAF6; flex-shrink:0; }
+  .em-toolbar-title { font-size:15px; font-weight:800; color:#222; margin-right:8px; }
+  .em-toolbar-count { font-size:12px; color:#aaa; }
+  .em-toolbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .em-search-box { display:flex; align-items:center; gap:6px; background:#F3EADB; border-radius:8px; padding:6px 12px; }
+  .em-search-box input { border:none; background:transparent; font-size:12px; outline:none; width:140px; color:#333; }
+  .em-search-box svg { flex-shrink:0; opacity:.5; }
+  .em-toolbar-btn { padding:6px 12px; border:1px solid #E5D9C6; border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; }
+  .em-toolbar-btn:hover { background:#F3EADB; color:#A2693E; }
+
+  /* 메일 목록 */
+  .em-mail-list { flex:1; overflow-y:auto; }
+  .em-date-group { padding:8px 16px 4px; font-size:12px; font-weight:700; color:#A98C6B; border-bottom:1px solid #F5EDE0; background:#FDFAF6; position:sticky; top:0; z-index:1; }
+  .em-mail-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #F5EDE0; cursor:pointer; transition:background .1s; }
+  .em-mail-row:hover { background:#FBF7F0; }
+  .em-mail-row.unread { background:#FFF8F0; }
+  .em-mail-row.unread .em-mail-sender { font-weight:800; color:#222; }
+  .em-mail-row.unread .em-mail-subject { font-weight:700; color:#333; }
+  .em-mail-check { flex-shrink:0; width:16px; height:16px; accent-color:#A2693E; }
+  .em-mail-flag { flex-shrink:0; opacity:.3; cursor:pointer; }
+  .em-mail-flag:hover { opacity:.8; }
+  .em-mail-icon { flex-shrink:0; opacity:.4; }
+  .em-mail-sender { width:160px; min-width:120px; font-size:13px; color:#444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; }
+  .em-mail-subject { flex:1; font-size:13px; color:#555; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .em-mail-subject .em-mail-preview { color:#aaa; font-weight:400; margin-left:8px; font-size:12px; }
+  .em-mail-attach { flex-shrink:0; opacity:.4; }
+  .em-mail-time { flex-shrink:0; font-size:12px; color:#aaa; text-align:right; min-width:80px; }
+  .em-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:#ccc; gap:12px; padding:60px 0; }
+  .em-empty svg { opacity:.3; }
+  .em-empty p { font-size:13px; }
+
+  /* 메일쓰기 패널 */
+  .em-compose-panel { display:none; flex-direction:column; flex:1; overflow:hidden; }
+  .em-compose-panel.open { display:flex; }
+  .em-compose-header { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #F0E8DC; background:#FDFAF6; flex-shrink:0; }
+  .em-compose-title { font-size:15px; font-weight:800; color:#222; }
+  .em-compose-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+  .em-compose-send-btn { padding:8px 20px; background:#A2693E; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .em-compose-send-btn:hover { background:#4A3526; }
+  .em-compose-send-btn:disabled { background:#ccc; cursor:not-allowed; }
+  .em-compose-draft-btn { padding:8px 14px; border:1px solid #E5D9C6; border-radius:8px; background:#fff; color:#888; font-size:12px; font-weight:600; cursor:pointer; }
+  .em-compose-draft-btn:hover { background:#F3EADB; }
+  .em-compose-close-btn { padding:6px 10px; border:none; background:transparent; color:#aaa; font-size:18px; cursor:pointer; line-height:1; }
+  .em-compose-close-btn:hover { color:#333; }
+  .em-compose-field { display:flex; align-items:center; border-bottom:1px solid #F0E8DC; padding:0 16px; flex-shrink:0; }
+  .em-compose-field label { width:70px; font-size:12px; font-weight:700; color:#A98C6B; flex-shrink:0; }
+  .em-compose-field input, .em-compose-field select { flex:1; border:none; outline:none; font-size:13px; padding:11px 0; background:transparent; color:#222; font-family:inherit; }
+  .em-compose-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+  .em-compose-body textarea { flex:1; border:none; outline:none; padding:16px; font-size:13px; line-height:1.8; resize:none; font-family:inherit; color:#333; background:#fff; }
+  .em-compose-ai-bar { background:#FBF7F0; border-top:1px solid #F0E8DC; padding:10px 16px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .em-compose-ai-input { flex:1; border:1px solid #E5D9C6; border-radius:8px; padding:8px 12px; font-size:12px; outline:none; font-family:inherit; background:#fff; }
+  .em-compose-ai-btn { padding:8px 16px; background:#222; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .em-compose-ai-btn:hover { background:#A2693E; }
+  .em-compose-msg { font-size:12px; color:#A2693E; font-weight:600; }
+
+  /* 메일 상세보기 패널 */
+  .em-detail-panel { display:none; flex-direction:column; flex:1; overflow:hidden; }
+  .em-detail-panel.open { display:flex; }
+  .em-detail-header { padding:14px 16px; border-bottom:1px solid #F0E8DC; background:#FDFAF6; flex-shrink:0; }
+  .em-detail-subject { font-size:16px; font-weight:800; color:#222; margin-bottom:10px; }
+  .em-detail-meta { display:flex; align-items:center; gap:16px; font-size:12px; color:#888; }
+  .em-detail-sender { font-weight:700; color:#333; }
+  .em-detail-actions { display:flex; gap:8px; margin-top:12px; }
+  .em-detail-action-btn { padding:6px 14px; border:1px solid #E5D9C6; border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; }
+  .em-detail-action-btn:hover { background:#F3EADB; color:#A2693E; }
+  .em-detail-body { flex:1; overflow-y:auto; padding:20px 16px; font-size:13px; line-height:1.8; color:#333; white-space:pre-wrap; }
+  .em-detail-close { margin-left:auto; }
+
+  /* 반응형 */
+  @media (max-width:768px) {
+    .em-sidebar { width:52px; min-width:52px; }
+    .em-sidebar-header { display:none; }
+    .em-compose-btn span { display:none; }
+    .em-compose-btn { padding:10px 0; margin:10px 6px; }
+    .em-folder-item span { display:none; }
+    .em-folder-item { justify-content:center; padding:10px 0; }
+    .em-folder-badge, .em-folder-count { display:none; }
+    .em-mail-sender { width:90px; min-width:70px; }
   }
-  .email-field input:focus, .email-field select:focus, .email-field textarea:focus {
-    outline:none; border-color:#A2693E; background:#fff;
-  }
-  .email-field textarea { min-height:160px; resize:vertical; line-height:1.7; }
-  .email-send-row { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:6px; }
-  .email-send-btn {
-    padding:10px 28px; border:none; border-radius:8px;
-    background:#A2693E; color:#fff; font-size:13px; font-weight:700;
-    cursor:pointer; transition:background .15s;
-  }
-  .email-send-btn:hover { background:#4A3526; }
-  .email-send-btn:disabled { background:#ccc; cursor:not-allowed; }
-  .email-send-msg { font-size:12px; font-weight:700; display:none; }
-  .email-send-msg.ok { color:#1a7a45; }
-  .email-send-msg.err { color:#c0392b; }
-  /* 발송 이력 */
-  .email-log-table { width:100%; border-collapse:collapse; font-size:13px; }
-  .email-log-table th { padding:9px 12px; text-align:left; border-bottom:1px solid #E5D9C6; color:#978B7C; font-weight:700; white-space:nowrap; background:#F7F1E7; }
-  .email-log-table td { padding:9px 12px; border-bottom:1px solid #f0e8e0; color:#333; vertical-align:middle; }
-  .email-log-empty { text-align:center; padding:32px; color:#bbb; font-size:13px; }
-  /* 수신함 준비 배너 */
-  .email-inbox-ready {
-    background:#F7F1E7; border:1px dashed #D8C7AE; border-radius:12px;
-    padding:32px 24px; text-align:center; color:#A2693E;
-  }
-  .email-inbox-ready svg { margin-bottom:12px; opacity:.5; }
-  .email-inbox-ready .ein-title { font-size:15px; font-weight:800; margin-bottom:6px; }
-  .email-inbox-ready .ein-desc { font-size:12px; color:#B8A898; line-height:1.7; }
-  .email-from-tag { display:inline-block; font-size:11px; background:#F3EADB; color:#A2693E; border-radius:4px; padding:2px 7px; font-weight:700; margin-left:6px; }
 </style>
 
-<div class="email-wrap">
-  <div class="email-header">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-    이메일
-  </div>
-  <div class="email-desc">메일을 작성하고 발송합니다. 수신함은 Google Workspace 연동 후 사용 가능합니다.</div>
-
-  <!-- 수신함 영역 (Workspace 연동 전 준비 UI) -->
-  <div class="email-card">
-    <div class="email-card-title">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
-      받은메일함
-      <span id="emailInboxFromLabel" class="email-from-tag"></span>
-    </div>
-    <div id="emailInboxArea">
-      <div class="email-inbox-ready">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-        <div class="ein-title">수신함 연동 준비 완료</div>
-        <div class="ein-desc">
-          Google Workspace 계정 연동 후 본인 메일함을 여기서 바로 확인할 수 있습니다.<br>
-          현재는 메일 발송 및 발송 이력 기능만 사용 가능합니다.
-        </div>
+<div class="em-layout">
+  <!-- 좌측 사이드바 -->
+  <div class="em-sidebar">
+    <div class="em-sidebar-header">메일</div>
+    <button class="em-compose-btn" onclick="openEmailCompose()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      <span>메일쓰기</span>
+    </button>
+    <div class="em-folder-list">
+      <div class="em-folder-item active" onclick="setEmailFolder('inbox', this)" data-folder="inbox">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        <span>받은메일함</span>
+      </div>
+      <div class="em-folder-item" onclick="setEmailFolder('sent', this)" data-folder="sent">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <span>보낸메일함</span>
+      </div>
+      <div class="em-folder-item" onclick="setEmailFolder('draft', this)" data-folder="draft">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>임시보관함</span>
+        <span class="em-folder-count" id="emDraftCount"></span>
+      </div>
+      <div class="em-folder-item" onclick="setEmailFolder('spam', this)" data-folder="spam">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        <span>스팸메일함</span>
+      </div>
+      <div class="em-folder-item" onclick="setEmailFolder('trash', this)" data-folder="trash">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>휴지통</span>
       </div>
     </div>
   </div>
 
-  <!-- 메일 작성 영역 -->
-  <div class="email-card">
-    <div class="email-card-title">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-      메일 작성
-    </div>
-    <div class="email-field">
-      <label>발신 주소</label>
-      <select id="emailFrom"></select>
-    </div>
-    <div class="email-field">
-      <label>받는 사람</label>
-      <input type="email" id="emailTo" placeholder="수신자 이메일 주소">
-    </div>
-    <div class="email-field">
-      <label>참조 (CC) <span style="font-weight:400;color:#bbb;">선택</span></label>
-      <input type="email" id="emailCc" placeholder="참조 이메일 주소 (선택)">
-    </div>
-    <div class="email-field">
-      <label>제목</label>
-      <input type="text" id="emailSubject" placeholder="메일 제목을 입력하세요">
-    </div>
-    <div class="email-field">
-      <label>본문</label>
-      <textarea id="emailBody" placeholder="메일 내용을 입력하세요"></textarea>
-    </div>
-    <div class="email-send-row">
-      <span class="email-send-msg" id="emailSendMsg"></span>
-      <button class="email-send-btn" id="emailSendBtn" onclick="sendMailFromERP()">발송</button>
-    </div>
-  </div>
+  <!-- 우측 메인 -->
+  <div class="em-main" id="emMain">
 
-  <!-- 발송 이력 -->
-  <div class="email-card">
-    <div class="email-card-title">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      발송 이력
-      <button onclick="loadEmailLog()" style="margin-left:auto;padding:5px 14px;border:1px solid #E5D9C6;border-radius:7px;background:#fff;color:#A2693E;font-size:11px;font-weight:700;cursor:pointer;">새로고침</button>
+    <!-- 메일 목록 뷰 -->
+    <div id="emListView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="em-toolbar">
+        <span class="em-toolbar-title" id="emFolderTitle">받은메일함</span>
+        <span class="em-toolbar-count" id="emMailCount"></span>
+        <div class="em-toolbar-right">
+          <div class="em-search-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="emSearchInput" placeholder="검색" oninput="filterEmailList()">
+          </div>
+          <button class="em-toolbar-btn" onclick="loadEmailTab()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            새로고침
+          </button>
+        </div>
+      </div>
+      <div class="em-mail-list" id="emMailList">
+        <div class="em-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          <p id="emEmptyMsg">불러오는 중...</p>
+        </div>
+      </div>
     </div>
-    <div style="overflow-x:auto;">
-      <table class="email-log-table">
-        <thead>
-          <tr>
-            <th>발신</th><th>수신</th><th>제목</th><th style="white-space:nowrap;">발송일시</th>
-          </tr>
-        </thead>
-        <tbody id="emailLogBody">
-          <tr><td colspan="4" class="email-log-empty">발송 이력이 없습니다.</td></tr>
-        </tbody>
-      </table>
+
+    <!-- 메일쓰기 뷰 -->
+    <div class="em-compose-panel" id="emComposePanel">
+      <div class="em-compose-header">
+        <span class="em-compose-title">메일쓰기</span>
+        <div class="em-compose-actions">
+          <span class="em-compose-msg" id="emComposeMsg"></span>
+          <button class="em-compose-draft-btn" onclick="saveEmailDraft()">임시저장</button>
+          <button class="em-compose-send-btn" id="emComposeSendBtn" onclick="sendMailFromERP()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            보내기
+          </button>
+          <button class="em-compose-close-btn" onclick="closeEmailCompose()">✕</button>
+        </div>
+      </div>
+      <div class="em-compose-field">
+        <label>발신</label>
+        <select id="emailFrom" style="flex:1;border:none;outline:none;font-size:13px;padding:11px 0;background:transparent;color:#222;font-family:inherit;"></select>
+      </div>
+      <div class="em-compose-field">
+        <label>받는사람</label>
+        <input type="email" id="emailTo" placeholder="수신자 이메일">
+      </div>
+      <div class="em-compose-field">
+        <label>참조</label>
+        <input type="email" id="emailCc" placeholder="참조 이메일 (선택)">
+      </div>
+      <div class="em-compose-field">
+        <label>제목</label>
+        <input type="text" id="emailSubject" placeholder="제목을 입력하세요">
+      </div>
+      <div class="em-compose-body">
+        <textarea id="emailBody" placeholder="내용을 입력하세요..."></textarea>
+      </div>
+      <div class="em-compose-ai-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <input class="em-compose-ai-input" id="emAiPrompt" placeholder="AI 메일 작성: 작성하고 싶은 내용을 입력하세요 (예: 견적 문의 답변 메일)">
+        <button class="em-compose-ai-btn" onclick="aiWriteEmail()">AI 작성</button>
+      </div>
     </div>
+
+    <!-- 메일 상세보기 뷰 -->
+    <div class="em-detail-panel" id="emDetailPanel">
+      <div class="em-detail-header">
+        <div class="em-detail-subject" id="emDetailSubject"></div>
+        <div class="em-detail-meta">
+          <span class="em-detail-sender" id="emDetailSender"></span>
+          <span id="emDetailTime"></span>
+          <span id="emDetailTo" style="color:#aaa;"></span>
+        </div>
+        <div class="em-detail-actions">
+          <button class="em-detail-action-btn" onclick="replyEmail()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>답장
+          </button>
+          <button class="em-detail-action-btn" onclick="forwardEmail()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>전달
+          </button>
+          <button class="em-detail-action-btn em-detail-close" onclick="closeEmailDetail()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>닫기
+          </button>
+        </div>
+      </div>
+      <div class="em-detail-body" id="emDetailBody"></div>
+    </div>
+
   </div>
 </div>
 
 <script>
 (function(){
-  // ── Gmail API 연동 준비 플래그 ──
-  // false: 발송 전용 (현재)
-  // true : Workspace 연동 후 수신함 API 활성화
   window.USE_GMAIL_API = false;
 
-  // 대표메일 목록 (추후 추가/수정 가능)
   const COMPANY_EMAILS = [
     { address: 'info@jibokdeukmaru.com', label: '대표 (info)', adminOnly: false },
     { address: 'sales@jibokdeukmaru.com', label: '영업 (sales)', adminOnly: true },
   ];
 
+  const FOLDER_LABELS = {
+    inbox: '받은메일함', sent: '보낸메일함',
+    draft: '임시보관함', spam: '스팸메일함', trash: '휴지통'
+  };
+
+  let _currentFolder = 'inbox';
+  let _allEmailItems = [];
+  let _currentDraft = null;
+
+  // ── 폴더 전환 ──
+  window.setEmailFolder = function(folder, el) {
+    _currentFolder = folder;
+    document.querySelectorAll('.em-folder-item').forEach(i => i.classList.remove('active'));
+    if (el) el.classList.add('active');
+    document.getElementById('emFolderTitle').textContent = FOLDER_LABELS[folder] || folder;
+    closeEmailCompose();
+    closeEmailDetail();
+    showEmailListView();
+    renderEmailList();
+  };
+
+  // ── 탭 진입 시 초기화 ──
   window.loadEmailTab = function() {
     const user = window._currentUser;
     if (!user) return;
 
-    // 발신 주소 드롭다운 구성
+    // 발신 주소 드롭다운
     const sel = document.getElementById('emailFrom');
     if (sel) {
       sel.innerHTML = '';
-      // 본인 개인 이메일
       if (user.email) {
         const opt = document.createElement('option');
         opt.value = user.email;
-        opt.textContent = `${user.email} (내 메일)`;
+        opt.textContent = user.email + ' (내 메일)';
         sel.appendChild(opt);
       }
-      // 대표메일: isHead 또는 admin만 선택 가능
-      const canUseCompany = user.role === 'admin' || user.isHead;
-      if (canUseCompany) {
+      const canCompany = user.role === 'admin' || user.isHead;
+      if (canCompany) {
         COMPANY_EMAILS.forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.address;
@@ -10567,16 +10689,166 @@ if ('serviceWorker' in navigator) {
       }
     }
 
-    // 수신함 라벨 표시
-    const lbl = document.getElementById('emailInboxFromLabel');
-    if (lbl && user.email) lbl.textContent = user.email;
+    _currentFolder = 'inbox';
+    document.querySelectorAll('.em-folder-item').forEach(i => i.classList.remove('active'));
+    const inboxItem = document.querySelector('.em-folder-item[data-folder="inbox"]');
+    if (inboxItem) inboxItem.classList.add('active');
+    document.getElementById('emFolderTitle').textContent = '받은메일함';
+    showEmailListView();
+    renderEmailList();
+    updateDraftCount();
+  };
 
-    // Workspace 연동 시 수신함 로드
-    if (window.USE_GMAIL_API) {
-      loadEmailInbox();
+  // ── 뷰 전환 헬퍼 ──
+  function showEmailListView() {
+    document.getElementById('emListView').style.display = 'flex';
+    const cp = document.getElementById('emComposePanel');
+    const dp = document.getElementById('emDetailPanel');
+    if (cp) { cp.classList.remove('open'); cp.style.display = 'none'; }
+    if (dp) { dp.classList.remove('open'); dp.style.display = 'none'; }
+  }
+
+  // ── 메일 목록 렌더링 ──
+  function renderEmailList() {
+    const listEl = document.getElementById('emMailList');
+    const emptyMsg = document.getElementById('emEmptyMsg');
+    const countEl = document.getElementById('emMailCount');
+
+    // 발송 이력 (보낸메일함/임시보관함)
+    const logKey = 'baram_email_log_' + ((window._currentUser && window._currentUser.id) || 'guest');
+    const draftKey = 'baram_email_draft_' + ((window._currentUser && window._currentUser.id) || 'guest');
+    let items = [];
+
+    if (_currentFolder === 'sent') {
+      try { items = JSON.parse(localStorage.getItem(logKey) || '[]'); } catch(e) {}
+    } else if (_currentFolder === 'draft') {
+      try { items = JSON.parse(localStorage.getItem(draftKey) || '[]'); } catch(e) {}
+    } else {
+      // 받은메일함/스팸/휴지통: Workspace 연동 전 빈 상태
+      items = [];
     }
 
-    loadEmailLog();
+    // 검색 필터
+    const q = (document.getElementById('emSearchInput') ? document.getElementById('emSearchInput').value : '').toLowerCase().trim();
+    if (q) items = items.filter(m => (m.subject||'').toLowerCase().includes(q) || (m.to||'').toLowerCase().includes(q) || (m.from||'').toLowerCase().includes(q));
+
+    _allEmailItems = items;
+    if (countEl) countEl.textContent = items.length ? `전체메일 ${items.length}` : '';
+
+    if (!items.length) {
+      const msgs = {
+        inbox: window.USE_GMAIL_API ? '받은 메일이 없습니다.' : 'Google Workspace 연동 후 받은 메일을 확인할 수 있습니다.',
+        sent: '보낸 메일이 없습니다.',
+        draft: '임시저장된 메일이 없습니다.',
+        spam: window.USE_GMAIL_API ? '스팸 메일이 없습니다.' : 'Google Workspace 연동 후 사용 가능합니다.',
+        trash: window.USE_GMAIL_API ? '휴지통이 비어있습니다.' : 'Google Workspace 연동 후 사용 가능합니다.',
+      };
+      listEl.innerHTML = `<div class="em-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        <p>${msgs[_currentFolder] || '메일이 없습니다.'}</p>
+      </div>`;
+      return;
+    }
+
+    // 날짜 그룹핑
+    const groups = {};
+    items.forEach((m, idx) => {
+      const dt = m.sentAt || m.savedAt || '';
+      const d = dt ? new Date(dt) : null;
+      const label = d ? formatDateGroup(d) : '날짜 없음';
+      if (!groups[label]) groups[label] = [];
+      groups[label].push({ ...m, _idx: idx });
+    });
+
+    let html = '';
+    Object.keys(groups).forEach(label => {
+      html += `<div class="em-date-group">${label}</div>`;
+      groups[label].forEach(m => {
+        const timeStr = m.sentAt || m.savedAt ? formatMailTime(new Date(m.sentAt || m.savedAt)) : '-';
+        const sender = _currentFolder === 'sent' ? (m.to || '-') : (m.from || '나');
+        const subjectDisplay = m.subject || '(제목없음)';
+        html += `<div class="em-mail-row" onclick="openEmailDetail(${m._idx})">
+          <input type="checkbox" class="em-mail-check" onclick="event.stopPropagation()">
+          <svg class="em-mail-flag" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" onclick="event.stopPropagation()"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          <svg class="em-mail-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+          <span class="em-mail-sender">${sender}</span>
+          <span class="em-mail-subject">${subjectDisplay}</span>
+          <span class="em-mail-time">${timeStr}</span>
+        </div>`;
+      });
+    });
+    listEl.innerHTML = html;
+  }
+
+  window.filterEmailList = function() { renderEmailList(); };
+
+  // ── 메일 상세보기 ──
+  window.openEmailDetail = function(idx) {
+    const m = _allEmailItems[idx];
+    if (!m) return;
+    document.getElementById('emListView').style.display = 'none';
+    const dp = document.getElementById('emDetailPanel');
+    dp.style.display = 'flex';
+    dp.classList.add('open');
+    document.getElementById('emDetailSubject').textContent = m.subject || '(제목없음)';
+    document.getElementById('emDetailSender').textContent = m.from || '나';
+    document.getElementById('emDetailTime').textContent = m.sentAt || m.savedAt ? formatMailTime(new Date(m.sentAt || m.savedAt)) : '';
+    document.getElementById('emDetailTo').textContent = m.to ? '→ ' + m.to : '';
+    document.getElementById('emDetailBody').textContent = m.body || '(내용없음)';
+  };
+
+  window.closeEmailDetail = function() {
+    const dp = document.getElementById('emDetailPanel');
+    if (dp) { dp.classList.remove('open'); dp.style.display = 'none'; }
+    showEmailListView();
+    renderEmailList();
+  };
+
+  // ── 메일쓰기 ──
+  window.openEmailCompose = function(prefill) {
+    document.getElementById('emListView').style.display = 'none';
+    const dp = document.getElementById('emDetailPanel');
+    if (dp) { dp.classList.remove('open'); dp.style.display = 'none'; }
+    const cp = document.getElementById('emComposePanel');
+    cp.style.display = 'flex';
+    cp.classList.add('open');
+    if (prefill) {
+      if (prefill.to) document.getElementById('emailTo').value = prefill.to;
+      if (prefill.subject) document.getElementById('emailSubject').value = prefill.subject;
+      if (prefill.body) document.getElementById('emailBody').value = prefill.body;
+    } else {
+      ['emailTo','emailCc','emailSubject','emailBody'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      document.getElementById('emAiPrompt').value = '';
+    }
+    document.getElementById('emComposeMsg').textContent = '';
+    setTimeout(() => { const el = document.getElementById('emailTo'); if (el) el.focus(); }, 100);
+  };
+
+  window.closeEmailCompose = function() {
+    const cp = document.getElementById('emComposePanel');
+    if (cp) { cp.classList.remove('open'); cp.style.display = 'none'; }
+    showEmailListView();
+  };
+
+  // ── 답장 / 전달 ──
+  window.replyEmail = function() {
+    const subj = document.getElementById('emDetailSubject').textContent;
+    const sender = document.getElementById('emDetailSender').textContent;
+    const body = document.getElementById('emDetailBody').textContent;
+    openEmailCompose({
+      to: sender,
+      subject: 'Re: ' + subj,
+      body: '\n\n------- 원본 메일 -------\n' + body
+    });
+  };
+
+  window.forwardEmail = function() {
+    const subj = document.getElementById('emDetailSubject').textContent;
+    const body = document.getElementById('emDetailBody').textContent;
+    openEmailCompose({
+      subject: 'Fwd: ' + subj,
+      body: '\n\n------- 전달된 메일 -------\n' + body
+    });
   };
 
   // ── 메일 발송 ──
@@ -10586,95 +10858,138 @@ if ('serviceWorker' in navigator) {
     const cc      = document.getElementById('emailCc').value.trim();
     const subject = document.getElementById('emailSubject').value.trim();
     const body    = document.getElementById('emailBody').value.trim();
-    const msgEl   = document.getElementById('emailSendMsg');
-    const btnEl   = document.getElementById('emailSendBtn');
+    const msgEl   = document.getElementById('emComposeMsg');
+    const btnEl   = document.getElementById('emComposeSendBtn');
 
-    if (!to)      { showEmailMsg('받는 사람 이메일을 입력하세요.', 'err'); return; }
-    if (!subject) { showEmailMsg('제목을 입력하세요.', 'err'); return; }
-    if (!body)    { showEmailMsg('본문을 입력하세요.', 'err'); return; }
+    if (!to)      { if (msgEl) { msgEl.textContent = '받는사람을 입력하세요.'; msgEl.style.color='#c0392b'; } return; }
+    if (!subject) { if (msgEl) { msgEl.textContent = '제목을 입력하세요.'; msgEl.style.color='#c0392b'; } return; }
+    if (!body)    { if (msgEl) { msgEl.textContent = '내용을 입력하세요.'; msgEl.style.color='#c0392b'; } return; }
 
-    btnEl.disabled = true;
-    showEmailMsg('발송 중...', 'ok');
+    if (btnEl) btnEl.disabled = true;
+    if (msgEl) { msgEl.textContent = '발송 중...'; msgEl.style.color='#A2693E'; }
 
     try {
       const params = new URLSearchParams({ action:'sendEmailFromERP', from, to, cc, subject, body });
       const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
-
       if (data.status === 'ok') {
-        showEmailMsg('발송 완료!', 'ok');
-        // 발송 이력 저장
-        saveEmailLog({ from, to, cc, subject, sentAt: new Date().toISOString() });
-        // 입력 초기화
-        ['emailTo','emailCc','emailSubject','emailBody'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.value = '';
-        });
-        loadEmailLog();
+        if (msgEl) { msgEl.textContent = '발송 완료!'; msgEl.style.color='#1a7a45'; }
+        saveEmailLog({ from, to, cc, subject, body, sentAt: new Date().toISOString() });
+        setTimeout(() => closeEmailCompose(), 1200);
       } else {
-        showEmailMsg('발송 실패: ' + (data.message || '알 수 없는 오류'), 'err');
+        if (msgEl) { msgEl.textContent = '발송 실패: ' + (data.message||''); msgEl.style.color='#c0392b'; }
       }
     } catch(e) {
-      showEmailMsg('발송 오류: ' + e.message, 'err');
+      if (msgEl) { msgEl.textContent = '오류: ' + e.message; msgEl.style.color='#c0392b'; }
     } finally {
-      btnEl.disabled = false;
-      setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 4000);
+      if (btnEl) btnEl.disabled = false;
     }
   };
 
-  function showEmailMsg(txt, type) {
-    const el = document.getElementById('emailSendMsg');
-    if (!el) return;
-    el.textContent = txt;
-    el.className = 'email-send-msg ' + type;
-    el.style.display = 'inline';
-  }
+  // ── 임시저장 ──
+  window.saveEmailDraft = function() {
+    const draft = {
+      from:    document.getElementById('emailFrom').value.trim(),
+      to:      document.getElementById('emailTo').value.trim(),
+      cc:      document.getElementById('emailCc').value.trim(),
+      subject: document.getElementById('emailSubject').value.trim(),
+      body:    document.getElementById('emailBody').value.trim(),
+      savedAt: new Date().toISOString()
+    };
+    const key = 'baram_email_draft_' + ((window._currentUser && window._currentUser.id) || 'guest');
+    try {
+      const drafts = JSON.parse(localStorage.getItem(key) || '[]');
+      drafts.unshift(draft);
+      if (drafts.length > 20) drafts.length = 20;
+      localStorage.setItem(key, JSON.stringify(drafts));
+    } catch(e) {}
+    const msgEl = document.getElementById('emComposeMsg');
+    if (msgEl) { msgEl.textContent = '임시저장 완료'; msgEl.style.color='#1a7a45'; }
+    updateDraftCount();
+    setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 2000);
+  };
 
-  // ── 발송 이력 localStorage 저장/조회 (본인 이메일 기준 분리) ──
-  function getEmailLogKey() {
-    const user = window._currentUser;
-    return 'baram_email_log_' + (user ? user.id : 'guest');
-  }
-
+  // ── 발송 이력 저장 ──
   function saveEmailLog(entry) {
     try {
-      const key  = getEmailLogKey();
+      const key = 'baram_email_log_' + ((window._currentUser && window._currentUser.id) || 'guest');
       const logs = JSON.parse(localStorage.getItem(key) || '[]');
       logs.unshift(entry);
-      // 최근 50건만 보관
-      if (logs.length > 50) logs.length = 50;
+      if (logs.length > 100) logs.length = 100;
       localStorage.setItem(key, JSON.stringify(logs));
     } catch(e) {}
   }
 
-  window.loadEmailLog = function() {
-    const tbody = document.getElementById('emailLogBody');
-    if (!tbody) return;
+  // ── 임시보관 뱃지 ──
+  function updateDraftCount() {
     try {
-      const logs = JSON.parse(localStorage.getItem(getEmailLogKey()) || '[]');
-      if (!logs.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="email-log-empty">발송 이력이 없습니다.</td></tr>';
-        return;
+      const key = 'baram_email_draft_' + ((window._currentUser && window._currentUser.id) || 'guest');
+      const drafts = JSON.parse(localStorage.getItem(key) || '[]');
+      const el = document.getElementById('emDraftCount');
+      if (el) el.textContent = drafts.length || '';
+    } catch(e) {}
+  }
+
+  // ── AI 메일 작성 ──
+  window.aiWriteEmail = async function() {
+    const prompt = document.getElementById('emAiPrompt').value.trim();
+    if (!prompt) { alert('작성하고 싶은 내용을 입력해주세요.'); return; }
+    const apiKey = localStorage.getItem('baram_gemini_key');
+    if (!apiKey) { alert('관리자 탭 → API 연동 설정에서 Gemini API 키를 먼저 입력해주세요.'); return; }
+    const btn = document.querySelector('.em-compose-ai-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '작성 중...'; }
+    try {
+      const subject = document.getElementById('emailSubject').value.trim();
+      const fullPrompt = `당신은 비즈니스 이메일 작성 전문가입니다. 아래 요청에 맞는 이메일 본문을 작성해주세요. 인삿말부터 마무리 인사까지 완성된 형태로 작성하고, 본문만 출력하세요.\n\n제목: ${subject||'(미입력)'}\n요청: ${prompt}`;
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
+      });
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (text) {
+        document.getElementById('emailBody').value = text;
+        document.getElementById('emAiPrompt').value = '';
+      } else {
+        alert('AI 응답을 가져올 수 없습니다.');
       }
-      tbody.innerHTML = logs.map(l => {
-        const dt = l.sentAt ? new Date(l.sentAt).toLocaleString('ko-KR',{hour12:false}) : '-';
-        return `<tr>
-          <td style="color:#A2693E;font-weight:600;">${l.from||'-'}</td>
-          <td>${l.to||'-'}${l.cc ? '<br><span style="font-size:11px;color:#aaa;">CC: '+l.cc+'</span>' : ''}</td>
-          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.subject||'-'}</td>
-          <td style="white-space:nowrap;color:#888;">${dt}</td>
-        </tr>`;
-      }).join('');
     } catch(e) {
-      tbody.innerHTML = '<tr><td colspan="4" class="email-log-empty">이력을 불러올 수 없습니다.</td></tr>';
+      alert('AI 작성 오류: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'AI 작성'; }
     }
   };
 
-  // ── Workspace 연동 후 수신함 로드 (USE_GMAIL_API = true 시 활성화) ──
+  // ── 날짜 포맷 헬퍼 ──
+  function formatDateGroup(d) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today - 86400000);
+    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (target.getTime() === today.getTime()) return '오늘 ' + formatKorDate(d);
+    if (target.getTime() === yesterday.getTime()) return '어제 ' + formatKorDate(d);
+    const diff = (today - target) / 86400000;
+    if (diff < 7) return '지난주';
+    return formatKorDate(d);
+  }
+
+  function formatKorDate(d) {
+    const days = ['일','월','화','수','목','금','토'];
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} (${days[d.getDay()]})`;
+  }
+
+  function formatMailTime(d) {
+    const now = new Date();
+    const isToday = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+    if (isToday) return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    return `${String(d.getFullYear()).slice(2)}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  // Workspace 연동 후 수신함 로드
   async function loadEmailInbox() {
     if (!window.USE_GMAIL_API) return;
     // TODO: Gmail API 연동 후 구현
-    // const res = await fetchWithRetry(`${RESERVE_URL}?action=getInbox&email=${window._currentUser.email}`);
   }
 
 })();
