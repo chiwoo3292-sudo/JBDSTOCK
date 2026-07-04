@@ -7719,23 +7719,23 @@ function initApp() {
       }
     });
   })();
-  document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>setTab(btn.dataset.tab)));
 }
 // PRICE 시트에서 products 로드 후 앱 초기화
 async function startApp() {
-    // ── UI 먼저 띄우고 데이터는 백그라운드 로드 ──
-    // products/tooltip 로딩을 기다리지 않고 앱 초기화 먼저 실행
+    // ── 탭 버튼 이벤트: products 로드와 무관하게 즉시 등록 ──
+    document.querySelectorAll('.tab-btn').forEach(btn =>
+      btn.addEventListener('click', () => setTab(btn.dataset.tab))
+    );
+
+    // ── UI 초기화 먼저 ──
     initApp();
     addInvoiceItem();
 
-    // 단가표/재고 탭은 lazy load — 탭 진입 시 로드됨
-    // 백그라운드에서 미리 로드 시도 (실패해도 UI에 영향 없음)
+    // ── products/tooltip은 백그라운드에서 3초 후 로드 ──
     setTimeout(async () => {
       try {
         await Promise.all([loadProducts(), loadTooltipMap()]);
-      } catch(e) {
-        // 탭 진입 시 재시도하므로 무시
-      }
+      } catch(e) {}
     }, 3000);
 }
 if (document.readyState === 'loading') {
