@@ -5105,6 +5105,22 @@ function csDateInputValue(val) {
             if (orgBtn && userData.role === 'admin') {
               orgBtn.style.display = '';
             }
+            // Firestore에서 탭 설정 불러오기 (기기 간 동기화)
+            if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+              window.fsDB.collection('employees').doc(userData.id).get().then(doc => {
+                if (!doc.exists) return;
+                const d = doc.data();
+                if (d.visibleTabs) {
+                  localStorage.setItem(VISIBLE_TABS_KEY, d.visibleTabs);
+                  if (typeof applyVisibleTabs === 'function') applyVisibleTabs();
+                }
+                if (d.tabOrder) {
+                  localStorage.setItem('baram_tab_order', d.tabOrder);
+                  if (typeof applyTabOrder === 'function') applyTabOrder();
+                  if (typeof renderHamburgerItems === 'function') renderHamburgerItems();
+                }
+              }).catch(() => {});
+            }
             setTimeout(() => { initAfterLogin(userData); }, 1000);
         } else {
             if (userInitial) userInitial.textContent = 'G';
@@ -7062,13 +7078,23 @@ function getVisibleTabs() {
 
 function saveVisibleTabs(list) {
   localStorage.setItem(VISIBLE_TABS_KEY, JSON.stringify(list));
+  // Firestore에도 동기화 (어느 기기에서 접속해도 동일한 설정 유지)
+  if (window.USE_FIRESTORE_CONSULTS && window.fsDB && window._currentUser) {
+    window.fsDB.collection('employees').doc(window._currentUser.id)
+      .update({ visibleTabs: JSON.stringify(list) }).catch(() => {});
+  }
 }
 
 function applyVisibleTabs() {
   const visible = getVisibleTabs();
   document.querySelectorAll('#mainTabBar .tab-btn[data-tab]').forEach(btn => {
     const tab = btn.dataset.tab;
-    if (tab === 'adminTab') return; // 관리자 탭은 권한으로 제어
+    // adminTab/myInfoTab은 권한으로만 제어
+    if (tab === 'adminTab' || tab === 'myInfoTab') return;
+    // 권한으로 이미 숨겨진 탭(display:none이 권한 때문인 경우)은 건드리지 않음
+    // → 권한 탭(PERM_TABS)이고 현재 숨겨진 경우: visible에 있어도 열지 않음
+    if (PERM_TABS.includes(tab) && btn.style.display === 'none') return;
+    // 그 외: visible 목록 기준으로 표시/숨김
     btn.style.display = visible.includes(tab) ? '' : 'none';
   });
 }
@@ -7116,7 +7142,10 @@ function renderHamburgerItems() {
     items.innerHTML = tabOrder.map(id => {
       const label = TAB_LABELS[id];
       if (!label) return '';
+      // 관리자가 허용하지 않아 숨겨진 탭은 목록에서 제외
       if (!isTabVisible(id)) return '';
+      // adminTab/myInfoTab은 편집 목록에서 제외
+      if (id === 'adminTab' || id === 'myInfoTab') return '';
       const checked = visible.includes(id);
       return `<div class="hamburger-menu-item hamburger-edit-item"
         data-tabid="${id}"
@@ -7189,6 +7218,11 @@ window.hamburgerDrop = function(e) {
     order.splice(si, 1);
     order.splice(ti, 0, _dragSrcId);
     localStorage.setItem('baram_tab_order', JSON.stringify(order));
+    // Firestore 동기화
+    if (window.USE_FIRESTORE_CONSULTS && window.fsDB && window._currentUser) {
+      window.fsDB.collection('employees').doc(window._currentUser.id)
+        .update({ tabOrder: JSON.stringify(order) }).catch(() => {});
+    }
     applyTabOrder();
     renderHamburgerItems();
   }
@@ -7252,6 +7286,11 @@ window.hamburgerTouchEnd = function(e) {
       order.splice(si, 1);
       order.splice(ti, 0, _touchDragSrcId);
       localStorage.setItem('baram_tab_order', JSON.stringify(order));
+      // Firestore 동기화
+      if (window.USE_FIRESTORE_CONSULTS && window.fsDB && window._currentUser) {
+        window.fsDB.collection('employees').doc(window._currentUser.id)
+          .update({ tabOrder: JSON.stringify(order) }).catch(() => {});
+      }
       applyTabOrder();
       renderHamburgerItems();
     }
@@ -7279,6 +7318,11 @@ function closeHamburger() {
 }
 
 window.toggleTabVisible = function(tabId, checked) {
+  // 권한으로 숨겨진 탭은 사용자가 켤 수 없음
+  if (tabId === 'adminTab' || tabId === 'myInfoTab') return;
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  if (PERM_TABS.includes(tabId) && btn && btn.style.display === 'none' && checked) return;
+
   let visible = getVisibleTabs();
   if (checked && !visible.includes(tabId)) visible.push(tabId);
   if (!checked) visible = visible.filter(t => t !== tabId);
