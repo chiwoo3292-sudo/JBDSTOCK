@@ -681,21 +681,21 @@
       <span></span><span></span><span></span>
     </button>
     <div class="tabs no-capture" id="mainTabBar">
-      <button type="button" class="tab-btn active" data-tab="pricingTab">단가표</button>
-      <button type="button" class="tab-btn" data-tab="calculatorTab">계산기</button>
-      <button type="button" class="tab-btn" data-tab="stockTab">재고현황</button>
-      <button type="button" class="tab-btn" data-tab="invoiceTab">견적서</button>
-      <button type="button" class="tab-btn" data-tab="consultTab">쇼룸상담</button>
-      <button type="button" class="tab-btn" id="reservationTabBtn" data-tab="reservationTab">예약관리<span id="rsvPendingBadge" style="display:none;margin-left:4px;background:#e74c3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;">N</span></button>
-      <button type="button" class="tab-btn" data-tab="cardScanTab">명함스캐닝</button>
-      <button type="button" class="tab-btn" data-tab="contactsTab">연락처</button>
-      <button type="button" class="tab-btn" data-tab="floorplanTab">면적분석</button>
-      <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
-      <button type="button" class="tab-btn" data-tab="noticeTab">공지게시판</button>
-      <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
-      <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
-      <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn">이메일</button>
-      <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" style="display:none;">조직도</button>
+      <button type="button" class="tab-btn active" data-tab="pricingTab" onclick="setTab('pricingTab')">단가표</button>
+      <button type="button" class="tab-btn" data-tab="calculatorTab" onclick="setTab('calculatorTab')">계산기</button>
+      <button type="button" class="tab-btn" data-tab="stockTab" onclick="setTab('stockTab')">재고현황</button>
+      <button type="button" class="tab-btn" data-tab="invoiceTab" onclick="setTab('invoiceTab')">견적서</button>
+      <button type="button" class="tab-btn" data-tab="consultTab" onclick="setTab('consultTab')">쇼룸상담</button>
+      <button type="button" class="tab-btn" id="reservationTabBtn" data-tab="reservationTab" onclick="setTab('reservationTab')">예약관리<span id="rsvPendingBadge" style="display:none;margin-left:4px;background:#e74c3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;">N</span></button>
+      <button type="button" class="tab-btn" data-tab="cardScanTab" onclick="setTab('cardScanTab')">명함스캐닝</button>
+      <button type="button" class="tab-btn" data-tab="contactsTab" onclick="setTab('contactsTab')">연락처</button>
+      <button type="button" class="tab-btn" data-tab="floorplanTab" onclick="setTab('floorplanTab')">면적분석</button>
+      <button type="button" class="tab-btn" data-tab="memoTab" onclick="setTab('memoTab')">메모장</button>
+      <button type="button" class="tab-btn" data-tab="noticeTab" onclick="setTab('noticeTab')">공지게시판</button>
+      <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" onclick="setTab('adminTab')" style="display:none;">관리자</button>
+      <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" onclick="setTab('smsTab')" style="display:none;">문자발송</button>
+      <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn" onclick="setTab('emailTab')">이메일</button>
+      <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" onclick="setTab('orgTab')" style="display:none;">조직도</button>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
       <span id="userInitial">G</span>
@@ -7722,11 +7722,6 @@ function initApp() {
 }
 // PRICE 시트에서 products 로드 후 앱 초기화
 async function startApp() {
-    // ── 탭 버튼 이벤트: products 로드와 무관하게 즉시 등록 ──
-    document.querySelectorAll('.tab-btn').forEach(btn =>
-      btn.addEventListener('click', () => setTab(btn.dataset.tab))
-    );
-
     // ── UI 초기화 먼저 ──
     initApp();
     addInvoiceItem();
