@@ -7720,16 +7720,6 @@ function initApp() {
     });
   })();
   document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>setTab(btn.dataset.tab)));
-  // 새로고침 시 마지막 탭 복귀
-  const lastTab = localStorage.getItem('baram_last_tab');
-  if (lastTab && document.getElementById(lastTab)) {
-    setTab(lastTab);
-    if (lastTab === 'reservationTab') {
-      setTimeout(() => {
-        if (typeof loadMonthlyNoticeEditor === 'function') loadMonthlyNoticeEditor();
-      }, 300);
-    }
-  }
 }
 // PRICE 시트에서 products 로드 후 앱 초기화
 async function startApp() {
