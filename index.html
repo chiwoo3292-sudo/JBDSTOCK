@@ -5636,7 +5636,7 @@ function csDateInputValue(val) {
       const role = roleEl ? roleEl.value : 'staff';
       try {
         if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          await window.fsDB.collection('employees').doc(empId).update({ allowedTabs, role });
+          await window.fsDB.collection('employees').doc(empId).set({ allowedTabs, role }, { merge: true });
           fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role })}`).catch(()=>{});
         } else {
           const params = new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role });
@@ -5938,7 +5938,7 @@ function csDateInputValue(val) {
       const finalTabs = allowedTabs.length === ALL_TABS.length ? 'ALL' : allowedTabs.join(',');
       try {
         if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          await window.fsDB.collection('employees').doc(_tabPermEmpId).update({ allowedTabs: finalTabs, role });
+          await window.fsDB.collection('employees').doc(_tabPermEmpId).set({ allowedTabs: finalTabs, role }, { merge: true });
           fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'updateEmployee', id: _tabPermEmpId, allowedTabs: finalTabs, role })}`).catch(()=>{});
           showAdminToast('탭 권한 저장됨');
         } else {
@@ -7094,10 +7094,10 @@ function getVisibleTabs() {
 
 function saveVisibleTabs(list) {
   localStorage.setItem(VISIBLE_TABS_KEY, JSON.stringify(list));
-  // Firestore에도 동기화 (어느 기기에서 접속해도 동일한 설정 유지)
+  // Firestore에도 동기화 — set+merge로 doc 없어도 안전하게 저장
   if (window.USE_FIRESTORE_CONSULTS && window.fsDB && window._currentUser) {
     window.fsDB.collection('employees').doc(window._currentUser.id)
-      .update({ visibleTabs: JSON.stringify(list) }).catch(() => {});
+      .set({ visibleTabs: JSON.stringify(list) }, { merge: true }).catch(() => {});
   }
 }
 
@@ -7237,7 +7237,7 @@ window.hamburgerDrop = function(e) {
     // Firestore 동기화
     if (window.USE_FIRESTORE_CONSULTS && window.fsDB && window._currentUser) {
       window.fsDB.collection('employees').doc(window._currentUser.id)
-        .update({ tabOrder: JSON.stringify(order) }).catch(() => {});
+        .set({ tabOrder: JSON.stringify(order) }, { merge: true }).catch(() => {});
     }
     applyTabOrder();
     renderHamburgerItems();
@@ -7305,7 +7305,7 @@ window.hamburgerTouchEnd = function(e) {
       // Firestore 동기화
       if (window.USE_FIRESTORE_CONSULTS && window.fsDB && window._currentUser) {
         window.fsDB.collection('employees').doc(window._currentUser.id)
-          .update({ tabOrder: JSON.stringify(order) }).catch(() => {});
+          .set({ tabOrder: JSON.stringify(order) }, { merge: true }).catch(() => {});
       }
       applyTabOrder();
       renderHamburgerItems();
