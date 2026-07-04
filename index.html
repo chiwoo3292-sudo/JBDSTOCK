@@ -7101,6 +7101,8 @@ function saveVisibleTabs(list) {
   }
 }
 
+const PERM_TABS = ['adminTab', 'approvalTab', 'orgTab', 'smsTab', 'myInfoTab'];
+
 function applyVisibleTabs() {
   const visible = getVisibleTabs();
   document.querySelectorAll('#mainTabBar .tab-btn[data-tab]').forEach(btn => {
@@ -7141,8 +7143,6 @@ function renderHamburgerItems() {
   }
 
   // 권한 탭: 버튼이 존재하고 display가 ''(표시중)인 것만 포함
-  // display:none이어도 권한 탭(approvalTab,orgTab,smsTab)은 별도 처리
-  const PERM_TABS = ['adminTab', 'approvalTab', 'orgTab', 'smsTab', 'myInfoTab'];
 
   function isTabVisible(id) {
     const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
