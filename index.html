@@ -5145,7 +5145,15 @@ function csDateInputValue(val) {
             // setTab을 200ms 후 실행 — 초기 렌더링과 API 호출 분리
             setTimeout(() => {
               if (typeof setTab === 'function') {
-                const target = (userData.homeTab && document.getElementById(userData.homeTab)) ? userData.homeTab : 'myInfoTab';
+                // 새로고침(lastTab 있음): 마지막 탭으로 복귀
+                // 첫 로그인(lastTab 없음): homeTab 또는 myInfoTab으로 이동
+                let target;
+                if (lastTab && document.getElementById(lastTab)) {
+                  target = lastTab;
+                } else {
+                  target = (userData.homeTab && document.getElementById(userData.homeTab))
+                    ? userData.homeTab : 'myInfoTab';
+                }
                 setTab(target);
               }
             }, 200);
