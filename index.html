@@ -5099,12 +5099,12 @@ function csDateInputValue(val) {
             applyTabPermissions(userData.allowedTabs, userData.role);
             fillMyInfo(userData);
             window._currentUser = userData;
-            // 사용자별 화면 표시 설정(촘촘하게/기본/넓게) 동기화
+            // 사용자별 화면 표시 설정 동기화
             if (typeof initUiDensity === 'function') initUiDensity();
             const orgBtn = document.getElementById('orgTabBtn');
-            if (orgBtn && userData.role === 'admin') {
-              orgBtn.style.display = '';
-            }
+            if (orgBtn && userData.role === 'admin') orgBtn.style.display = '';
+            // 권한 적용 후 visible 탭 적용 (순서 중요)
+            if (typeof applyVisibleTabs === 'function') applyVisibleTabs();
             // Firestore에서 탭 설정 불러오기 (기기 간 동기화)
             if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
               window.fsDB.collection('employees').doc(userData.id).get().then(doc => {
@@ -5901,20 +5901,22 @@ function csDateInputValue(val) {
       document.getElementById('tabPermModal').style.display = 'flex';
     };
 
-    window.setTabPerm = function(tabId, isOn) {
+    window.setTabPerm = async function(tabId, isOn) {
       const group = document.querySelector(`[data-tabid="${tabId}"]`);
       if (!group) return;
       group.dataset.state = isOn ? 'on' : 'off';
       const [onBtn, offBtn] = group.querySelectorAll('button');
       if (onBtn) { onBtn.style.background = isOn ? '#A2693E' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
       if (offBtn) { offBtn.style.background = !isOn ? '#e74c3c' : '#eee'; offBtn.style.color = !isOn ? '#fff' : '#888'; }
+      // ON/OFF 누르는 즉시 자동 저장
+      await saveTabPermFromModal(true);
     };
 
     window.closeTabPermModal = function() {
       document.getElementById('tabPermModal').style.display = 'none';
     };
 
-    window.saveTabPermFromModal = async function() {
+    window.saveTabPermFromModal = async function(silent) {
       const allowedTabs = ALL_TABS.filter(t => {
         const group = document.querySelector(`[data-tabid="${t.id}"]`);
         return group && group.dataset.state === 'on';
@@ -5927,7 +5929,8 @@ function csDateInputValue(val) {
       const btn = document.querySelector(`#emp-row-${_tabPermRowIdx} button[onclick*="openTabPermModal"]`);
       if (btn) btn.textContent = `허용메뉴 (${allowedTabs.length}개)`;
 
-      closeTabPermModal();
+      // silent=true면 모달 닫지 않음 (ON/OFF 즉시저장 시)
+      if (!silent) closeTabPermModal();
 
       // 즉시 서버 저장
       const roleEl = document.getElementById(`emp-role-${_tabPermRowIdx}`);
@@ -7081,7 +7084,12 @@ const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 function getVisibleTabs() {
   const saved = localStorage.getItem(VISIBLE_TABS_KEY);
   if (saved) return JSON.parse(saved);
-  return Object.keys(TAB_LABELS);
+  // 저장값 없으면 현재 상단 탭바에 display:none이 아닌 탭만 visible로 반환
+  const visible = [];
+  document.querySelectorAll('#mainTabBar .tab-btn[data-tab]').forEach(btn => {
+    if (btn.style.display !== 'none') visible.push(btn.dataset.tab);
+  });
+  return visible.length ? visible : Object.keys(TAB_LABELS);
 }
 
 function saveVisibleTabs(list) {
