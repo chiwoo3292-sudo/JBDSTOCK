@@ -7326,30 +7326,37 @@ window.goMyInfo = function() {
   setTab('myInfoTab');
   const user = window._currentUser;
   if (user) {
-    // nocache 파라미터로 캐시 우회
-    fetchWithRetry(`${RESERVE_URL}?action=getEmployees&nocache=${Date.now()}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.status === 'ok') {
-          const me = (data.rows||[]).find(r => String(r.id) === String(user.id));
-          if (me) {
-            const cardWrap = document.getElementById('myiBusinessCardWrap');
-            const cardImg  = document.getElementById('myiBusinessCard');
-            if (cardWrap && cardImg) {
-              const url = me.cardUrl || '';
-              if (url) {
-                cardImg.src = url;
-                cardImg.onload = function() { cardWrap.style.display = 'block'; };
-                cardImg.onerror = function() { cardWrap.style.display = 'none'; };
-                cardWrap.style.display = 'block';
-              } else {
+    const fetchMyInfo = async () => {
+      try {
+        let me = null;
+        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+          const doc = await window.fsDB.collection('employees').doc(user.id).get();
+          if (doc.exists) me = doc.data();
+        } else {
+          const r = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees&nocache=${Date.now()}`);
+          const data = await r.json();
+          if (data.status === 'ok') me = (data.rows||[]).find(r => String(r.id) === String(user.id));
+        }
+        if (me) {
+          const cardWrap = document.getElementById('myiBusinessCardWrap');
+          const cardImg  = document.getElementById('myiBusinessCard');
+          if (cardWrap && cardImg) {
+            const url = me.cardUrl || '';
+            if (url) {
+              cardImg.src = url;
+              cardImg.onload = function() { cardWrap.style.display = 'block'; };
+              cardImg.onerror = function() { cardWrap.style.display = 'none'; };
+              cardWrap.style.display = 'block';
+            } else {
                 cardWrap.style.display = 'none';
               }
             }
             fillMyInfo(me);
           }
         }
-      }).catch(() => {});
+      } catch(e) {}
+    };
+    fetchMyInfo();
   }
 };
 
@@ -10536,10 +10543,16 @@ if ('serviceWorker' in navigator) {
 
   window.loadOrgTab = async function() {
     try {
-      const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-      const data = await res.json();
-      if (data.status !== 'ok') return;
-      const emps = data.rows || [];
+      let emps = [];
+      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+        const snapshot = await window.fsDB.collection('employees').get();
+        emps = snapshot.docs.map(doc => doc.data());
+      } else {
+        const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+        const data = await res.json();
+        if (data.status !== 'ok') return;
+        emps = data.rows || [];
+      }
       _orgEmps = emps;
       renderOrgEmpList(emps);
       renderOrgChart(emps);
@@ -10548,10 +10561,16 @@ if ('serviceWorker' in navigator) {
 
   window.loadAdminLeaveTable = async function() {
     try {
-      const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-      const data = await res.json();
-      if (data.status !== 'ok') return;
-      const emps = data.rows || [];
+      let emps = [];
+      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+        const snapshot = await window.fsDB.collection('employees').get();
+        emps = snapshot.docs.map(doc => doc.data());
+      } else {
+        const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+        const data = await res.json();
+        if (data.status !== 'ok') return;
+        emps = data.rows || [];
+      }
       _orgEmps = emps;
       renderOrgLeaveTable(emps);
     } catch(e) {}
