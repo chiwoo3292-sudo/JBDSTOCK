@@ -3653,11 +3653,17 @@ function csDateInputValue(val) {
     const results = document.getElementById('cfRevisitResults');
     if (!q) { results.innerHTML = ''; return; }
 
-    let pool;
+    let pool = [];
 
     if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-      // Firestore 실시간 동기화 중이면 allConsults가 이미 전체 데이터 → 바로 검색
-      pool = allConsults;
+      // Firestore에서 직접 전체 검색
+      results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">검색 중...</div>';
+      try {
+        const snapshot = await window.fsDB.collection('consults').get();
+        pool = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+      } catch(e) {
+        pool = allConsults; // 실패 시 현재 로딩된 데이터로 폴백
+      }
     } else {
       // Apps Script 방식: 전체 데이터 1회 조회 후 캐시
       if (!_consultsFullCache) {
@@ -3827,6 +3833,14 @@ function csDateInputValue(val) {
   window.closeConsultForm = function() {
     document.getElementById('csFormOverlay').classList.remove('open');
     document.body.classList.remove('overlay-open');
+    // 검색창 초기화
+    const revisitInput = document.getElementById('cfRevisitInput');
+    const revisitResults = document.getElementById('cfRevisitResults');
+    const revisitBox = document.getElementById('cfRevisitSearchBox');
+    if (revisitInput) revisitInput.value = '';
+    if (revisitResults) revisitResults.innerHTML = '';
+    if (revisitBox) revisitBox.style.display = 'none';
+    _revisitMatches = [];
   };
 
   // 모달 배경 클릭 시 닫기
