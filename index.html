@@ -5262,7 +5262,7 @@ function csDateInputValue(val) {
     }
 
     // 내 정보 채우기
-    function fillMyInfo(u) {
+    window.fillMyInfo = function fillMyInfo(u) {
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
 
         // 프로필
@@ -7107,14 +7107,14 @@ function applyVisibleTabs() {
   const visible = getVisibleTabs();
   document.querySelectorAll('#mainTabBar .tab-btn[data-tab]').forEach(btn => {
     const tab = btn.dataset.tab;
-    // adminTab/myInfoTab은 권한으로만 제어
+    // adminTab/myInfoTab 버튼은 권한으로만 제어 — 건드리지 않음
     if (tab === 'adminTab' || tab === 'myInfoTab') return;
-    // 권한으로 이미 숨겨진 탭(display:none이 권한 때문인 경우)은 건드리지 않음
-    // → 권한 탭(PERM_TABS)이고 현재 숨겨진 경우: visible에 있어도 열지 않음
+    // 권한으로 이미 숨겨진 PERM_TABS는 visible에 있어도 열지 않음
     if (PERM_TABS.includes(tab) && btn.style.display === 'none') return;
     // 그 외: visible 목록 기준으로 표시/숨김
     btn.style.display = visible.includes(tab) ? '' : 'none';
   });
+  // myInfoTab 패널 자체는 숨기지 않음 (goMyInfo로 접근 가능해야 함)
 }
 
 function openHamburger() {
