@@ -1834,9 +1834,15 @@
     document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
     try {
       if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // ── Firestore에서 예약 데이터 읽기 ──
+        // 세션 캐시 있으면 재사용
+        if (window._rsvSessionCache) {
+          allReservations = window._rsvSessionCache;
+          renderRsvList();
+          return;
+        }
         const snapshot = await window.fsDB.collection('reservations').get();
         allReservations = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+        window._rsvSessionCache = allReservations;
         renderRsvList();
       } else {
         // ── Apps Script 폴백 ──
@@ -1999,6 +2005,7 @@
       // ── Firestore 우선 업데이트 ──
       if (window.USE_FIRESTORE_CONSULTS && window.fsDB && selectedRsv._docId) {
         await window.fsDB.collection('reservations').doc(selectedRsv._docId).update({ status: newStatus });
+        window._rsvSessionCache = null; // 캐시 초기화
       }
 
       // ── Apps Script도 동시 처리 (시트 동기화 + 쇼룸상담 자동생성) ──
@@ -3091,7 +3098,7 @@
       _consultsFullCache = null; // 매번 최신 데이터 기준으로 검색되도록 캐시 초기화 후 재검색
       await renderConsultList();
     } else {
-      await loadConsults(true); // 검색어 없으면 최근 100건 강제 새로고침
+      await window.refreshConsultsCache ? window.refreshConsultsCache() : typeof window.refreshConsultsCache === "function" ? window.refreshConsultsCache() : loadConsults(true); // 검색어 없으면 최근 100건 강제 새로고침
     }
   };
 
@@ -3106,27 +3113,54 @@
   // 페이지 언로드 시 구독 해제 (리스너 누적 방지)
   window.addEventListener('beforeunload', stopConsultRealtimeSync);
 
-  function startConsultRealtimeSync() {
-    if (_fsConsultUnsubscribe) { renderConsultList(); return; } // 이미 구독 중이면 다시 구독하지 않고 그냥 재렌더
-    const bodyEl = document.getElementById('csTableBody');
-    if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">실시간 연결 중...</td></tr>';
-    _fsConsultUnsubscribe = window.fsDB.collection('consults').onSnapshot(function(snapshot) {
-      allConsults = snapshot.docs.map(function(doc) {
-        const d = doc.data();
-        d._docId = doc.id; // Firestore 문서 ID (수정/삭제 시 사용)
-        return d;
-      });
+  // 세션 캐시 - 한 번 읽으면 세션 동안 재사용
+  let _fsConsultsSessionCache = null;
+  let _fsConsultsLoading = false;
+
+  async function startConsultRealtimeSync() {
+    // 이미 로딩 중이면 스킵
+    if (_fsConsultsLoading) return;
+
+    // 세션 캐시가 있으면 바로 렌더 (Firestore 읽기 0)
+    if (_fsConsultsSessionCache) {
+      allConsults = _fsConsultsSessionCache;
       window._allConsultsRef = allConsults;
       renderConsultList();
-    }, function(err) {
-      console.error('Firestore 실시간 동기화 오류:', err);
-      if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">실시간 연결 실패: ' + err.message + '</td></tr>';
-    });
+      return;
+    }
+
+    _fsConsultsLoading = true;
+    const bodyEl = document.getElementById('csTableBody');
+    if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">불러오는 중...</td></tr>';
+
+    try {
+      // onSnapshot 대신 .get() 1회 읽기로 교체
+      const snapshot = await window.fsDB.collection('consults').get();
+      allConsults = snapshot.docs.map(function(doc) {
+        const d = doc.data();
+        d._docId = doc.id;
+        return d;
+      });
+      _fsConsultsSessionCache = allConsults;
+      window._allConsultsRef = allConsults;
+      renderConsultList();
+    } catch(err) {
+      if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">불러오기 실패: ' + err.message + '</td></tr>';
+    } finally {
+      _fsConsultsLoading = false;
+    }
   }
+
+  // 강제 새로고침 (저장/수정 후 호출)
+  window.refreshConsultsCache = function() {
+    _fsConsultsSessionCache = null;
+    startConsultRealtimeSync();
+  };
 
   window.loadConsults = async function(force) {
     if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-      startConsultRealtimeSync();
+      if (force) _fsConsultsSessionCache = null;
+      await startConsultRealtimeSync();
       return;
     }
     if (force) _consultsFullCache = null; // 강제 새로고침 시 전체검색 캐시도 초기화
@@ -3934,7 +3968,7 @@ function csDateInputValue(val) {
       const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
-        await loadConsults(true);
+        await window.refreshConsultsCache ? window.refreshConsultsCache() : typeof window.refreshConsultsCache === "function" ? window.refreshConsultsCache() : loadConsults(true);
         closeConsultForm();
       } else {
         document.getElementById('cfMsg').textContent = '' + (data.message||'저장 실패');
@@ -9901,7 +9935,7 @@ if ('serviceWorker' in navigator) {
       const data = await res.json();
       if (data.status === 'ok') {
         alert('삭제 완료!');
-        if (typeof loadConsults === 'function') loadConsults(true);
+        if (typeof loadConsults === 'function') typeof window.refreshConsultsCache === "function" ? window.refreshConsultsCache() : loadConsults(true);
       } else {
         alert('삭제 실패: ' + (data.message||''));
       }
@@ -9960,7 +9994,7 @@ if ('serviceWorker' in navigator) {
       if (data.status === 'ok') {
         notif.textContent = `${data.count}건 변환 완료!`;
         notif.style.background = '#1a7a45';
-        loadConsults(true);
+        typeof window.refreshConsultsCache === "function" ? window.refreshConsultsCache() : loadConsults(true);
       } else {
         notif.textContent = '' + (data.message||'실패');
         notif.style.background = '#c0392b';
@@ -10138,7 +10172,7 @@ if ('serviceWorker' in navigator) {
     document.getElementById('csvProgressCount').textContent = `${imported} / ${total}건`;
     if (failed === 0) {
       document.getElementById('csvProgressText').textContent = `${imported}건 등록 완료!`;
-      if (typeof loadConsults === 'function') loadConsults(true);
+      if (typeof loadConsults === 'function') typeof window.refreshConsultsCache === "function" ? window.refreshConsultsCache() : loadConsults(true);
       setTimeout(() => closeCsvModal(), 2000);
     } else {
       document.getElementById('csvProgressText').textContent = `${imported}건 완료, ${failed}건 실패`;
