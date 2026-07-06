@@ -9042,10 +9042,9 @@ function renderInvoice() {
         return `  <span style="color:#888;">[1BOX = ${metaList.join(', ')}]</span>`;
     }
 
-    // 가견적서 모드: REMARKS 전체 내용을 먼저 업데이트한 후 [1BOX = ...] 메타만 추가 갱신
+    // 가견적서 모드: 가격 기준에 따라 REMARKS 전체 내용 업데이트 (일반 모드와 동일)
     const isDraftForRemarks = !!document.getElementById('invDraftCheck')?.checked;
     if (isDraftForRemarks) {
-        // 1. 가격 기준에 따라 REMARKS 전체 내용 먼저 업데이트 (일반 모드와 동일하게)
         if (allBox || isMaterialMode) {
             const unitLabel = allBox ? 'BOX' : (unit1 === 'PY' ? 'PY' : 'M2');
             const boxMeta = buildBoxMetaStr(unitLabel);
@@ -9060,14 +9059,20 @@ function renderInvoice() {
             if (remarksDiv) remarksDiv.innerHTML =
                 `<div class="inv-remarks-title">REMARKS</div>
 단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/PY<br>
-<span class="inv-red">결제조건 : 완납 후, 출고</span><br>
+<span class="inv-red">실측 후 물량은 상이할 수 있음</span><br>
+<span class="inv-red">걸레받이 별도</span><br>
+시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드 - 친환경 황토풀 사용 기준<br>
+결제조건 : 계약금 50%, 중도금 30%(시공 일주일전) 잔금 20%(시공직후)<br>
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
         } else {
             if (remarksDiv) remarksDiv.innerHTML =
                 `<div class="inv-remarks-title">REMARKS</div>
 단&nbsp;&nbsp;&nbsp;&nbsp;위 : 원/M2<br>
-<span class="inv-red">결제조건 : 완납 후, 출고</span><br>
+<span class="inv-red">실측 후 물량은 상이할 수 있음</span><br>
+<span class="inv-red">걸레받이 별도</span><br>
+시&nbsp;&nbsp;&nbsp;&nbsp;공 : 본드 - 친환경 황토풀 사용 기준<br>
+결제조건 : 계약금 50%, 중도금 30%(시공 일주일전) 잔금 20%(시공직후)<br>
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
         }
