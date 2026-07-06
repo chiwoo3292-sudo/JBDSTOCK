@@ -5,27 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
-<!-- ── Firebase (쇼룸상담 실시간 동기화용) ── -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-  window.USE_FIRESTORE_CONSULTS = true; // 쇼룸상담을 Firestore 실시간 동기화로 사용할지 여부
-  try {
-    const firebaseConfig = {
-      apiKey: "AIzaSyDWUU2Fz1s9taDWAkt7Uz_NdwG6qB9UxhQ",
-      authDomain: "jibokdeukmaru-2cb6a.firebaseapp.com",
-      projectId: "jibokdeukmaru-2cb6a",
-      storageBucket: "jibokdeukmaru-2cb6a.firebasestorage.app",
-      messagingSenderId: "519034532583",
-      appId: "1:519034532583:web:a9cc6bf7a8b2f136922842"
-    };
-    firebase.initializeApp(firebaseConfig);
-    window.fsDB = firebase.firestore();
-  } catch (e) {
-    console.error('Firebase 초기화 실패:', e);
-    window.USE_FIRESTORE_CONSULTS = false; // 초기화 실패 시 기존 Apps Script 방식으로 자동 폴백
-  }
-</script>
 <script>
 // ── 윅스(Wix) iframe 안 모바일 접속 시, 정상 화면으로 이동하는 버튼 표시 ──
 (function () {
@@ -1834,13 +1813,6 @@
   window.loadReservations = async function() {
     document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // ── Firestore에서 예약 데이터 읽기 ──
-        const snapshot = await window.fsDB.collection('reservations').get();
-        allReservations = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-        renderRsvList();
-      } else {
-        // ── Apps Script 폴백 ──
         const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
         const data = await res.json();
         if (data.status === 'ok') {
@@ -1997,11 +1969,6 @@
     if (!confirm(`[${selectedRsv.name}] 예약을 "${newStatus}" 처리하시겠습니까?`)) return;
     document.getElementById('rsvActionMsg').textContent = '처리 중...';
     try {
-      // ── Firestore 우선 업데이트 ──
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB && selectedRsv._docId) {
-        await window.fsDB.collection('reservations').doc(selectedRsv._docId).update({ status: newStatus });
-      }
-
       // ── Apps Script도 동시 처리 (시트 동기화 + 쇼룸상담 자동생성) ──
       const res = await fetchWithRetry(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
       const data = await res.json();
@@ -2010,27 +1977,6 @@
         const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
         if (idx !== -1) allReservations[idx].status = newStatus;
         renderRsvList();
-
-        // 예약 확정 시 Firestore 쇼룸상담에도 추가
-        if (newStatus === '예약' && window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          try {
-            const rsv = selectedRsv;
-            const fsDoc = {
-              submittedAt: new Date().toISOString(),
-              date: rsv.date||'', time: rsv.time||'',
-              visitorType: rsv.visitorType||'', visitCount: rsv.visitCount||'',
-              revisit: rsv.revisit||'',
-              name: rsv.name||'', phone: rsv.phone||'', company: rsv.company||'',
-              address: rsv.address||'', spaceType:'', size: rsv.size||'',
-              floor:'', elevator:'있음', workDate: rsv.workDate||'', products:'',
-              memo: rsv.memo||'', status:'예약', counselor: rsv.counselor||'',
-              content: rsv.memo||'', sampleGiven:'', cardGiven:'', revisitConsult:'',
-              priceInfo:'', workTiming:'', workPeriod: rsv.workPeriod||'',
-              reqQuote:'N', oldVisitDate:'', pastHistory:'',
-            };
-            await window.fsDB.collection('consults').add(fsDoc);
-          } catch(fsErr) { console.error('Firestore 쇼룸상담 추가 오류:', fsErr); }
-        }
 
         // 문자 발송
         if (typeof sendSMS === 'function' && selectedRsv.phone) {
@@ -2077,51 +2023,6 @@
         if (data.status === 'ok') {
           successCount++;
           rsv.status = '예약';
-
-          // ── Firestore 예약 상태 업데이트 ──
-          if (window.USE_FIRESTORE_CONSULTS && window.fsDB && rsv._docId) {
-            try { await window.fsDB.collection('reservations').doc(rsv._docId).update({ status: '예약' }); } catch(e) {}
-          }
-
-          // ── Firestore 쇼룸상담 doc 추가 ──
-          if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-            try {
-              const fsDoc = {
-                submittedAt:    new Date().toISOString(),
-                date:           rsv.date        || '',
-                time:           rsv.time        || '',
-                visitorType:    rsv.visitorType || '',
-                visitCount:     rsv.visitCount  || '',
-                revisit:        rsv.revisit     || '',
-                name:           rsv.name        || '',
-                phone:          rsv.phone       || '',
-                company:        rsv.company     || '',
-                address:        rsv.address     || '',
-                spaceType:      '',
-                size:           rsv.size        || '',
-                floor:          '',
-                elevator:       '있음',
-                workDate:       rsv.workDate    || '',
-                products:       '',
-                memo:           rsv.memo        || '',
-                status:         '예약',
-                counselor:      rsv.counselor   || '',
-                content:        rsv.memo        || '',
-                sampleGiven:    '',
-                cardGiven:      '',
-                revisitConsult: '',
-                priceInfo:      '',
-                workTiming:     '',
-                workPeriod:     rsv.workPeriod  || '',
-                reqQuote:       'N',
-                oldVisitDate:   '',
-                pastHistory:    '',
-              };
-              await window.fsDB.collection('consults').add(fsDoc);
-            } catch(fsErr) {
-              console.error('Firestore 쇼룸상담 추가 오류:', fsErr);
-            }
-          }
 
           if (typeof sendSMS === 'function' && rsv.phone) {
             const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(rsv.date||'') : (rsv.date||'');
@@ -2590,7 +2491,6 @@
     <button class="dw-toolbar-item" onclick="deleteCheckedConsults()" style="color:#c0392b;border-color:#e6b0aa;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>삭제</button>
     <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#A2693E;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="downloadConsultCSV()">↓ 목록 다운로드(CSV)</button>
-    <button class="dw-toolbar-item" onclick="migrateConsultsToFirestore()" style="color:#2c5fc4;font-weight:700;">⇪ Firestore 동기화</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize" onchange="currentPage=1;renderConsultList()">
       <option value="10">10</option>
@@ -2897,14 +2797,9 @@
     if (_allStaffMapCache) return _allStaffMapCache;
     try {
       let rows = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const snapshot = await window.fsDB.collection('employees').get();
-        rows = snapshot.docs.map(doc => doc.data());
-      } else {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-        const data = await res.json();
-        rows = data.rows || [];
-      }
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+      const data = await res.json();
+      rows = data.rows || [];
       _allStaffMapCache = {};
       rows.forEach(r => {
         if (r.name) _allStaffMapCache[r.name.trim()] = (r.title || '').trim();
@@ -2935,14 +2830,9 @@
     if (_staffListCache) return _staffListCache;
     try {
       let rows = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const snapshot = await window.fsDB.collection('employees').get();
-        rows = snapshot.docs.map(doc => doc.data());
-      } else {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-        const data = await res.json();
-        rows = data.rows || [];
-      }
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+      const data = await res.json();
+      rows = data.rows || [];
       const allActive = rows.filter(r => !r.leaveDate);
       _staffListCache = allActive.map(r => `${r.name} ${r.title}`.trim());
     } catch(e) {
@@ -3093,40 +2983,8 @@
     }
   };
 
-  // ── Firestore 실시간 동기화 (쇼룸상담) ──
-  let _fsConsultUnsubscribe = null;
-  function stopConsultRealtimeSync() {
-    if (_fsConsultUnsubscribe) {
-      try { _fsConsultUnsubscribe(); } catch(e) {}
-      _fsConsultUnsubscribe = null;
-    }
-  }
-  // 페이지 언로드 시 구독 해제 (리스너 누적 방지)
-  window.addEventListener('beforeunload', stopConsultRealtimeSync);
-
-  function startConsultRealtimeSync() {
-    if (_fsConsultUnsubscribe) { renderConsultList(); return; } // 이미 구독 중이면 다시 구독하지 않고 그냥 재렌더
-    const bodyEl = document.getElementById('csTableBody');
-    if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">실시간 연결 중...</td></tr>';
-    _fsConsultUnsubscribe = window.fsDB.collection('consults').onSnapshot(function(snapshot) {
-      allConsults = snapshot.docs.map(function(doc) {
-        const d = doc.data();
-        d._docId = doc.id; // Firestore 문서 ID (수정/삭제 시 사용)
-        return d;
-      });
-      window._allConsultsRef = allConsults;
-      renderConsultList();
-    }, function(err) {
-      console.error('Firestore 실시간 동기화 오류:', err);
-      if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">실시간 연결 실패: ' + err.message + '</td></tr>';
-    });
-  }
 
   window.loadConsults = async function(force) {
-    if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-      startConsultRealtimeSync();
-      return;
-    }
     if (force) _consultsFullCache = null; // 강제 새로고침 시 전체검색 캐시도 초기화
     // 캐시가 있으면 즉시 화면에 표시 (stale-while-revalidate)
     if (_consultsCache && !force) {
@@ -3258,8 +3116,6 @@
     const map = await loadAllStaffMap();
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
 
-    // ★ Firestore 실시간 동기화 중이면 allConsults가 이미 전체 데이터로 항상 채워져 있어 별도 조회 불필요
-    if (!window.USE_FIRESTORE_CONSULTS) {
       // ★ 검색어가 있으면 전체 데이터로 전환(최초 1회만 서버조회 후 캐시), 검색어를 지우면 최근 100건으로 복귀
       if (q) {
         if (!_consultsFullCache) {
@@ -3283,7 +3139,6 @@
       } else if (_consultsCache) {
         allConsults = _consultsCache; // 검색어 없으면 최근 100건 목록으로 복귀
       }
-    }
     window._allConsultsRef = allConsults;
 
     // 원본 인덱스를 함께 보관
@@ -3587,44 +3442,6 @@ function csDateInputValue(val) {
   };
 
   // ── 쇼룸상담 목록 CSV 다운로드 ──
-  // ── Firestore 마이그레이션 (구글시트 → Firestore, 몇 번을 실행해도 안전 — 내용 기반 고정ID로 덮어쓰기) ──
-  window.migrateConsultsToFirestore = async function() {
-    if (!window.USE_FIRESTORE_CONSULTS || !window.fsDB) { alert('Firestore가 초기화되지 않았습니다.'); return; }
-    if (!confirm('구글시트의 쇼룸상담 데이터를 Firestore로 동기화합니다.\n(날짜+시간+연락처+성함 기준으로 겹치는 건은 덮어쓰기 되어 중복 생성되지 않습니다.)\n계속할까요?')) return;
-
-    const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
-    const data = await res.json();
-    if (data.status !== 'ok') { alert('구글시트 데이터 조회 실패: ' + (data.message||'')); return; }
-    const rows = data.rows || [];
-    if (!rows.length) { alert('이전할 데이터가 없습니다.'); return; }
-
-    // 내용 기반 고정 문서ID 생성 (같은 상담 데이터면 항상 같은 ID → 재실행해도 덮어쓰기만 됨, 중복 X)
-    function makeStableId(r) {
-      const raw = `${r.date||''}_${r.time||''}_${r.phone||'nophone'}_${r.name||'noname'}`;
-      return raw.replace(/[^a-zA-Z0-9가-힣_-]/g, '_').slice(0, 400);
-    }
-
-    let done = 0;
-    const CHUNK = 400; // Firestore batch 1회 최대 500건 제한, 여유있게 400씩
-    try {
-      for (let i = 0; i < rows.length; i += CHUNK) {
-        const chunk = rows.slice(i, i + CHUNK);
-        const batch = window.fsDB.batch();
-        chunk.forEach(r => {
-          const { _rowIndex, ...fields } = r; // _rowIndex는 시트 전용 값이라 제외
-          const docRef = window.fsDB.collection('consults').doc(makeStableId(r));
-          batch.set(docRef, fields); // 같은 ID면 덮어쓰기, 새 ID면 새로 생성
-        });
-        await batch.commit();
-        done += chunk.length;
-        console.log(`Firestore 동기화 진행: ${done}/${rows.length}`);
-      }
-      alert(`Firestore 동기화 완료! 총 ${done}건 처리되었습니다. (같은 건은 덮어쓰기됨, 중복 없음)`);
-    } catch (e) {
-      alert(`동기화 중 오류 발생 (${done}건까지 완료됨): ` + e.message);
-    }
-  };
-
   window.downloadConsultCSV = function() {
     if (!allConsults.length) { alert('다운로드할 데이터가 없습니다.'); return; }
     const headers = ['상담날짜','상담시간','처리상태','상담자','성함','연락처','업체명','현장주소','평수','시공예정일','선호제품','전달사항','지난상담이력'];
@@ -3656,11 +3473,6 @@ function csDateInputValue(val) {
 
     let pool;
 
-    if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-      // Firestore 실시간 동기화 중이면 allConsults가 이미 전체 데이터 → 바로 검색
-      pool = allConsults;
-    } else {
-      // Apps Script 방식: 전체 데이터 1회 조회 후 캐시
       if (!_consultsFullCache) {
         results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">전체 데이터에서 검색 중...</div>';
         try {
@@ -3670,7 +3482,6 @@ function csDateInputValue(val) {
         } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
       }
       pool = _consultsFullCache || allConsults;
-    }
 
     const matched = pool.filter(r =>
       (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
@@ -3878,40 +3689,6 @@ function csDateInputValue(val) {
 
     document.getElementById('cfMsg').textContent = '저장 중...';
 
-    if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-      try {
-        const fsDoc = {
-          submittedAt: selectedConsult ? (selectedConsult.submittedAt || new Date().toISOString()) : new Date().toISOString(),
-          date: payload.date, time: payload.time,
-          visitorType: payload.visitorType, visitCount: payload.visitCount,
-          revisit: payload.visitStatus,
-          name: payload.name, phone: payload.phone, company: payload.company, address: payload.address,
-          spaceType: payload.spaceType, size: payload.size,
-          floor: selectedConsult ? (selectedConsult.floor || '') : '',
-          elevator: payload.elevator, workDate: payload.workDate, products: payload.products,
-          memo: selectedConsult ? (selectedConsult.memo || '') : '',
-          status: payload.statusField, counselor: payload.counselor, content: payload.content,
-          sampleGiven: payload.reqSample, cardGiven: payload.reqCard, revisitConsult: payload.reqRevisit,
-          priceInfo: payload.priceInfo, workTiming: payload.workTiming, workPeriod: payload.workPeriod,
-          reqQuote: payload.reqQuote,
-          oldVisitDate: selectedConsult ? (selectedConsult.oldVisitDate || '') : '',
-          pastHistory: payload.pastHistory,
-        };
-        if (selectedConsult && selectedConsult._docId) {
-          await window.fsDB.collection('consults').doc(selectedConsult._docId).set(fsDoc, { merge: true });
-        } else {
-          await window.fsDB.collection('consults').add(fsDoc);
-        }
-        closeConsultForm(); // 실시간 리스너가 알아서 목록을 갱신해줌
-        // 구글시트에도 백그라운드로 미러링 (백업/열람용, 실패해도 Firestore 저장은 이미 완료된 상태라 무시)
-        fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams(payload)}`).catch(() => {});
-        return;
-      } catch (e) {
-        document.getElementById('cfMsg').textContent = 'Firestore 저장 오류: ' + e.message;
-        return;
-      }
-    }
-
     try {
       const params = new URLSearchParams(payload);
       const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
@@ -4018,14 +3795,9 @@ function csDateInputValue(val) {
 
   window.loadNotices = async function() {
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const snapshot = await window.fsDB.collection('notices').orderBy('date', 'asc').get();
-        notices = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-      } else {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getNotices`);
-        const data = await res.json();
-        notices = data.rows || [];
-      }
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getNotices`);
+      const data = await res.json();
+      notices = data.rows || [];
       renderNotices();
     } catch(e) {
       document.getElementById('noticeTableBody').innerHTML = `<tr><td colspan="5" class="notice-empty">오류: ${e.message}</td></tr>`;
@@ -4071,17 +3843,10 @@ function csDateInputValue(val) {
     const now = new Date().toISOString();
     document.getElementById('noticeSaveMsg').textContent = '등록 중...';
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // ── Firestore에 저장 ──
-        await window.fsDB.collection('notices').add({ title, content, category, author, date: now });
-        // 구글 시트 백업
-        fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action:'saveNotice', title, content, category, author })}`).catch(()=>{});
-      } else {
-        const params = new URLSearchParams({ action:'saveNotice', title, content, category, author });
-        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status !== 'ok') { document.getElementById('noticeSaveMsg').textContent = '' + (data.message||'실패'); return; }
-      }
+      const params = new URLSearchParams({ action:'saveNotice', title, content, category, author });
+      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status !== 'ok') { document.getElementById('noticeSaveMsg').textContent = '' + (data.message||'실패'); return; }
       document.getElementById('noticeSaveMsg').textContent = '등록 완료!';
       document.getElementById('noticeTitle').value = '';
       document.getElementById('noticeContent').value = '';
@@ -4701,58 +4466,6 @@ function csDateInputValue(val) {
           </div>
         </div>
       </div>
-
-      <!-- Firestore 데이터 동기화 -->
-      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-          Firestore 데이터 동기화
-          <span style="font-size:10px;background:#d1f0e0;color:#1a7a45;border-radius:4px;padding:2px 7px;margin-left:8px;font-weight:700;">구글시트 → Firestore</span>
-        </div>
-        <div style="font-size:12px;color:#B8A898;margin-bottom:16px;line-height:1.7;">
-          구글 시트 데이터를 Firestore로 동기화합니다. 여러 번 눌러도 중복 생성 없이 안전하게 덮어씁니다.
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;" id="fsSyncGrid">
-          <div style="background:#F7F1E7;border-radius:8px;padding:14px;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">예약 데이터</div>
-            <div style="font-size:11px;color:#aaa;margin-bottom:10px;" id="fsSyncStatus_reservations">대기중</div>
-            <button onclick="runFsSync('reservations')" class="admin-btn primary" style="width:100%;padding:7px 0;font-size:12px;">동기화</button>
-          </div>
-          <div style="background:#F7F1E7;border-radius:8px;padding:14px;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">직원 정보</div>
-            <div style="font-size:11px;color:#aaa;margin-bottom:10px;" id="fsSyncStatus_employees">대기중</div>
-            <button onclick="runFsSync('employees')" class="admin-btn primary" style="width:100%;padding:7px 0;font-size:12px;">동기화</button>
-          </div>
-          <div style="background:#F7F1E7;border-radius:8px;padding:14px;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">공지게시판</div>
-            <div style="font-size:11px;color:#aaa;margin-bottom:10px;" id="fsSyncStatus_notices">대기중</div>
-            <button onclick="runFsSync('notices')" class="admin-btn primary" style="width:100%;padding:7px 0;font-size:12px;">동기화</button>
-          </div>
-          <div style="background:#F7F1E7;border-radius:8px;padding:14px;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">문자 발송 이력</div>
-            <div style="font-size:11px;color:#aaa;margin-bottom:10px;" id="fsSyncStatus_smsLog">대기중</div>
-            <button onclick="runFsSync('smsLog')" class="admin-btn primary" style="width:100%;padding:7px 0;font-size:12px;">동기화</button>
-          </div>
-          <div style="background:#F7F1E7;border-radius:8px;padding:14px;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">업무 메모</div>
-            <div style="font-size:11px;color:#aaa;margin-bottom:10px;" id="fsSyncStatus_memos">대기중</div>
-            <button onclick="runFsSync('memos')" class="admin-btn primary" style="width:100%;padding:7px 0;font-size:12px;">동기화</button>
-          </div>
-          <div style="background:#F7F1E7;border-radius:8px;padding:14px;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">휴가 신청</div>
-            <div style="font-size:11px;color:#aaa;margin-bottom:10px;" id="fsSyncStatus_leaves">대기중</div>
-            <button onclick="runFsSync('leaves')" class="admin-btn primary" style="width:100%;padding:7px 0;font-size:12px;">동기화</button>
-          </div>
-        </div>
-        <div style="margin-top:14px;display:flex;justify-content:flex-end;">
-          <button onclick="runFsSync('all')" class="admin-btn primary" style="padding:10px 28px;font-size:13px;">
-            전체 동기화
-          </button>
-        </div>
-        <div id="fsSyncLog" style="margin-top:12px;font-size:11px;color:#888;line-height:1.8;display:none;background:#F7F1E7;border-radius:8px;padding:10px 14px;max-height:120px;overflow-y:auto;"></div>
-      </div>
-
-    </div>
   </div>
 
 </div>
@@ -5149,15 +4862,9 @@ function csDateInputValue(val) {
 
     async function initAfterLogin(userData) {
       try {
-        // ── 직원 전체 목록: Firestore 우선, Apps Script 폴백 ──
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          const snapshot = await window.fsDB.collection('employees').get();
-          window._allEmployees = snapshot.docs.map(doc => doc.data());
-        } else {
-          const empRes = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-          const empData = await empRes.json();
-          if (empData.rows) window._allEmployees = empData.rows;
-        }
+        const empRes = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+        const empData = await empRes.json();
+        if (empData.rows) window._allEmployees = empData.rows;
       } catch(e) {}
 
       if (userData.isManager || userData.isHead) {
@@ -5176,15 +4883,9 @@ function csDateInputValue(val) {
     async function checkLeavePending(userData) {
       try {
         let rows = [];
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          const snapshot = await window.fsDB.collection('leaves')
-            .where('approverIds', 'array-contains', userData.id).get();
-          rows = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-        } else {
-          const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
-          const data = await res.json();
-          if (data.status === 'ok') rows = data.rows || [];
-        }
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
+        const data = await res.json();
+        if (data.status === 'ok') rows = data.rows || [];
         const ev = new CustomEvent('leaveDataRefresh', { detail: rows });
         document.dispatchEvent(ev);
         updateApprovalBadge(userData, rows);
@@ -5353,39 +5054,6 @@ function csDateInputValue(val) {
         const btn = document.getElementById('loginBtn');
         btn.textContent = '로그인 중...'; btn.disabled = true;
         try {
-            // ── Firestore 기반 로그인 ──
-            if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-                const pwHash = await hashPasswordClient(pw);
-                const snapshot = await window.fsDB.collection('employees')
-                    .where('id', '==', id).limit(1).get();
-                if (snapshot.empty) {
-                    errEl.style.display = 'block';
-                    errEl.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
-                } else {
-                    const emp = snapshot.docs[0].data();
-                    if (emp.pwHash !== pwHash) {
-                        errEl.style.display = 'block';
-                        errEl.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
-                    } else {
-                        const userData = {
-                            id: emp.id, name: emp.name, dept: emp.dept, title: emp.title,
-                            joinDate: emp.joinDate, leaveDate: emp.leaveDate,
-                            annualLeave: emp.annualLeave, phone: emp.phone, email: emp.email,
-                            allowedTabs: emp.allowedTabs, role: emp.role,
-                            isManager: emp.isManager, isHead: emp.isHead,
-                            usedLeave: emp.usedLeave, approverIds: emp.approverIds,
-                            birthday: emp.birthday, cardUrl: emp.cardUrl, homeTab: emp.homeTab,
-                        };
-                        localStorage.setItem(LOGIN_TYPE_KEY, 'user');
-                        localStorage.setItem(USER_KEY, JSON.stringify(userData));
-                        localStorage.setItem(SESSION_KEY, String(Date.now()));
-                        sessionStorage.removeItem(LOGIN_TYPE_KEY);
-                        sessionStorage.removeItem(USER_KEY);
-                        unlock('user', userData);
-                    }
-                }
-            } else {
-                // ── Apps Script 폴백 ──
                 const res = await fetchWithRetry(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
                 const data = await res.json();
                 if (data.status === 'ok') {
@@ -5448,23 +5116,6 @@ function csDateInputValue(val) {
         if (!user) { msg.textContent = '로그인 정보 없음'; return; }
         msg.textContent = '변경 중...';
         try {
-            if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-                // 현재 비밀번호 확인
-                const curHash = await hashPasswordClient(curPw);
-                const doc = await window.fsDB.collection('employees').doc(user.id).get();
-                if (!doc.exists || doc.data().pwHash !== curHash) {
-                    msg.textContent = '현재 비밀번호가 올바르지 않습니다.';
-                    return;
-                }
-                const newHash = await hashPasswordClient(newPw);
-                await window.fsDB.collection('employees').doc(user.id).update({ pwHash: newHash });
-                // 시트 백업
-                fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action:'changePassword', id:user.id, currentPassword:curPw, newPassword:newPw })}`).catch(()=>{});
-                msg.textContent = '비밀번호가 변경되었습니다.';
-                document.getElementById('miCurPw').value = '';
-                document.getElementById('miNewPw').value = '';
-                document.getElementById('miNewPw2').value = '';
-            } else {
                 const params = new URLSearchParams({ action:'changePassword', id:user.id, currentPassword:curPw, newPassword:newPw });
                 const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
                 const data = await res.json();
@@ -5493,14 +5144,9 @@ function csDateInputValue(val) {
     window.loadEmployees = async function() {
         try {
             let rows = [];
-            if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-              const snapshot = await window.fsDB.collection('employees').get();
-              rows = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-            } else {
-              const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-              const data = await res.json();
-              rows = data.rows || [];
-            }
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+            const data = await res.json();
+            rows = data.rows || [];
             // 전역 직원 목록 저장 (결재라인 자동 계산용)
             window._allEmployees = rows;
             const tbody = document.getElementById('adminEmpList');
@@ -5612,15 +5258,10 @@ function csDateInputValue(val) {
       const roleEl = document.getElementById(`emp-role-${rowIdx}`);
       const role = roleEl ? roleEl.value : 'staff';
       try {
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          await window.fsDB.collection('employees').doc(empId).update({ allowedTabs, role });
-          fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role })}`).catch(()=>{});
-        } else {
-          const params = new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role });
-          const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-          const data = await res.json();
-          if (data.status !== 'ok') { showAdminToast('' + (data.message||'오류'), true); return; }
-        }
+        const params = new URLSearchParams({ action: 'updateEmployee', id: empId, allowedTabs, role });
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+        const data = await res.json();
+        if (data.status !== 'ok') { showAdminToast('' + (data.message||'오류'), true); return; }
         showAdminToast('저장됨');
       } catch(e) { showAdminToast('오류: ' + e.message, true); }
     };
@@ -5751,31 +5392,11 @@ function csDateInputValue(val) {
       try {
         const empData = { id: id||_selectedEmpId, name, dept, title, joinDate, email, phone, birthday, cardUrl, annualLeave: Number(annualLeave)||0, isHead, isManager };
 
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          if (_empModalMode === 'add') {
-            // 신규 추가: 초기 비밀번호 0000 해시
-            const pwHash = await hashPasswordClient('0000');
-            empData.pwHash = pwHash;
-            empData.role = 'staff';
-            empData.allowedTabs = 'ALL';
-            empData.usedLeave = 0;
-            empData.approverIds = '';
-            empData.homeTab = '';
-            empData.cardUrl = cardUrl;
-            await window.fsDB.collection('employees').doc(id).set(empData);
-          } else {
-            await window.fsDB.collection('employees').doc(_selectedEmpId).set(empData, { merge: true });
-          }
-          // 시트 백업
-          const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
-          fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, phone, birthday, cardUrl, annualLeave, isHead, isManager })}`).catch(()=>{});
-        } else {
-          const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
-          const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, phone, birthday, cardUrl, annualLeave, isHead, isManager });
-          const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-          const data = await res.json();
-          if (data.status !== 'ok') { msg.style.color='#e74c3c'; msg.textContent='' + (data.message||'오류가 발생했습니다.'); return; }
-        }
+        const action = _empModalMode === 'add' ? 'addEmployee' : 'updateEmployeeInfo';
+        const params = new URLSearchParams({ action, id: id||_selectedEmpId, name, dept, title, joinDate, email, phone, birthday, cardUrl, annualLeave, isHead, isManager });
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+        const data = await res.json();
+        if (data.status !== 'ok') { msg.style.color='#e74c3c'; msg.textContent='' + (data.message||'오류가 발생했습니다.'); return; }
 
         // 캐시 초기화
         if (window._allStaffMapCache) window._allStaffMapCache = null;
@@ -5792,18 +5413,10 @@ function csDateInputValue(val) {
       if (!confirm(`[${_selectedEmpId}] 직원의 비밀번호를 0000으로 초기화하시겠습니까?`)) return;
       const msg = document.getElementById('empModalMsg');
       try {
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          const pwHash = await hashPasswordClient('0000');
-          await window.fsDB.collection('employees').doc(_selectedEmpId).update({ pwHash });
-          // 시트 백업
-          fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId })}`).catch(()=>{});
-          msg.style.color='#1a7a45'; msg.textContent='비밀번호가 0000으로 초기화되었습니다.';
-        } else {
-          const res = await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId })}`);
-          const data = await res.json();
-          if (data.status === 'ok') { msg.style.color='#1a7a45'; msg.textContent='비밀번호가 0000으로 초기화되었습니다.'; }
-          else { msg.style.color='#e74c3c'; msg.textContent='' + (data.message||'오류'); }
-        }
+        const res = await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'resetPassword', id: _selectedEmpId })}`);
+        const data = await res.json();
+        if (data.status === 'ok') { msg.style.color='#1a7a45'; msg.textContent='비밀번호가 0000으로 초기화되었습니다.'; }
+        else { msg.style.color='#e74c3c'; msg.textContent='' + (data.message||'오류'); }
       } catch(e) { msg.style.color='#e74c3c'; msg.textContent='오류: ' + e.message; }
     };
 
@@ -5815,15 +5428,10 @@ function csDateInputValue(val) {
       const msg = document.getElementById('empModalMsg');
       try {
         const today = new Date().toISOString().slice(0,10);
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          await window.fsDB.collection('employees').doc(_selectedEmpId).update({ leaveDate: today });
-          fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'updateEmployeeLeave', id: _selectedEmpId, leaveDate: today })}`).catch(()=>{});
-        } else {
-          const params = new URLSearchParams({ action: 'updateEmployeeLeave', id: _selectedEmpId, leaveDate: today });
-          const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-          const data = await res.json();
-          if (data.status !== 'ok') { msg.style.color='#e74c3c'; msg.textContent='' + (data.message||'오류'); return; }
-        }
+        const params = new URLSearchParams({ action: 'updateEmployeeLeave', id: _selectedEmpId, leaveDate: today });
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+        const data = await res.json();
+        if (data.status !== 'ok') { msg.style.color='#e74c3c'; msg.textContent='' + (data.message||'오류'); return; }
         if (window._allStaffMapCache) window._allStaffMapCache = null;
         msg.style.color = '#1a7a45';
         msg.textContent = '퇴직 처리되었습니다.';
@@ -5911,20 +5519,14 @@ function csDateInputValue(val) {
       const role = roleEl ? roleEl.value : 'staff';
       const finalTabs = allowedTabs.length === ALL_TABS.length ? 'ALL' : allowedTabs.join(',');
       try {
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          await window.fsDB.collection('employees').doc(_tabPermEmpId).update({ allowedTabs: finalTabs, role });
-          fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'updateEmployee', id: _tabPermEmpId, allowedTabs: finalTabs, role })}`).catch(()=>{});
+        const params = new URLSearchParams({ action: 'updateEmployee', id: _tabPermEmpId, allowedTabs: finalTabs, role });
+        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
           showAdminToast('탭 권한 저장됨');
         } else {
-          const params = new URLSearchParams({ action: 'updateEmployee', id: _tabPermEmpId, allowedTabs: finalTabs, role });
-          const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-          const data = await res.json();
-          if (data.status === 'ok') {
-            showAdminToast('탭 권한 저장됨');
-          } else {
-            showAdminToast('저장 실패: ' + (data.message||''), true);
-            alert('탭 권한 저장 실패: ' + (data.message||'서버 오류'));
-          }
+          showAdminToast('저장 실패: ' + (data.message||''), true);
+          alert('탭 권한 저장 실패: ' + (data.message||'서버 오류'));
         }
       } catch(e) {
         showAdminToast('오류: ' + e.message, true);
@@ -6171,14 +5773,7 @@ function csDateInputValue(val) {
       // 발송 내역 기록
       try {
         const typeLabel = { confirm: '예약확정', cancel: '예약취소', today: '당일안내' }[templateKey] || templateKey;
-        const logEntry = { sentAt: new Date().toISOString(), type: typeLabel, name, phone, result };
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          // Firestore에 이력 저장 + 시트 백업
-          window.fsDB.collection('smsLogs').add(logEntry).catch(()=>{});
-          fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result })}`).catch(()=>{});
-        } else {
-          await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result })}`);
-        }
+        await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result })}`);
       } catch(e) {}
 
       return { ok: result === '발송성공', msg, result };
@@ -6249,102 +5844,6 @@ function csDateInputValue(val) {
     if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2500); }
   };
 
-  // ── Firestore 데이터 동기화 ──
-  const FS_SYNC_CONFIG = {
-    reservations: { action: 'migrateGetReservations', collection: 'reservations', idField: 'receiptNo', label: '예약 데이터' },
-    employees:    { action: 'migrateGetEmployees',    collection: 'employees',    idField: 'id',        label: '직원 정보' },
-    notices:      { action: 'migrateGetNotices',      collection: 'notices',      idField: 'id',        label: '공지게시판' },
-    smsLog:       { action: 'migrateGetSmsLog',       collection: 'smsLogs',      idField: null,        label: '문자 이력' },
-    memos:        { action: 'migrateGetMemos',        collection: 'memos',        idField: 'userId',    label: '업무 메모' },
-    leaves:       { action: 'migrateGetLeaves',       collection: 'leaves',       idField: null,        label: '휴가 신청' },
-  };
-
-  function fsSyncLog(msg) {
-    const el = document.getElementById('fsSyncLog');
-    if (!el) return;
-    el.style.display = 'block';
-    const now = new Date();
-    const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-    el.innerHTML += `[${t}] ${msg}<br>`;
-    el.scrollTop = el.scrollHeight;
-  }
-
-  function setFsSyncStatus(key, msg, color) {
-    const el = document.getElementById(`fsSyncStatus_${key}`);
-    if (el) { el.textContent = msg; el.style.color = color || '#aaa'; }
-  }
-
-  async function syncOneCollection(key) {
-    const cfg = FS_SYNC_CONFIG[key];
-    if (!cfg) return;
-    if (!window.fsDB) { fsSyncLog(`❌ Firestore 미초기화`); return; }
-
-    setFsSyncStatus(key, '불러오는 중...', '#A2693E');
-    fsSyncLog(`📥 ${cfg.label} 시트 데이터 로드 중...`);
-
-    try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=${cfg.action}`);
-      const data = await res.json();
-      if (data.status !== 'ok') throw new Error(data.message || '데이터 로드 실패');
-
-      const rows = data.rows || [];
-      if (!rows.length) {
-        setFsSyncStatus(key, '데이터 없음', '#aaa');
-        fsSyncLog(`⚠️ ${cfg.label}: 데이터 없음`);
-        return;
-      }
-
-      fsSyncLog(`📤 ${cfg.label} ${rows.length}건 Firestore 동기화 중...`);
-      setFsSyncStatus(key, `동기화 중... (${rows.length}건)`, '#A2693E');
-
-      // 배치 500개 단위로 나눠서 처리
-      const BATCH_SIZE = 400;
-      let done = 0;
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-        const chunk = rows.slice(i, i + BATCH_SIZE);
-        const batch = window.fsDB.batch();
-        chunk.forEach((row, ci) => {
-          let docId;
-          if (cfg.idField && row[cfg.idField]) {
-            docId = String(row[cfg.idField]).replace(/[\/\\.#$\[\]]/g, '_');
-          } else {
-            // ID 필드 없으면 인덱스 기반 ID 생성
-            docId = `row_${i + ci}`;
-          }
-          const docRef = window.fsDB.collection(cfg.collection).doc(docId);
-          batch.set(docRef, row, { merge: true });
-        });
-        await batch.commit();
-        done += chunk.length;
-        setFsSyncStatus(key, `동기화 중... (${done}/${rows.length})`, '#A2693E');
-      }
-
-      setFsSyncStatus(key, `✓ 완료 (${rows.length}건)`, '#1a7a45');
-      fsSyncLog(`✅ ${cfg.label} 동기화 완료: ${rows.length}건`);
-    } catch(e) {
-      setFsSyncStatus(key, `❌ 오류`, '#c0392b');
-      fsSyncLog(`❌ ${cfg.label} 오류: ${e.message}`);
-    }
-  }
-
-  window.runFsSync = async function(key) {
-    if (!window.fsDB) {
-      alert('Firestore가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
-      return;
-    }
-    const logEl = document.getElementById('fsSyncLog');
-    if (logEl) { logEl.style.display = 'block'; logEl.innerHTML = ''; }
-
-    if (key === 'all') {
-      fsSyncLog('🚀 전체 동기화 시작...');
-      for (const k of Object.keys(FS_SYNC_CONFIG)) {
-        await syncOneCollection(k);
-      }
-      fsSyncLog('🎉 전체 동기화 완료!');
-    } else {
-      await syncOneCollection(key);
-    }
-  };
 
     // ── 월별 휴무안내 편집 ──
     let _monthlyData = {};
@@ -6467,15 +5966,9 @@ function csDateInputValue(val) {
       if (!tbody) return;
       try {
         let rows = [];
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          const snapshot = await window.fsDB.collection('smsLogs')
-            .orderBy('sentAt', 'desc').limit(100).get();
-          rows = snapshot.docs.map(doc => doc.data());
-        } else {
-          const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsLog`);
-          const data = await res.json();
-          rows = data.rows || [];
-        }
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsLog`);
+        const data = await res.json();
+        rows = data.rows || [];
         if (!rows.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="admin-empty">내역이 없습니다.</td></tr>';
           return;
@@ -6562,20 +6055,11 @@ function csDateInputValue(val) {
           // 로컬 캐시 먼저 표시
           memoArea.value = localStorage.getItem(`memo_${uid}`) || '';
           try {
-            if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-              // ── Firestore에서 메모 읽기 ──
-              const doc = await window.fsDB.collection('memos').doc(uid).get();
-              if (doc.exists) {
-                memoArea.value = doc.data().memo || '';
-                localStorage.setItem(`memo_${uid}`, memoArea.value);
-              }
-            } else {
-              const res = await fetchWithRetry(`${RESERVE_URL}?action=getMemo&userId=${encodeURIComponent(uid)}`);
-              const data = await res.json();
-              if (data.status === 'ok' && data.memo !== undefined) {
-                memoArea.value = data.memo;
-                localStorage.setItem(`memo_${uid}`, data.memo);
-              }
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=getMemo&userId=${encodeURIComponent(uid)}`);
+            const data = await res.json();
+            if (data.status === 'ok' && data.memo !== undefined) {
+              memoArea.value = data.memo;
+              localStorage.setItem(`memo_${uid}`, data.memo);
             }
           } catch(e) { /* 로컬 캐시 유지 */ }
         }
@@ -6586,23 +6070,11 @@ function csDateInputValue(val) {
           const content = memoArea.value;
           localStorage.setItem(`memo_${uid}`, content);
           try {
-            if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-              // ── Firestore에 메모 저장 (사원ID를 문서ID로 사용) ──
-              await window.fsDB.collection('memos').doc(uid).set({
-                userId: uid, memo: content, updatedAt: new Date().toISOString()
-              }, { merge: true });
-              // 구글 시트 백업 (백그라운드)
-              fetchWithRetry(RESERVE_URL, {
-                method: 'POST', headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'saveMemo', userId: uid, memo: content })
-              }).catch(()=>{});
-            } else {
-              await fetchWithRetry(RESERVE_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'saveMemo', userId: uid, memo: content })
-              });
-            }
+            await fetchWithRetry(RESERVE_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({ action: 'saveMemo', userId: uid, memo: content })
+            });
           } catch(e) { /* 로컬에는 저장됨 */ }
         }
 
@@ -9737,18 +9209,10 @@ if ('serviceWorker' in navigator) {
   async function checkNewReservations() {
     try {
       let pending = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // ── Firestore에서 대기 건 조회 ──
-        const snapshot = await window.fsDB.collection('reservations')
-          .where('status', '==', '대기').get();
-        pending = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-      } else {
-        // ── Apps Script 폴백 ──
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
-        const data = await res.json();
-        if (data.status !== 'ok') return;
-        pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
-      }
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
+      const data = await res.json();
+      if (data.status !== 'ok') return;
+      pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
       const count = pending.length;
 
       // 전역 카운트 갱신 (setTab N뱃지 복원용)
@@ -9825,23 +9289,6 @@ if ('serviceWorker' in navigator) {
 
     if (!rowIndexes.length && !docIds.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
     if (!confirm(`${docIds.length || rowIndexes.length}건을 삭제하시겠습니까?`)) return;
-
-    if (window.USE_FIRESTORE_CONSULTS && window.fsDB && docIds.length) {
-      try {
-        const batch = window.fsDB.batch();
-        docIds.forEach(id => batch.delete(window.fsDB.collection('consults').doc(id)));
-        await batch.commit();
-        alert('삭제 완료!'); // 실시간 리스너가 알아서 목록 갱신
-        // 시트 쪽도 백그라운드로 미러링 삭제 시도 (백업용, 실패해도 무시)
-        if (rowIndexes.length) {
-          const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
-          fetchWithRetry(`${RESERVE_URL}?${params}`).catch(() => {});
-        }
-      } catch (e) {
-        alert('Firestore 삭제 오류: ' + e.message);
-      }
-      return;
-    }
 
     try {
       const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
@@ -10301,38 +9748,15 @@ if ('serviceWorker' in navigator) {
         isHead: user.isHead ? 'true' : 'false'
       });
 
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const applyId = 'LV' + Date.now();
-        const now = new Date().toISOString();
-        const isHead = user.isHead;
-        const status = isHead ? '확정' : '대기';
-        const leaveDoc = {
-          applyId, id: user.id, name: user.name, dept: user.dept||'',
-          appliedAt: now, startDate: sorted[0], endDate: sorted[sorted.length-1],
-          days, leaveType: _leaveType, reason: reason||'',
-          status, approverIds: approverIds.split(',').filter(Boolean),
-          managerApproval: isHead ? '자동승인' : '',
-          headApproval: isHead ? '자동승인(' + now + ')' : '',
-        };
-        await window.fsDB.collection('leaves').doc(applyId).set(leaveDoc);
-        // 시트 백업
-        fetchWithRetry(`${RESERVE_URL}?${params}`).catch(()=>{});
+      const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
         msg.textContent = '신청 완료!';
         _selectedDates = [];
         document.getElementById('leaveReason').value = '';
         renderLeaveCal();
         loadLeaveData();
-      } else {
-        const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          msg.textContent = '신청 완료!';
-          _selectedDates = [];
-          document.getElementById('leaveReason').value = '';
-          renderLeaveCal();
-          loadLeaveData();
-        } else { msg.textContent = '실패: ' + (data.message||''); }
-      }
+      } else { msg.textContent = '실패: ' + (data.message||''); }
     } catch(e) { msg.textContent = '오류: ' + e.message; }
   };
 
@@ -10341,15 +9765,10 @@ if ('serviceWorker' in navigator) {
     if (!user) return;
     if (!confirm('휴가 신청을 취소하시겠습니까?')) return;
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB && docId && !String(docId).match(/^\d+$/)) {
-        await window.fsDB.collection('leaves').doc(docId).update({ status: '취소' });
-        fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action:'cancelLeave', rowIdx: docId, id: user.id })}`).catch(()=>{});
-      } else {
-        const params = new URLSearchParams({ action:'cancelLeave', rowIdx: docId, id: user.id });
-        const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status !== 'ok') { alert('취소 실패: ' + (data.message||'')); return; }
-      }
+      const params = new URLSearchParams({ action:'cancelLeave', rowIdx: docId, id: user.id });
+      const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status !== 'ok') { alert('취소 실패: ' + (data.message||'')); return; }
       loadLeaveData();
       switchLeaveTab('history');
     } catch(e) { alert('오류: ' + e.message); }
@@ -10378,26 +9797,7 @@ if ('serviceWorker' in navigator) {
     const user = window._currentUser;
     if (!user) return;
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // ── Firestore에서 휴가 데이터 조회 ──
-        let query = window.fsDB.collection('leaves');
-        if (user.role !== 'admin') {
-          // 본인 신청 + 결재자로 포함된 건
-          const snapshot1 = await window.fsDB.collection('leaves').where('id', '==', user.id).get();
-          const snapshot2 = await window.fsDB.collection('leaves').where('approverIds', 'array-contains', user.id).get();
-          const allDocs = [...snapshot1.docs, ...snapshot2.docs];
-          const seen = new Set();
-          _allLeaves = allDocs.filter(doc => {
-            if (seen.has(doc.id)) return false;
-            seen.add(doc.id);
-            return true;
-          }).map(doc => ({ ...doc.data(), _docId: doc.id }));
-        } else {
-          const snapshot = await window.fsDB.collection('leaves').get();
-          _allLeaves = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-        }
-      } else {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
         const data = await res.json();
         if (data.status === 'ok') _allLeaves = data.rows || [];
       }
@@ -10463,25 +9863,10 @@ if ('serviceWorker' in navigator) {
   window.leaveApprove = async function(docId, action, approverRole) {
     const user = window._currentUser;
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB && docId && !String(docId).match(/^\d+$/)) {
-        const now = new Date().toISOString();
-        const isApprove = action === 'approve';
-        let updateData = {};
-        if (approverRole === 'manager') {
-          updateData.managerApproval = isApprove ? `승인(${now})` : `반려(${now})`;
-          updateData.status = isApprove ? '대표승인대기' : '반려';
-        } else {
-          updateData.headApproval = isApprove ? `승인(${now})` : `반려(${now})`;
-          updateData.status = isApprove ? '확정' : '반려';
-        }
-        await window.fsDB.collection('leaves').doc(docId).update(updateData);
-        fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action:'approveLeave', rowIdx: docId, approveAction: action, approverRole, approverId: user.id })}`).catch(()=>{});
-      } else {
-        const params = new URLSearchParams({ action:'approveLeave', rowIdx: docId, approveAction: action, approverRole, approverId: user.id });
-        const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status !== 'ok') { alert('처리 실패: ' + (data.message||'')); return; }
-      }
+      const params = new URLSearchParams({ action:'approveLeave', rowIdx: docId, approveAction: action, approverRole, approverId: user.id });
+      const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status !== 'ok') { alert('처리 실패: ' + (data.message||'')); return; }
       loadLeaveData();
     } catch(e) { alert('오류: ' + e.message); }
   };
@@ -10777,20 +10162,13 @@ if ('serviceWorker' in navigator) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오는 중...</td></tr>';
     try {
       let allRows = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // Firestore에서 결재자로 포함된 건 조회
-        const snapshot = await window.fsDB.collection('leaves')
-          .where('approverIds', 'array-contains', user.id).get();
-        allRows = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-      } else {
-        const res = await fetchWithRetry(RESERVE_URL + '?action=getLeaves&id=' + encodeURIComponent(user.id) + '&role=' + encodeURIComponent(user.role||'staff'));
-        const data = await res.json();
-        if (data.status !== 'ok') {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오기 실패: ' + (data.message||'') + '</td></tr>';
-          return;
-        }
-        allRows = data.rows || [];
+      const res = await fetchWithRetry(RESERVE_URL + '?action=getLeaves&id=' + encodeURIComponent(user.id) + '&role=' + encodeURIComponent(user.role||'staff'));
+      const data = await res.json();
+      if (data.status !== 'ok') {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오기 실패: ' + (data.message||'') + '</td></tr>';
+        return;
       }
+      allRows = data.rows || [];
       _approvalRows = allRows.filter(function(r) {
         if (r.id === user.id) return false;
         const approvers = Array.isArray(r.approverIds)
@@ -10818,8 +10196,7 @@ if ('serviceWorker' in navigator) {
       var statusBg    = r.status==='대기'?'#fff3cd':r.status==='반려'?'#fdecea':'#d1f0e0';
       var approverRole = (user.isHead && r.status === '대표승인대기') ? 'head' : 'manager';
       var canApprove   = (user.isManager && r.status === '대기') || (user.isHead && r.status === '대표승인대기');
-      // Firestore _docId 우선, 없으면 rowIdx
-      const docId = r._docId || r.rowIdx;
+      const docId = r.rowIdx;
       var actionBtns = canApprove
         ? '<button onclick="doApprove(\'' + docId + '\',\'approve\',\'' + approverRole + '\')" style="padding:5px 12px;background:#1a7a45;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;">승인</button>'
           + '<button onclick="doApprove(\'' + docId + '\',\'reject\',\'' + approverRole + '\')" style="padding:5px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">반려</button>'
@@ -10842,25 +10219,10 @@ if ('serviceWorker' in navigator) {
     if (!user) return;
     if (!confirm(action === 'approve' ? '승인하시겠습니까?' : '반려하시겠습니까?')) return;
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB && docId && !String(docId).match(/^\d+$/)) {
-        const now = new Date().toISOString();
-        const isApprove = action === 'approve';
-        let updateData = {};
-        if (approverRole === 'manager') {
-          updateData.managerApproval = isApprove ? `승인(${now})` : `반려(${now})`;
-          updateData.status = isApprove ? '대표승인대기' : '반려';
-        } else {
-          updateData.headApproval = isApprove ? `승인(${now})` : `반려(${now})`;
-          updateData.status = isApprove ? '확정' : '반려';
-        }
-        await window.fsDB.collection('leaves').doc(docId).update(updateData);
-        fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action:'approveLeave', rowIdx: docId, approveAction: action, approverRole, approverId: user.id })}`).catch(()=>{});
-      } else {
-        const params = new URLSearchParams({ action:'approveLeave', rowIdx: docId, approveAction: action, approverRole, approverId: user.id });
-        const res = await fetchWithRetry(RESERVE_URL + '?' + params.toString());
-        const data = await res.json();
-        if (data.status !== 'ok') { alert('처리 실패: ' + (data.message||'')); return; }
-      }
+      const params = new URLSearchParams({ action:'approveLeave', rowIdx: docId, approveAction: action, approverRole, approverId: user.id });
+      const res = await fetchWithRetry(RESERVE_URL + '?' + params.toString());
+      const data = await res.json();
+      if (data.status !== 'ok') { alert('처리 실패: ' + (data.message||'')); return; }
       loadApprovalList();
       checkLeavePending(user);
     } catch(e) { alert('오류: ' + e.message); }
