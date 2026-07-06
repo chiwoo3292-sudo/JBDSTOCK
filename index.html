@@ -3485,24 +3485,24 @@ function csDateInputValue(val) {
 
   window.searchRevisitOverlay = async function() {
     const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
-    const results = document.getElementById('cfRevisitResults');
+    const tbody = document.getElementById('cfRevisitResultsBody');
+    if (!tbody) return;
     if (!q) {
-      const tbody = document.getElementById('cfRevisitResultsBody');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
       return;
     }
 
     let pool;
 
-      if (!_consultsFullCache) {
-        results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">전체 데이터에서 검색 중...</div>';
-        try {
-          const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
-          const data = await res.json();
-          if (data.status === 'ok') _consultsFullCache = data.rows || [];
-        } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
-      }
-      pool = _consultsFullCache || allConsults;
+    if (!_consultsFullCache) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 중...</td></tr>';
+      try {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
+        const data = await res.json();
+        if (data.status === 'ok') _consultsFullCache = data.rows || [];
+      } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 */ }
+    }
+    pool = _consultsFullCache || allConsults;
 
     const matched = pool.filter(r =>
       (r.name||'').toLowerCase().includes(q) ||
@@ -3514,8 +3514,6 @@ function csDateInputValue(val) {
       (r.memo||'').toLowerCase().includes(q)
     ).slice(0, 4);
     _revisitMatches = matched;
-    const tbody = document.getElementById('cfRevisitResultsBody');
-    if (!tbody) return;
     if (!matched.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 결과 없음</td></tr>';
       return;
