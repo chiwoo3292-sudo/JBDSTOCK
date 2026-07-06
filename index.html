@@ -3710,16 +3710,21 @@ function csDateInputValue(val) {
     let pool = [];
 
     if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-      // allConsults가 비어있으면 Firestore에서 직접 로드해서 채움
-      if (!allConsults || allConsults.length === 0) {
+      // 세션 캐시 → allConsults → Firestore 직접 조회 순으로 폴백
+      if (_fsConsultsSessionCache && _fsConsultsSessionCache.length > 0) {
+        pool = _fsConsultsSessionCache;
+      } else if (allConsults && allConsults.length > 0) {
+        pool = allConsults;
+      } else {
         results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">데이터 로드 중...</div>';
         try {
           const snapshot = await window.fsDB.collection('consults').get();
-          allConsults = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+          _fsConsultsSessionCache = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+          allConsults = _fsConsultsSessionCache;
           window._allConsultsRef = allConsults;
-        } catch(e) {}
+          pool = allConsults;
+        } catch(e) { results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">로드 실패</div>'; return; }
       }
-      pool = allConsults;
     } else {
       if (!_consultsFullCache) {
         results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">전체 데이터에서 검색 중...</div>';
