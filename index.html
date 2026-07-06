@@ -1813,14 +1813,13 @@
   window.loadReservations = async function() {
     document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
     try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          allReservations = data.rows || [];
-          renderRsvList();
-        } else {
-          document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오기 실패: ' + (data.message||'') + '</div>';
-        }
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        allReservations = data.rows || [];
+        renderRsvList();
+      } else {
+        document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오기 실패: ' + (data.message||'') + '</div>';
       }
     } catch(e) {
       document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">오류: ' + e.message + '</div>';
@@ -5054,19 +5053,18 @@ function csDateInputValue(val) {
         const btn = document.getElementById('loginBtn');
         btn.textContent = '로그인 중...'; btn.disabled = true;
         try {
-                const res = await fetchWithRetry(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
-                const data = await res.json();
-                if (data.status === 'ok') {
-                    localStorage.setItem(LOGIN_TYPE_KEY, 'user');
-                    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-                    localStorage.setItem(SESSION_KEY, String(Date.now()));
-                    sessionStorage.removeItem(LOGIN_TYPE_KEY);
-                    sessionStorage.removeItem(USER_KEY);
-                    unlock('user', data.user);
-                } else {
-                    errEl.style.display = 'block';
-                    errEl.textContent = '' + (data.message || '로그인 실패');
-                }
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
+            const data = await res.json();
+            if (data.status === 'ok') {
+                localStorage.setItem(LOGIN_TYPE_KEY, 'user');
+                localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+                localStorage.setItem(SESSION_KEY, String(Date.now()));
+                sessionStorage.removeItem(LOGIN_TYPE_KEY);
+                sessionStorage.removeItem(USER_KEY);
+                unlock('user', data.user);
+            } else {
+                errEl.style.display = 'block';
+                errEl.textContent = '' + (data.message || '로그인 실패');
             }
         } catch(e) {
             errEl.style.display = 'block';
@@ -5116,17 +5114,16 @@ function csDateInputValue(val) {
         if (!user) { msg.textContent = '로그인 정보 없음'; return; }
         msg.textContent = '변경 중...';
         try {
-                const params = new URLSearchParams({ action:'changePassword', id:user.id, currentPassword:curPw, newPassword:newPw });
-                const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-                const data = await res.json();
-                if (data.status === 'ok') {
-                    msg.textContent = '비밀번호가 변경되었습니다.';
-                    document.getElementById('miCurPw').value = '';
-                    document.getElementById('miNewPw').value = '';
-                    document.getElementById('miNewPw2').value = '';
-                } else {
-                    msg.textContent = '' + (data.message || '변경 실패');
-                }
+            const params = new URLSearchParams({ action:'changePassword', id:user.id, currentPassword:curPw, newPassword:newPw });
+            const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+            const data = await res.json();
+            if (data.status === 'ok') {
+                msg.textContent = '비밀번호가 변경되었습니다.';
+                document.getElementById('miCurPw').value = '';
+                document.getElementById('miNewPw').value = '';
+                document.getElementById('miNewPw2').value = '';
+            } else {
+                msg.textContent = '' + (data.message || '변경 실패');
             }
         } catch(e) { msg.textContent = '오류: ' + e.message; }
     };
