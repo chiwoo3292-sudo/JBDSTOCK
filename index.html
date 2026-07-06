@@ -7014,8 +7014,8 @@ function setTab(tabId, fromPopstate) {
         typeof loadTooltipMap === 'function' ? loadTooltipMap() : Promise.resolve()
       ]).then(() => {
         // 로드 완료 후 해당 탭 재렌더
-        if (tabId === 'pricingTab' && typeof renderPricingTab === 'function') renderPricingTab();
-        if (tabId === 'calculatorTab' && typeof renderCalcTab === 'function') renderCalcTab();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof populateSelects === 'function') populateSelects();
       }).catch(() => {});
     }
   }
