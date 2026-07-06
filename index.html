@@ -2585,9 +2585,24 @@
           <option value="재방문">재방문</option>
         </select>
         <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:12px;">
-          <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색</div>
-          <input type="text" id="cfRevisitInput" oninput="searchRevisitOverlay()" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;">
-          <div id="cfRevisitResults" style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:6px;"></div>
+          <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
+          <input type="text" id="cfRevisitInput" oninput="searchRevisitOverlay()" placeholder="성함, 연락처, 업체명, 주소 등 검색" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;box-sizing:border-box;">
+          <div id="cfRevisitResults">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden;">
+              <thead>
+                <tr style="background:#f5ede0;color:#A2693E;font-weight:700;">
+                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">상태</th>
+                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">성함</th>
+                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">업체명</th>
+                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">일정</th>
+                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">연락처</th>
+                </tr>
+              </thead>
+              <tbody id="cfRevisitResultsBody">
+                <tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <div id="cfPastHistoryBox" style="display:none;margin-top:8px;background:#fff;border:1px solid #E5D9C6;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#555;line-height:1.6;">
           <strong style="color:#A2693E;">지난 상담이력</strong><br>
@@ -3471,7 +3486,11 @@ function csDateInputValue(val) {
   window.searchRevisitOverlay = async function() {
     const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
     const results = document.getElementById('cfRevisitResults');
-    if (!q) { results.innerHTML = ''; return; }
+    if (!q) {
+      const tbody = document.getElementById('cfRevisitResultsBody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
+      return;
+    }
 
     let pool;
 
@@ -3493,22 +3512,31 @@ function csDateInputValue(val) {
       (r.products||'').toLowerCase().includes(q) ||
       (r.counselor||'').toLowerCase().includes(q) ||
       (r.memo||'').toLowerCase().includes(q)
-    ).slice(0, 8);
+    ).slice(0, 4);
     _revisitMatches = matched;
+    const tbody = document.getElementById('cfRevisitResultsBody');
+    if (!tbody) return;
     if (!matched.length) {
-      results.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#aaa;">검색 결과 없음</div>';
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 결과 없음</td></tr>';
       return;
     }
-    results.innerHTML = matched.map((r, i) => `
-      <div ondblclick="applyRevisitOverlay(${i})"
-        style="padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13px;"
-        onmouseover="this.style.background='#F3EADB'" onmouseout="this.style.background=''">
-        <strong>${r.name||''}</strong>
-        <span style="color:#888;font-size:12px;margin-left:6px;">${r.phone||''}</span>
-        ${r.company ? `<span style="color:#888;font-size:12px;margin-left:6px;">· ${r.company}</span>` : ''}
-        <br><span style="color:#aaa;font-size:11px;">${r.date||''}${r.address ? ' · ' + r.address : ''}</span>
-        <span style="color:#A2693E;font-size:11px;margin-left:8px;">더블클릭 시 적용</span>
-      </div>
+    const statusColor = (s) => {
+      if (s==='예약') return 'background:#fdf1d0;color:#a87900;';
+      if (s==='상담완료') return 'background:#eceff5;color:#5b6472;';
+      if (s==='샘플수령') return 'background:#d4edda;color:#1a7a45;';
+      if (s==='미방문') return 'background:#fde8e8;color:#c0392b;';
+      if (s==='전화상담') return 'background:#e8f0fb;color:#2c5fc4;';
+      return 'background:#eee;color:#666;';
+    };
+    tbody.innerHTML = matched.map((r, i) => `
+      <tr ondblclick="applyRevisitOverlay(${i})" style="cursor:pointer;border-bottom:1px solid #f0e8da;"
+        onmouseover="this.style.background='#FDF6ED'" onmouseout="this.style.background=''">
+        <td style="padding:7px 8px;"><span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;${statusColor(r.status||'')}">${r.status||'-'}</span></td>
+        <td style="padding:7px 8px;font-weight:700;">${r.name||'-'}</td>
+        <td style="padding:7px 8px;color:#666;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.company||'-'}</td>
+        <td style="padding:7px 8px;color:#666;">${r.date||'-'}</td>
+        <td style="padding:7px 8px;color:#666;">${r.phone||'-'}</td>
+      </tr>
     `).join('');
   };
 
