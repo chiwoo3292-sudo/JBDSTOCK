@@ -7015,7 +7015,7 @@ function setTab(tabId, fromPopstate) {
       ]).then(() => {
         // 로드 완료 후 해당 탭 재렌더
         if (typeof renderAll === 'function') renderAll();
-        if (typeof populateSelects === 'function') populateSelects();
+        if (typeof fillSelect === 'function') fillSelect();
       }).catch(() => {});
     }
   }
