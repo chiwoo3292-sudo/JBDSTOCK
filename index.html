@@ -2606,6 +2606,9 @@
           <option value="">선택안함</option>
           <option value="예약">예약</option>
           <option value="상담완료">상담완료</option>
+          <option value="샘플수령">샘플수령</option>
+          <option value="전화상담">전화상담</option>
+          <option value="미방문">미방문</option>
         </select>
       </div>
       <div class="dw-field">
@@ -3483,7 +3486,13 @@ function csDateInputValue(val) {
       pool = _consultsFullCache || allConsults;
 
     const matched = pool.filter(r =>
-      (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
+      (r.name||'').toLowerCase().includes(q) ||
+      (r.phone||'').includes(q) ||
+      (r.company||'').toLowerCase().includes(q) ||
+      (r.address||'').toLowerCase().includes(q) ||
+      (r.products||'').toLowerCase().includes(q) ||
+      (r.counselor||'').toLowerCase().includes(q) ||
+      (r.memo||'').toLowerCase().includes(q)
     ).slice(0, 8);
     _revisitMatches = matched;
     if (!matched.length) {
@@ -3496,7 +3505,8 @@ function csDateInputValue(val) {
         onmouseover="this.style.background='#F3EADB'" onmouseout="this.style.background=''">
         <strong>${r.name||''}</strong>
         <span style="color:#888;font-size:12px;margin-left:6px;">${r.phone||''}</span>
-        <br><span style="color:#aaa;font-size:11px;">${r.date||''} · ${r.company||''}</span>
+        ${r.company ? `<span style="color:#888;font-size:12px;margin-left:6px;">· ${r.company}</span>` : ''}
+        <br><span style="color:#aaa;font-size:11px;">${r.date||''}${r.address ? ' · ' + r.address : ''}</span>
         <span style="color:#A2693E;font-size:11px;margin-left:8px;">더블클릭 시 적용</span>
       </div>
     `).join('');
