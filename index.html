@@ -3970,8 +3970,10 @@ function csDateInputValue(val) {
         } else {
           await window.fsDB.collection('consults').add(fsDoc);
         }
-        closeConsultForm(); // 실시간 리스너가 알아서 목록을 갱신해줌
-        // 구글시트에도 백그라운드로 미러링 (백업/열람용, 실패해도 Firestore 저장은 이미 완료된 상태라 무시)
+        // 캐시 초기화 후 목록 갱신
+        if (typeof window.refreshConsultsCache === 'function') window.refreshConsultsCache();
+        closeConsultForm();
+        // 구글시트에도 백그라운드로 미러링
         fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams(payload)}`).catch(() => {});
         return;
       } catch (e) {
@@ -9910,8 +9912,10 @@ if ('serviceWorker' in navigator) {
         const batch = window.fsDB.batch();
         docIds.forEach(id => batch.delete(window.fsDB.collection('consults').doc(id)));
         await batch.commit();
-        alert('삭제 완료!'); // 실시간 리스너가 알아서 목록 갱신
-        // 시트 쪽도 백그라운드로 미러링 삭제 시도 (백업용, 실패해도 무시)
+        // 캐시 초기화 후 목록 갱신
+        if (typeof window.refreshConsultsCache === 'function') window.refreshConsultsCache();
+        alert('삭제 완료!');
+        // 시트 쪽도 백그라운드로 미러링 삭제 시도
         if (rowIndexes.length) {
           const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
           fetchWithRetry(`${RESERVE_URL}?${params}`).catch(() => {});
