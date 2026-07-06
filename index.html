@@ -1699,6 +1699,43 @@
     if (savedErp) ERP_URL = savedErp;
   })();
 
+  // ── Firestore 전역 캐시 (읽기 횟수 최소화) ──
+  window._employeesCache  = null;
+  window._leavesCache     = null;
+  window._rsvSessionCache = null;
+
+  // employees 통합 읽기 — 세션 내 1회만 Firestore 조회
+  window._getEmployees = async function(forceRefresh) {
+    if (!forceRefresh && window._employeesCache) return window._employeesCache;
+    try {
+      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+        const snapshot = await window.fsDB.collection('employees').get();
+        window._employeesCache = snapshot.docs.map(doc => doc.data());
+      } else {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+        const data = await res.json();
+        window._employeesCache = data.rows || [];
+      }
+    } catch(e) { window._employeesCache = window._employeesCache || []; }
+    return window._employeesCache;
+  };
+
+  // leaves 통합 읽기 — 세션 내 1회만 조회
+  window._getLeaves = async function(userId, role, forceRefresh) {
+    if (!forceRefresh && window._leavesCache) return window._leavesCache;
+    try {
+      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
+        const snapshot = await window.fsDB.collection('leaves').get();
+        window._leavesCache = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+      } else {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${userId}&role=${role||'staff'}`);
+        const data = await res.json();
+        window._leavesCache = data.rows || [];
+      }
+    } catch(e) { window._leavesCache = window._leavesCache || []; }
+    return window._leavesCache;
+  };
+
   // ════════════════════════════════════════════════════════════
   //  fetchWithRetry - RESERVE_URL/ERP_URL 대상 공통 fetch 래퍼
   //  ★ 로그인/재고/쇼룸상담 등에서 "Failed to fetch"가 간헐적으로 뜨는 문제 대응:
@@ -2905,22 +2942,12 @@
   async function loadAllStaffMap() {
     if (_allStaffMapCache) return _allStaffMapCache;
     try {
-      let rows = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const snapshot = await window.fsDB.collection('employees').get();
-        rows = snapshot.docs.map(doc => doc.data());
-      } else {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-        const data = await res.json();
-        rows = data.rows || [];
-      }
+      const rows = await window._getEmployees();
       _allStaffMapCache = {};
       rows.forEach(r => {
         if (r.name) _allStaffMapCache[r.name.trim()] = (r.title || '').trim();
       });
-    } catch(e) {
-      _allStaffMapCache = {};
-    }
+    } catch(e) { _allStaffMapCache = {}; }
     return _allStaffMapCache;
   }
 
@@ -2943,20 +2970,10 @@
   async function loadStaffList() {
     if (_staffListCache) return _staffListCache;
     try {
-      let rows = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const snapshot = await window.fsDB.collection('employees').get();
-        rows = snapshot.docs.map(doc => doc.data());
-      } else {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-        const data = await res.json();
-        rows = data.rows || [];
-      }
+      const rows = await window._getEmployees();
       const allActive = rows.filter(r => !r.leaveDate);
       _staffListCache = allActive.map(r => `${r.name} ${r.title}`.trim());
-    } catch(e) {
-      _staffListCache = [];
-    }
+    } catch(e) { _staffListCache = []; }
     return _staffListCache;
   }
 
@@ -5224,15 +5241,8 @@ function csDateInputValue(val) {
 
     async function initAfterLogin(userData) {
       try {
-        // ── 직원 전체 목록: Firestore 우선, Apps Script 폴백 ──
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          const snapshot = await window.fsDB.collection('employees').get();
-          window._allEmployees = snapshot.docs.map(doc => doc.data());
-        } else {
-          const empRes = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-          const empData = await empRes.json();
-          if (empData.rows) window._allEmployees = empData.rows;
-        }
+        // 전역 캐시로 직원 목록 로드 (세션 내 재사용)
+        window._allEmployees = await window._getEmployees();
       } catch(e) {}
 
       if (userData.isManager || userData.isHead) {
@@ -5243,23 +5253,14 @@ function csDateInputValue(val) {
         setTimeout(async () => {
           await checkLeavePending(userData);
           if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
-          window._leaveBadgeTimer = setInterval(() => checkLeavePending(userData), 30000);
+          window._leaveBadgeTimer = setInterval(() => checkLeavePending(userData), 5 * 60000);
         }, 800);
       }
     }
 
     async function checkLeavePending(userData) {
       try {
-        let rows = [];
-        if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-          const snapshot = await window.fsDB.collection('leaves')
-            .where('approverIds', 'array-contains', userData.id).get();
-          rows = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-        } else {
-          const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${userData.id}&role=${userData.role||'staff'}`);
-          const data = await res.json();
-          if (data.status === 'ok') rows = data.rows || [];
-        }
+        const rows = await window._getLeaves(userData.id, userData.role||'staff');
         const ev = new CustomEvent('leaveDataRefresh', { detail: rows });
         document.dispatchEvent(ev);
         updateApprovalBadge(userData, rows);
@@ -5567,16 +5568,7 @@ function csDateInputValue(val) {
 
     window.loadEmployees = async function() {
         try {
-            let rows = [];
-            if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-              const snapshot = await window.fsDB.collection('employees').get();
-              rows = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-            } else {
-              const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-              const data = await res.json();
-              rows = data.rows || [];
-            }
-            // 전역 직원 목록 저장 (결재라인 자동 계산용)
+            const rows = await window._getEmployees();
             window._allEmployees = rows;
             const tbody = document.getElementById('adminEmpList');
             if (!tbody) return;
@@ -5855,6 +5847,7 @@ function csDateInputValue(val) {
         // 캐시 초기화
         if (window._allStaffMapCache) window._allStaffMapCache = null;
         if (window._staffListCache) window._staffListCache = null;
+        window._employeesCache = null; // 직원 전역 캐시도 초기화
         msg.style.color='#1a7a45';
         msg.textContent = _empModalMode === 'add' ? '직원이 추가되었습니다.' : '수정되었습니다.';
         setTimeout(() => { closeEmpModal(); loadEmployees(); }, 1000);
@@ -10235,7 +10228,7 @@ if ('serviceWorker' in navigator) {
     panel.style.display = 'flex';
     document.getElementById('userDropdown').classList.remove('open');
     renderLeaveCal();
-    loadLeaveData();
+    window._leavesCache = null; loadLeaveData(true);
   };
 
   window.closeLeavePanel = function() {
@@ -10407,7 +10400,7 @@ if ('serviceWorker' in navigator) {
         _selectedDates = [];
         document.getElementById('leaveReason').value = '';
         renderLeaveCal();
-        loadLeaveData();
+        window._leavesCache = null; loadLeaveData(true);
       } else {
         const res  = await fetchWithRetry(`${RESERVE_URL}?${params}`);
         const data = await res.json();
@@ -10416,7 +10409,7 @@ if ('serviceWorker' in navigator) {
           _selectedDates = [];
           document.getElementById('leaveReason').value = '';
           renderLeaveCal();
-          loadLeaveData();
+          window._leavesCache = null; loadLeaveData(true);
         } else { msg.textContent = '실패: ' + (data.message||''); }
       }
     } catch(e) { msg.textContent = '오류: ' + e.message; }
@@ -10436,7 +10429,7 @@ if ('serviceWorker' in navigator) {
         const data = await res.json();
         if (data.status !== 'ok') { alert('취소 실패: ' + (data.message||'')); return; }
       }
-      loadLeaveData();
+      window._leavesCache = null; loadLeaveData(true);
       switchLeaveTab('history');
     } catch(e) { alert('오류: ' + e.message); }
   };
@@ -10460,32 +10453,22 @@ if ('serviceWorker' in navigator) {
   }
 
   // 휴가 데이터 로드
-  async function loadLeaveData() {
+  async function loadLeaveData(forceRefresh) {
     const user = window._currentUser;
     if (!user) return;
     try {
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // ── Firestore에서 휴가 데이터 조회 ──
-        let query = window.fsDB.collection('leaves');
-        if (user.role !== 'admin') {
-          // 본인 신청 + 결재자로 포함된 건
-          const snapshot1 = await window.fsDB.collection('leaves').where('id', '==', user.id).get();
-          const snapshot2 = await window.fsDB.collection('leaves').where('approverIds', 'array-contains', user.id).get();
-          const allDocs = [...snapshot1.docs, ...snapshot2.docs];
-          const seen = new Set();
-          _allLeaves = allDocs.filter(doc => {
-            if (seen.has(doc.id)) return false;
-            seen.add(doc.id);
-            return true;
-          }).map(doc => ({ ...doc.data(), _docId: doc.id }));
-        } else {
-          const snapshot = await window.fsDB.collection('leaves').get();
-          _allLeaves = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-        }
+      if (forceRefresh) window._leavesCache = null;
+      const allRows = await window._getLeaves(user.id, user.role||'staff');
+      if (user.role === 'admin') {
+        _allLeaves = allRows;
       } else {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
-        const data = await res.json();
-        if (data.status === 'ok') _allLeaves = data.rows || [];
+        _allLeaves = allRows.filter(r => {
+          if (r.id === user.id) return true;
+          const approvers = Array.isArray(r.approverIds)
+            ? r.approverIds
+            : String(r.approverIds||'').split(',').map(s=>s.trim());
+          return approvers.includes(String(user.id));
+        });
       }
       updateLeaveBalance();
       renderLeavePending();
@@ -10568,7 +10551,7 @@ if ('serviceWorker' in navigator) {
         const data = await res.json();
         if (data.status !== 'ok') { alert('처리 실패: ' + (data.message||'')); return; }
       }
-      loadLeaveData();
+      window._leavesCache = null; loadLeaveData(true);
     } catch(e) { alert('오류: ' + e.message); }
   };
 
@@ -10639,16 +10622,7 @@ if ('serviceWorker' in navigator) {
 
   window.loadOrgTab = async function() {
     try {
-      let emps = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const snapshot = await window.fsDB.collection('employees').get();
-        emps = snapshot.docs.map(doc => doc.data());
-      } else {
-        const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-        const data = await res.json();
-        if (data.status !== 'ok') return;
-        emps = data.rows || [];
-      }
+      const emps = await window._getEmployees();
       _orgEmps = emps;
       renderOrgEmpList(emps);
       renderOrgChart(emps);
@@ -10657,16 +10631,11 @@ if ('serviceWorker' in navigator) {
 
   window.loadAdminLeaveTable = async function() {
     try {
-      let emps = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        const snapshot = await window.fsDB.collection('employees').get();
-        emps = snapshot.docs.map(doc => doc.data());
-      } else {
-        const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-        const data = await res.json();
-        if (data.status !== 'ok') return;
-        emps = data.rows || [];
-      }
+      const emps = await window._getEmployees();
+      _orgEmps = emps;
+      renderOrgLeaveTable(emps);
+    } catch(e) {}
+  };
       _orgEmps = emps;
       renderOrgLeaveTable(emps);
     } catch(e) {}
@@ -10874,21 +10843,7 @@ if ('serviceWorker' in navigator) {
     if (!user || !tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오는 중...</td></tr>';
     try {
-      let allRows = [];
-      if (window.USE_FIRESTORE_CONSULTS && window.fsDB) {
-        // Firestore에서 결재자로 포함된 건 조회
-        const snapshot = await window.fsDB.collection('leaves')
-          .where('approverIds', 'array-contains', user.id).get();
-        allRows = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
-      } else {
-        const res = await fetchWithRetry(RESERVE_URL + '?action=getLeaves&id=' + encodeURIComponent(user.id) + '&role=' + encodeURIComponent(user.role||'staff'));
-        const data = await res.json();
-        if (data.status !== 'ok') {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">불러오기 실패: ' + (data.message||'') + '</td></tr>';
-          return;
-        }
-        allRows = data.rows || [];
-      }
+      const allRows = await window._getLeaves(user.id, user.role||'staff');
       _approvalRows = allRows.filter(function(r) {
         if (r.id === user.id) return false;
         const approvers = Array.isArray(r.approverIds)
