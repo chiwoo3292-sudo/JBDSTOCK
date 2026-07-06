@@ -5140,7 +5140,6 @@ function csDateInputValue(val) {
             const tbody = document.getElementById('adminEmpList');
             if (!tbody) return;
             if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="admin-empty">직원 없음</td></tr>'; return; }
-            const data = { rows };
 
             // 직급 순서 정의 (높은 직급 먼저)
             const TITLE_ORDER = ['대표이사','CEO','부회장','회장','사장','부사장','전무','상무','이사','본부장','실장','부장','차장','과장','팀장','대리','주임','사원','인턴'];
@@ -9784,9 +9783,8 @@ if ('serviceWorker' in navigator) {
     if (!user) return;
     try {
       const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${user.id}&role=${user.role||'staff'}`);
-        const data = await res.json();
-        if (data.status === 'ok') _allLeaves = data.rows || [];
-      }
+      const data = await res.json();
+      if (data.status === 'ok') _allLeaves = data.rows || [];
       updateLeaveBalance();
       renderLeavePending();
       updateLeavePendingBadge();
