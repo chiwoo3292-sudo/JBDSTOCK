@@ -9,7 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-  window.USE_FIRESTORE_CONSULTS = true; // 쇼룸상담을 Firestore 실시간 동기화로 사용할지 여부
+  window.USE_FIRESTORE_CONSULTS = false; // 쇼룸상담 Apps Script 방식으로 운영
   try {
     const firebaseConfig = {
       apiKey: "AIzaSyDWUU2Fz1s9taDWAkt7Uz_NdwG6qB9UxhQ",
@@ -2718,14 +2718,53 @@
           <option value="신규">신규</option>
           <option value="재방문">재방문</option>
         </select>
-        <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:12px;">
-          <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색</div>
-          <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <input type="text" id="cfRevisitInput" placeholder="이름 또는 연락처 검색" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;" onkeydown="if(event.key==='Enter')searchRevisitOverlay()">
-            <button onclick="searchRevisitOverlay()" style="padding:8px 14px;background:#A2693E;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">검색</button>
+        <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;">
+          <!-- 선택된 고객 태그 -->
+          <div id="cfRevisitSelectedTag" style="display:none;margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span id="cfRevisitTagName" style="background:#F3EADB;color:#A2693E;border:1px solid #E5D9C6;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700;"></span>
+            <button onclick="clearRevisitSelection()" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:0 4px;">×</button>
           </div>
-          <div id="cfRevisitResults" style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:6px;"></div>
+          <button onclick="openRevisitModal()" style="width:100%;padding:9px 0;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;color:#A2693E;font-size:13px;font-weight:700;cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            기존 방문 고객 검색
+          </button>
         </div>
+
+        <!-- 재방문 고객 검색 모달 -->
+        <div id="cfRevisitModal" onclick="if(event.target===this)closeRevisitModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50000;align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:14px;width:90%;max-width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.2);">
+            <div style="display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid #F0E8DC;">
+              <div style="font-size:15px;font-weight:800;color:#222;">데이터 검색</div>
+              <button onclick="closeRevisitModal()" style="margin-left:auto;background:none;border:none;font-size:20px;color:#aaa;cursor:pointer;">×</button>
+            </div>
+            <div style="padding:14px 20px;border-bottom:1px solid #F0E8DC;display:flex;gap:8px;">
+              <input type="text" id="cfRevisitModalInput" placeholder="이름 또는 연락처 입력" onkeydown="if(event.key==='Enter')searchRevisitModal()" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;">
+              <button onclick="searchRevisitModal()" style="padding:9px 18px;background:#A2693E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">검색</button>
+            </div>
+            <div style="flex:1;overflow-y:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="background:#F7F1E7;border-bottom:1px solid #E5D9C6;">
+                    <th style="padding:10px 12px;text-align:center;color:#888;font-weight:700;width:50px;">No.</th>
+                    <th style="padding:10px 12px;text-align:left;color:#888;font-weight:700;">성함</th>
+                    <th style="padding:10px 12px;text-align:left;color:#888;font-weight:700;">연락처</th>
+                    <th style="padding:10px 12px;text-align:left;color:#888;font-weight:700;">업체명</th>
+                    <th style="padding:10px 12px;text-align:left;color:#888;font-weight:700;">기존 방문일</th>
+                  </tr>
+                </thead>
+                <tbody id="cfRevisitModalBody">
+                  <tr><td colspan="5" style="text-align:center;padding:32px;color:#aaa;">검색어를 입력하세요</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- 페이지네이션 -->
+            <div id="cfRevisitModalPaging" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-top:1px solid #F0E8DC;flex-wrap:wrap;"></div>
+            <div style="padding:12px 20px;border-top:1px solid #F0E8DC;text-align:right;">
+              <button onclick="closeRevisitModal()" style="padding:8px 20px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:600;cursor:pointer;">닫기</button>
+            </div>
+          </div>
+        </div>
+
         <div id="cfPastHistoryBox" style="display:none;margin-top:8px;background:#fff;border:1px solid #E5D9C6;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#555;line-height:1.6;">
           <strong style="color:#A2693E;">지난 상담이력</strong><br>
           <span id="cfPastHistoryText"></span>
@@ -2743,6 +2782,9 @@
           <option value="">선택안함</option>
           <option value="예약">예약</option>
           <option value="상담완료">상담완료</option>
+          <option value="미방문">미방문</option>
+          <option value="전화상담">전화상담</option>
+          <option value="샘플수령">샘플수령</option>
         </select>
       </div>
       <div class="dw-field">
@@ -3692,7 +3734,114 @@ function csDateInputValue(val) {
     URL.revokeObjectURL(url);
   };
 
-  window.searchRevisitOverlay = async function() {
+  // ── 재방문 고객 검색 모달 ──
+  let _revisitModalPage = 1;
+  const _revisitModalPageSize = 5;
+  let _revisitModalResults = [];
+
+  window.openRevisitModal = function() {
+    document.getElementById('cfRevisitModal').style.display = 'flex';
+    document.getElementById('cfRevisitModalInput').value = '';
+    document.getElementById('cfRevisitModalBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#aaa;">검색어를 입력하세요</td></tr>';
+    document.getElementById('cfRevisitModalPaging').innerHTML = '';
+    setTimeout(() => document.getElementById('cfRevisitModalInput').focus(), 100);
+  };
+
+  window.closeRevisitModal = function() {
+    document.getElementById('cfRevisitModal').style.display = 'none';
+  };
+
+  window.searchRevisitModal = async function() {
+    const q = (document.getElementById('cfRevisitModalInput').value || '').trim().toLowerCase();
+    const tbody = document.getElementById('cfRevisitModalBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#aaa;">검색 중...</td></tr>';
+
+    let pool = [];
+    try {
+      if (!_consultsFullCache) {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsults`);
+        const data = await res.json();
+        _consultsFullCache = data.rows || [];
+      }
+      pool = _consultsFullCache;
+    } catch(e) { pool = allConsults || []; }
+
+    _revisitModalResults = q
+      ? pool.filter(r => (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q))
+      : pool;
+
+    _revisitModalPage = 1;
+    renderRevisitModalPage();
+  };
+
+  function renderRevisitModalPage() {
+    const tbody = document.getElementById('cfRevisitModalBody');
+    const paging = document.getElementById('cfRevisitModalPaging');
+    const total = _revisitModalResults.length;
+    const totalPages = Math.ceil(total / _revisitModalPageSize) || 1;
+    const start = (_revisitModalPage - 1) * _revisitModalPageSize;
+    const items = _revisitModalResults.slice(start, start + _revisitModalPageSize);
+
+    if (!total) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#aaa;">검색 결과 없음</td></tr>';
+      paging.innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = items.map((r, i) => `
+      <tr onclick="selectRevisitCustomer(${start + i})"
+        style="border-bottom:1px solid #F5EDE0;cursor:pointer;"
+        onmouseover="this.style.background='#FBF7F0'" onmouseout="this.style.background=''">
+        <td style="padding:11px 12px;text-align:center;color:#aaa;">${start + i + 1}</td>
+        <td style="padding:11px 12px;font-weight:700;color:#222;">${r.name||'-'}</td>
+        <td style="padding:11px 12px;color:#555;">${r.phone||'-'}</td>
+        <td style="padding:11px 12px;color:#555;">${r.company||'-'}</td>
+        <td style="padding:11px 12px;color:#888;">${(r.date||'').slice(0,10)||'-'}</td>
+      </tr>
+    `).join('');
+
+    // 페이지네이션
+    let pagHtml = '';
+    if (totalPages > 1) {
+      pagHtml += `<button onclick="_revisitModalPage=1;renderRevisitModalPage()" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;">◀◀</button>`;
+      pagHtml += `<button onclick="if(_revisitModalPage>1){_revisitModalPage--;renderRevisitModalPage()}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;">◀</button>`;
+      for (let p = Math.max(1, _revisitModalPage-2); p <= Math.min(totalPages, _revisitModalPage+2); p++) {
+        pagHtml += `<button onclick="_revisitModalPage=${p};renderRevisitModalPage()" style="padding:5px 10px;border:1px solid ${p===_revisitModalPage?'#A2693E':'#ddd'};border-radius:6px;background:${p===_revisitModalPage?'#A2693E':'#fff'};color:${p===_revisitModalPage?'#fff':'#333'};cursor:pointer;font-weight:${p===_revisitModalPage?'700':'400'};">${p}</button>`;
+      }
+      pagHtml += `<button onclick="if(_revisitModalPage<${totalPages}){_revisitModalPage++;renderRevisitModalPage()}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;">▶</button>`;
+      pagHtml += `<button onclick="_revisitModalPage=${totalPages};renderRevisitModalPage()" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;">▶▶</button>`;
+    }
+    paging.innerHTML = pagHtml;
+  }
+
+  window.selectRevisitCustomer = function(idx) {
+    const r = _revisitModalResults[idx];
+    if (!r) return;
+    _revisitMatches = [r];
+
+    // 선택된 고객 태그 표시
+    const tag = document.getElementById('cfRevisitSelectedTag');
+    const tagName = document.getElementById('cfRevisitTagName');
+    if (tag && tagName) {
+      tagName.textContent = r.name || '';
+      tag.style.display = 'flex';
+    }
+
+    // 폼에 기존 데이터 채우기
+    applyRevisitOverlay(0);
+    closeRevisitModal();
+  };
+
+  window.clearRevisitSelection = function() {
+    _revisitMatches = [];
+    const tag = document.getElementById('cfRevisitSelectedTag');
+    if (tag) tag.style.display = 'none';
+    const pastBox = document.getElementById('cfPastHistoryBox');
+    if (pastBox) pastBox.style.display = 'none';
+  };
+
+  // 기존 searchRevisitOverlay는 유지 (다른 곳 참조 대비)
+  window.searchRevisitOverlay = window.searchRevisitModal;
     const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
     const results = document.getElementById('cfRevisitResults');
     if (!q) { results.innerHTML = ''; return; }
@@ -3883,13 +4032,15 @@ function csDateInputValue(val) {
   window.closeConsultForm = function() {
     document.getElementById('csFormOverlay').classList.remove('open');
     document.body.classList.remove('overlay-open');
-    // 검색창 초기화
-    const revisitInput = document.getElementById('cfRevisitInput');
-    const revisitResults = document.getElementById('cfRevisitResults');
+    // 재방문 검색 초기화
     const revisitBox = document.getElementById('cfRevisitSearchBox');
-    if (revisitInput) revisitInput.value = '';
-    if (revisitResults) revisitResults.innerHTML = '';
     if (revisitBox) revisitBox.style.display = 'none';
+    const tag = document.getElementById('cfRevisitSelectedTag');
+    if (tag) tag.style.display = 'none';
+    const pastBox = document.getElementById('cfPastHistoryBox');
+    if (pastBox) pastBox.style.display = 'none';
+    const modal = document.getElementById('cfRevisitModal');
+    if (modal) modal.style.display = 'none';
     _revisitMatches = [];
   };
 
