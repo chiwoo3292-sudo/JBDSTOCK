@@ -1280,27 +1280,27 @@
         재료비 / 인건비+부자재비 분리
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invRemarksEditCheck" />
+        <input type="checkbox" id="invRemarksEditCheck" onchange="renderInvoice()" />
         REMARKS 직접입력
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invMergeLaborCheck" />
+        <input type="checkbox" id="invMergeLaborCheck" onchange="renderInvoice()" />
         인건비+부자재비 합산 표시
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invBoxCalcCheck" style="margin-left: 22px;" />
+        <input type="checkbox" id="invBoxCalcCheck" style="margin-left: 22px;" onchange="renderInvoice()" />
         박스기준 헤베계산
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invDraftCheck" />
+        <input type="checkbox" id="invDraftCheck" onchange="renderInvoice()" />
         가견적서
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invAdjustCheck" checked style="margin-left: 14.5px;" />
+        <input type="checkbox" id="invAdjustCheck" checked style="margin-left: 14.5px;" onchange="renderInvoice()" />
         단수정리
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invAsCheck" style="margin-left: 14.5px;" />
+        <input type="checkbox" id="invAsCheck" style="margin-left: 14.5px;" onchange="renderInvoice()" />
         AS견적서 작성
       </label>
     </div>
