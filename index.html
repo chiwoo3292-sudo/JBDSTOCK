@@ -6394,9 +6394,10 @@ function setTab(tabId, fromPopstate) {
         typeof loadProducts === 'function' ? loadProducts() : Promise.resolve(),
         typeof loadTooltipMap === 'function' ? loadTooltipMap() : Promise.resolve()
       ]).then(() => {
-        // 로드 완료 후 해당 탭 재렌더
-        if (tabId === 'pricingTab' && typeof renderPricingTab === 'function') renderPricingTab();
-        if (tabId === 'calculatorTab' && typeof renderCalcTab === 'function') renderCalcTab();
+        // 로드 완료 후 드롭다운 및 테이블 갱신
+        if (typeof fillSelect === 'function') fillSelect();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof fillInvoiceSelects === 'function') fillInvoiceSelects();
       }).catch(() => {});
     }
   }
@@ -7145,6 +7146,10 @@ async function startApp() {
     setTimeout(async () => {
       try {
         await Promise.all([loadProducts(), loadTooltipMap()]);
+        // 로드 완료 후 드롭다운 및 테이블 갱신
+        if (typeof fillSelect === 'function') fillSelect();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof fillInvoiceSelects === 'function') fillInvoiceSelects();
       } catch(e) {
         // 탭 진입 시 재시도하므로 무시
       }
