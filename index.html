@@ -5073,15 +5073,6 @@ function csDateInputValue(val) {
         btn.textContent = '로그인'; btn.disabled = false;
     };
 
-    // 클라이언트 SHA-256 해시 (Apps Script의 hashPassword와 동일한 salt 사용)
-    async function hashPasswordClient(pw) {
-        const msg = pw + 'jibokdeuk_salt_2024';
-        const msgBuffer = new TextEncoder().encode(msg);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
     // 로그아웃
     window.logoutUser = function() {
         localStorage.removeItem(SESSION_KEY);
@@ -9273,19 +9264,17 @@ if ('serviceWorker' in navigator) {
     if (!checkboxes.length) { alert('삭제할 항목을 선택해주세요.'); return; }
 
     const rowIndexes = [];
-    const docIds = [];
     checkboxes.forEach(cb => {
       const tr = cb.closest('tr');
       if (tr) {
         const origIdx = parseInt(tr.dataset.origIdx);
         const r = window._allConsultsRef && !isNaN(origIdx) ? window._allConsultsRef[origIdx] : null;
         if (r && r._rowIndex) rowIndexes.push(r._rowIndex);
-        if (r && r._docId) docIds.push(r._docId);
       }
     });
 
-    if (!rowIndexes.length && !docIds.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
-    if (!confirm(`${docIds.length || rowIndexes.length}건을 삭제하시겠습니까?`)) return;
+    if (!rowIndexes.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
+    if (!confirm(`${rowIndexes.length}건을 삭제하시겠습니까?`)) return;
 
     try {
       const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
