@@ -2608,10 +2608,6 @@
             </table>
           </div>
         </div>
-        <div id="cfPastHistoryBox" style="display:none;margin-top:8px;background:#fff;border:1px solid #E5D9C6;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#555;line-height:1.6;">
-          <strong style="color:#A2693E;">지난 상담이력</strong><br>
-          <span id="cfPastHistoryText"></span>
-        </div>
         <input type="hidden" id="cfPastHistory">
       </div>
     </div>
@@ -2785,8 +2781,13 @@
       </div>
     </div>
 
+    <div id="cfPastHistoryBox" style="display:none;margin:20px 0 0;background:#fffdf9;border:1px solid #E5D9C6;border-radius:8px;padding:14px 16px;">
+      <strong style="color:#A2693E;font-size:13px;">기존 상담이력</strong>
+      <pre id="cfPastHistoryText" style="margin:8px 0 0;font-size:12px;font-family:inherit;white-space:pre-wrap;word-break:break-all;color:#444;background:none;border:none;padding:0;line-height:1.7;"></pre>
+    </div>
+
     <div class="dw-form-footer">
-      <button class="dw-btn-confirm" onclick="saveConsultForm()">확인</button>
+      <button class="dw-btn-confirm" onclick="saveConsultForm()">저장</button>
       <button class="dw-btn-cancel" onclick="closeConsultForm()">취소</button>
     </div>
     <div class="dw-form-msg" id="cfMsg"></div>
@@ -3554,14 +3555,24 @@ function csDateInputValue(val) {
   // 지난 상담이력 한 줄 요약 생성: "지난 방문(6/3): 오크헤링본, 쪽샘플(월넛 3종), 명함 전달함(김철수 팀장)"
   function buildPastHistorySummary(r) {
     if (!r) return '';
-    const m = String(r.date||'').match(/^\d{4}-(\d{2})-(\d{2})/);
-    const dateStr = m ? `${parseInt(m[1],10)}/${parseInt(m[2],10)}` : (r.date || '날짜미상');
-    const parts = [];
-    if (r.products) parts.push(r.products);
-    if (r.sampleGiven) parts.push(`쪽샘플(${r.sampleGiven})`);
-    if (r.cardGiven) parts.push(`명함 전달함(${r.cardGiven})`);
-    const body = parts.length ? parts.join(', ') : '특이사항 없음';
-    return `지난 방문(${dateStr}): ${body}`;
+    const lines = [];
+    const dateStr = r.date || '날짜미상';
+    lines.push('[방문일] ' + dateStr + (r.time ? ' ' + r.time : ''));
+    if (r.counselor) lines.push('[상담자] ' + r.counselor);
+    if (r.status)    lines.push('[상태] ' + r.status);
+    if (r.visitorType) lines.push('[유형] ' + r.visitorType);
+    if (r.address)   lines.push('[주소] ' + r.address);
+    if (r.size)      lines.push('[평수] ' + r.size);
+    if (r.spaceType) lines.push('[공간] ' + r.spaceType);
+    if (r.workDate)  lines.push('[시공예정] ' + r.workDate);
+    if (r.workPeriod) lines.push('[시공기간] ' + r.workPeriod);
+    if (r.products)  lines.push('[선호제품] ' + r.products);
+    if (r.priceInfo) lines.push('[단가정보] ' + r.priceInfo);
+    if (r.reqSample) lines.push('[샘플] ' + r.reqSample);
+    if (r.reqCard)   lines.push('[명함] ' + r.reqCard);
+    if (r.reqQuote === 'Y') lines.push('[견적서 요청]');
+    if (r.memo)      lines.push('[전달사항] ' + r.memo);
+    return lines.join('\n');
   }
 
   window.applyRevisitOverlay = function(idx) {
@@ -3693,8 +3704,14 @@ function csDateInputValue(val) {
     document.getElementById('csFormOverlay').classList.remove('open');
     document.body.classList.remove('overlay-open');
     // 드래그 위치 리셋
-    const page = document.querySelector('.dw-form-page');
-    if (page) page.style.transform = '';
+    var _page = document.querySelector('.dw-form-page');
+    if (_page) {
+      _page.style.position = '';
+      _page.style.left = '';
+      _page.style.top = '';
+      _page.style.transform = '';
+      _page.style.margin = '';
+    }
   };
 
   // 모달 배경 클릭 시 닫기
@@ -10701,49 +10718,6 @@ if ('serviceWorker' in navigator) {
   ${sig}
 </div>
 
-<script>
-// ── 등록/상담 모달 드래그 이동 (PC만) ──
-(function() {
-  let _dragging = false, _startX, _startY, _origX, _origY;
-
-  function getPage() { return document.querySelector('.dw-form-page'); }
-
-  document.addEventListener('mousedown', function(e) {
-    const header = e.target.closest('.dw-form-header');
-    if (!header) return;
-    const overlay = document.getElementById('csFormOverlay');
-    if (!overlay || !overlay.classList.contains('open')) return;
-    // 모바일 제외
-    if (window.innerWidth <= 768) return;
-    const page = getPage();
-    if (!page) return;
-
-    _dragging = true;
-    const rect = page.getBoundingClientRect();
-    _startX = e.clientX;
-    _startY = e.clientY;
-    _origX = rect.left + rect.width / 2 - window.innerWidth / 2;
-    _origY = rect.top + rect.height / 2 - window.innerHeight / 2;
-    page.style.transition = 'none';
-    e.preventDefault();
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (!_dragging) return;
-    const page = getPage();
-    if (!page) return;
-    const dx = e.clientX - _startX;
-    const dy = e.clientY - _startY;
-    const tx = _origX + dx;
-    const ty = _origY + dy;
-    page.style.transform = 'translate(calc(-50% + ' + tx + 'px), calc(-50% + ' + ty + 'px))';
-  });
-
-  document.addEventListener('mouseup', function() {
-    _dragging = false;
-  });
-})();
-</script>
 </body></html>`;
   }
 
@@ -11327,7 +11301,7 @@ if ('serviceWorker' in navigator) {
 <script>
 // ── 등록/상담 모달 드래그 이동 (PC만) ──
 (function() {
-  var _dragging = false, _startX, _startY, _origX, _origY;
+  var _dragging = false, _startX, _startY, _pageLeft, _pageTop;
 
   function getPage() { return document.querySelector('.dw-form-page'); }
 
@@ -11339,12 +11313,20 @@ if ('serviceWorker' in navigator) {
     if (window.innerWidth <= 768) return;
     var page = getPage();
     if (!page) return;
-    _dragging = true;
+
     var rect = page.getBoundingClientRect();
+    // position:absolute로 전환해서 직접 좌표 제어
+    page.style.position = 'fixed';
+    page.style.left = rect.left + 'px';
+    page.style.top = rect.top + 'px';
+    page.style.transform = 'none';
+    page.style.margin = '0';
+
+    _dragging = true;
     _startX = e.clientX;
     _startY = e.clientY;
-    _origX = rect.left + rect.width / 2 - window.innerWidth / 2;
-    _origY = rect.top + rect.height / 2 - window.innerHeight / 2;
+    _pageLeft = rect.left;
+    _pageTop = rect.top;
     page.style.transition = 'none';
     e.preventDefault();
   });
@@ -11355,9 +11337,11 @@ if ('serviceWorker' in navigator) {
     if (!page) return;
     var dx = e.clientX - _startX;
     var dy = e.clientY - _startY;
-    var tx = _origX + dx;
-    var ty = _origY + dy;
-    page.style.transform = 'translate(calc(-50% + ' + tx + 'px), calc(-50% + ' + ty + 'px))';
+    // 화면 밖으로 나가지 않도록 제한
+    var newLeft = Math.max(0, Math.min(window.innerWidth - page.offsetWidth, _pageLeft + dx));
+    var newTop = Math.max(0, Math.min(window.innerHeight - 60, _pageTop + dy));
+    page.style.left = newLeft + 'px';
+    page.style.top = newTop + 'px';
   });
 
   document.addEventListener('mouseup', function() {
