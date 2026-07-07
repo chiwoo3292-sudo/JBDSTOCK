@@ -3026,10 +3026,11 @@
     if (_consultsLoading) return;
     _consultsLoading = true;
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsults`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
       const data = await res.json();
       if (data.status === 'ok') {
         _consultsCache = data.rows || [];
+        _consultsFullCache = _consultsCache;
         allConsults = _consultsCache;
         window._allConsultsRef = allConsults;
         renderConsultList();
@@ -3512,7 +3513,7 @@ function csDateInputValue(val) {
       return;
     }
 
-    const pool = allConsults;
+    const pool = _consultsFullCache || allConsults;
 
     const matched = pool.filter(r =>
       (r.name||'').toLowerCase().includes(q) ||
@@ -3575,16 +3576,20 @@ function csDateInputValue(val) {
     if (document.getElementById('cfSpaceType')) document.getElementById('cfSpaceType').value = r.spaceType||'';
     if (document.getElementById('cfVisitorType')) document.getElementById('cfVisitorType').value = r.visitorType||'';
     document.getElementById('cfRevisitSearchBox').style.display = 'none';
-    document.getElementById('cfRevisitInput').value = '';
+    const _inp = document.getElementById('cfRevisitInput');
+    if (_inp) _inp.value = '';
     const _rrb = document.getElementById('cfRevisitResultsBody');
     if (_rrb) _rrb.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
 
-    // ★ 지난 상담이력 요약 생성해서 참고용으로 표시 + 히든 필드에 저장 (다른 필드는 덮어쓰지 않음)
+    // 지난 상담이력 요약 생성 → 참고용 박스 표시 + 히든 필드 저장
     const summary = buildPastHistorySummary(r);
     set('cfPastHistory', summary);
     const box = document.getElementById('cfPastHistoryBox');
     const textEl = document.getElementById('cfPastHistoryText');
-    if (box && textEl) { textEl.textContent = summary; box.style.display = 'block'; }
+    if (box && textEl) {
+      textEl.textContent = summary || '이력 없음';
+      box.style.display = 'block';
+    }
 
     alert(`${r.name} 님의 기존 데이터를 불러왔습니다!`);
   };
