@@ -2997,13 +2997,9 @@
   // ── 돋보기 버튼: 검색 + 새로고침 통합 (새로고침 버튼 삭제하고 이걸로 대체) ──
   window.searchConsultAndRefresh = async function() {
     const q = (document.getElementById('csSearch').value || '').trim();
-    if (q) {
-      // 전체 데이터 캐시가 없으면 현재 로드된 데이터로 동기화
-      if (!_consultsFullCache && _consultsCache) _consultsFullCache = _consultsCache;
-      await renderConsultList();
-    } else {
-      await loadConsults(true);
-    }
+    // 검색어 유무 상관없이 캐시 동기화 후 렌더 (서버 재호출 없음)
+    if (!_consultsFullCache && _consultsCache) _consultsFullCache = _consultsCache;
+    await renderConsultList();
   };
 
 
@@ -3142,26 +3138,11 @@
 
       // ★ 검색어가 있으면 전체 데이터로 전환(최초 1회만 서버조회 후 캐시), 검색어를 지우면 최근 100건으로 복귀
       if (q) {
-        if (!_consultsFullCache) {
-          const bodyEl = document.getElementById('csTableBody');
-          if (_consultsFullLoading) {
-            // 이미 다른 요청이 진행 중이면 그 요청이 끝날 때까지만 대기 (중복 fetch 방지)
-            if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
-            while (_consultsFullLoading) { await new Promise(r => setTimeout(r, 100)); }
-          } else {
-            _consultsFullLoading = true;
-            if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
-            try {
-              const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
-              const data = await res.json();
-              if (data.status === 'ok') _consultsFullCache = data.rows || [];
-            } catch(e) { /* 실패 시 현재 로딩된 범위 내에서만 검색 진행 */ }
-            finally { _consultsFullLoading = false; }
-          }
-        }
+        // 이미 전체 데이터가 로드된 상태이므로 캐시 동기화 후 바로 검색
+        if (!_consultsFullCache && _consultsCache) _consultsFullCache = _consultsCache;
         if (_consultsFullCache) allConsults = _consultsFullCache;
       } else if (_consultsCache) {
-        allConsults = _consultsCache; // 검색어 없으면 최근 100건 목록으로 복귀
+        allConsults = _consultsCache;
       }
     window._allConsultsRef = allConsults;
 
