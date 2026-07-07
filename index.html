@@ -2996,9 +2996,6 @@
   // ── 목록 불러오기 ──
   // ── 돋보기 버튼: 검색 + 새로고침 통합 (새로고침 버튼 삭제하고 이걸로 대체) ──
   window.searchConsultAndRefresh = async function() {
-    const q = (document.getElementById('csSearch').value || '').trim();
-    // 검색어 유무 상관없이 캐시 동기화 후 렌더 (서버 재호출 없음)
-    if (!_consultsFullCache && _consultsCache) _consultsFullCache = _consultsCache;
     await renderConsultList();
   };
 
@@ -3137,13 +3134,7 @@
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
 
       // ★ 검색어가 있으면 전체 데이터로 전환(최초 1회만 서버조회 후 캐시), 검색어를 지우면 최근 100건으로 복귀
-      if (q) {
-        // 이미 전체 데이터가 로드된 상태이므로 캐시 동기화 후 바로 검색
-        if (!_consultsFullCache && _consultsCache) _consultsFullCache = _consultsCache;
-        if (_consultsFullCache) allConsults = _consultsFullCache;
-      } else if (_consultsCache) {
-        allConsults = _consultsCache;
-      }
+      // allConsults는 이미 전체 데이터가 로드된 상태 - 그대로 사용
     window._allConsultsRef = allConsults;
 
     // 원본 인덱스를 함께 보관
