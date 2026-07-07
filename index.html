@@ -2347,6 +2347,7 @@
     padding: 28px 32px 40px;
     position: relative;
     box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    will-change: transform;
   }
   /* 모바일: 전체화면으로 */
   @media (max-width: 768px) {
@@ -2379,7 +2380,7 @@
     }
   }
 
-  .dw-form-header { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
+  .dw-form-header { display:flex; align-items:center; gap:7px; margin-bottom:6px; cursor:move; user-select:none; }
   .dw-form-header .dw-header-icon { }
   .dw-form-header h2 { font-size:16px; font-weight:700; color:#222; }
   .dw-form-header .dw-form-close { margin-left:auto; background:none; border:none; font-size:20px; cursor:pointer; color:#999; }
@@ -2996,16 +2997,17 @@
   window.searchConsultAndRefresh = async function() {
     const q = (document.getElementById('csSearch').value || '').trim();
     if (q) {
-      _consultsFullCache = null; // 매번 최신 데이터 기준으로 검색되도록 캐시 초기화 후 재검색
+      // 전체 데이터 캐시가 없으면 현재 로드된 데이터로 동기화
+      if (!_consultsFullCache && _consultsCache) _consultsFullCache = _consultsCache;
       await renderConsultList();
     } else {
-      await loadConsults(true); // 검색어 없으면 최근 100건 강제 새로고침
+      await loadConsults(true);
     }
   };
 
 
   window.loadConsults = async function(force) {
-    if (force) _consultsFullCache = null; // 강제 새로고침 시 전체검색 캐시도 초기화
+    if (force) { _consultsFullCache = null; _consultsCache = null; } // 강제 새로고침 시 캐시 초기화
     // 캐시가 있으면 즉시 화면에 표시 (stale-while-revalidate)
     if (_consultsCache && !force) {
       allConsults = _consultsCache;
@@ -3690,6 +3692,9 @@ function csDateInputValue(val) {
   window.closeConsultForm = function() {
     document.getElementById('csFormOverlay').classList.remove('open');
     document.body.classList.remove('overlay-open');
+    // 드래그 위치 리셋
+    const page = document.querySelector('.dw-form-page');
+    if (page) page.style.transform = '';
   };
 
   // 모달 배경 클릭 시 닫기
@@ -10695,6 +10700,50 @@ if ('serviceWorker' in navigator) {
   <div style="white-space:pre-line;font-size:14px;color:#1a1a1a;line-height:1.9;">${escaped}</div>
   ${sig}
 </div>
+
+<script>
+// ── 등록/상담 모달 드래그 이동 (PC만) ──
+(function() {
+  let _dragging = false, _startX, _startY, _origX, _origY;
+
+  function getPage() { return document.querySelector('.dw-form-page'); }
+
+  document.addEventListener('mousedown', function(e) {
+    const header = e.target.closest('.dw-form-header');
+    if (!header) return;
+    const overlay = document.getElementById('csFormOverlay');
+    if (!overlay || !overlay.classList.contains('open')) return;
+    // 모바일 제외
+    if (window.innerWidth <= 768) return;
+    const page = getPage();
+    if (!page) return;
+
+    _dragging = true;
+    const rect = page.getBoundingClientRect();
+    _startX = e.clientX;
+    _startY = e.clientY;
+    _origX = rect.left + rect.width / 2 - window.innerWidth / 2;
+    _origY = rect.top + rect.height / 2 - window.innerHeight / 2;
+    page.style.transition = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!_dragging) return;
+    const page = getPage();
+    if (!page) return;
+    const dx = e.clientX - _startX;
+    const dy = e.clientY - _startY;
+    const tx = _origX + dx;
+    const ty = _origY + dy;
+    page.style.transform = 'translate(calc(-50% + ' + tx + 'px), calc(-50% + ' + ty + 'px))';
+  });
+
+  document.addEventListener('mouseup', function() {
+    _dragging = false;
+  });
+})();
+</script>
 </body></html>`;
   }
 
@@ -11274,6 +11323,48 @@ if ('serviceWorker' in navigator) {
 <!--  조직도 탭                                                         -->
 <!-- ================================================================ -->
 
+
+<script>
+// ── 등록/상담 모달 드래그 이동 (PC만) ──
+(function() {
+  var _dragging = false, _startX, _startY, _origX, _origY;
+
+  function getPage() { return document.querySelector('.dw-form-page'); }
+
+  document.addEventListener('mousedown', function(e) {
+    var header = e.target.closest('.dw-form-header');
+    if (!header) return;
+    var overlay = document.getElementById('csFormOverlay');
+    if (!overlay || !overlay.classList.contains('open')) return;
+    if (window.innerWidth <= 768) return;
+    var page = getPage();
+    if (!page) return;
+    _dragging = true;
+    var rect = page.getBoundingClientRect();
+    _startX = e.clientX;
+    _startY = e.clientY;
+    _origX = rect.left + rect.width / 2 - window.innerWidth / 2;
+    _origY = rect.top + rect.height / 2 - window.innerHeight / 2;
+    page.style.transition = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!_dragging) return;
+    var page = getPage();
+    if (!page) return;
+    var dx = e.clientX - _startX;
+    var dy = e.clientY - _startY;
+    var tx = _origX + dx;
+    var ty = _origY + dy;
+    page.style.transform = 'translate(calc(-50% + ' + tx + 'px), calc(-50% + ' + ty + 'px))';
+  });
+
+  document.addEventListener('mouseup', function() {
+    _dragging = false;
+  });
+})();
+</script>
 
 </body>
     </html>
