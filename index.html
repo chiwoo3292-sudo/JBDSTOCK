@@ -3437,6 +3437,10 @@ function csDateInputValue(val) {
     document.getElementById('cfCardBox').classList.remove('show');
     if (document.getElementById('cfPastHistory')) document.getElementById('cfPastHistory').value = '';
     if (document.getElementById('cfPastHistoryBox')) document.getElementById('cfPastHistoryBox').style.display = 'none';
+    if (document.getElementById('cfRevisitSearchBox')) document.getElementById('cfRevisitSearchBox').style.display = 'none';
+    if (document.getElementById('cfRevisitInput')) document.getElementById('cfRevisitInput').value = '';
+    const _rrbReset = document.getElementById('cfRevisitResultsBody');
+    if (_rrbReset) _rrbReset.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
     document.getElementById('cfMsg').textContent = '';
   }
 
@@ -3566,7 +3570,8 @@ function csDateInputValue(val) {
     if (document.getElementById('cfVisitorType')) document.getElementById('cfVisitorType').value = r.visitorType||'';
     document.getElementById('cfRevisitSearchBox').style.display = 'none';
     document.getElementById('cfRevisitInput').value = '';
-    document.getElementById('cfRevisitResults').innerHTML = '';
+    const _rrb = document.getElementById('cfRevisitResultsBody');
+    if (_rrb) _rrb.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
 
     // ★ 지난 상담이력 요약 생성해서 참고용으로 표시 + 히든 필드에 저장 (다른 필드는 덮어쓰지 않음)
     const summary = buildPastHistorySummary(r);
