@@ -2586,7 +2586,7 @@
         </select>
         <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:12px;">
           <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
-          <input type="text" id="cfRevisitInput" oninput="searchRevisitOverlay()" placeholder="성함, 연락처, 업체명, 주소 등 검색" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;box-sizing:border-box;">
+          <input type="text" id="cfRevisitInput" placeholder="성함, 연락처, 업체명, 주소 등 검색" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;box-sizing:border-box;">
           <div id="cfRevisitResults">
             <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden;">
               <thead>
@@ -3459,7 +3459,18 @@ function csDateInputValue(val) {
   // ── 오버레이 재방문 검색 ──
   window.toggleRevisitSearch = function() {
     const box = document.getElementById('cfRevisitSearchBox');
-    if (box) box.style.display = document.getElementById('cfVisitStatus').value === '재방문' ? 'block' : 'none';
+    const isRevisit = document.getElementById('cfVisitStatus').value === '재방문';
+    if (box) box.style.display = isRevisit ? 'block' : 'none';
+    // 검색창 표시 시 이벤트 바인딩 (oninput 대신 addEventListener로)
+    if (isRevisit) {
+      const inp = document.getElementById('cfRevisitInput');
+      if (inp && !inp._revisitBound) {
+        inp.addEventListener('input', function() { window.searchRevisitOverlay(); });
+        inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') window.searchRevisitOverlay(); });
+        inp._revisitBound = true;
+      }
+      setTimeout(() => { const i = document.getElementById('cfRevisitInput'); if(i) i.focus(); }, 100);
+    }
   };
 
   // ── 쇼룸상담 목록 CSV 다운로드 ──
