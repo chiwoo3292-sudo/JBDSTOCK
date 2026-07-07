@@ -3488,7 +3488,11 @@ function csDateInputValue(val) {
       return;
     }
 
-    const pool = _consultsFullCache || allConsults;
+    const pool = allConsults;
+    if (!pool || !pool.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">데이터 로딩 중입니다. 잠시 후 다시 시도해주세요.</td></tr>';
+      return;
+    }
 
     const matched = pool.filter(r =>
       (r.name||'').toLowerCase().includes(q) ||
