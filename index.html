@@ -3461,15 +3461,20 @@ function csDateInputValue(val) {
     const box = document.getElementById('cfRevisitSearchBox');
     const isRevisit = document.getElementById('cfVisitStatus').value === '재방문';
     if (box) box.style.display = isRevisit ? 'block' : 'none';
-    // 검색창 표시 시 이벤트 바인딩 (oninput 대신 addEventListener로)
     if (isRevisit) {
       const inp = document.getElementById('cfRevisitInput');
-      if (inp && !inp._revisitBound) {
-        inp.addEventListener('input', function() { window.searchRevisitOverlay(); });
-        inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') window.searchRevisitOverlay(); });
-        inp._revisitBound = true;
+      if (inp) {
+        // 기존 리스너 제거 후 새로 등록
+        const newInp = inp.cloneNode(true);
+        inp.parentNode.replaceChild(newInp, inp);
+        newInp.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') window.searchRevisitOverlay();
+        });
+        newInp.addEventListener('input', function() {
+          window.searchRevisitOverlay();
+        });
+        setTimeout(() => newInp.focus(), 100);
       }
-      setTimeout(() => { const i = document.getElementById('cfRevisitInput'); if(i) i.focus(); }, 100);
     }
   };
 
