@@ -3512,24 +3512,7 @@ function csDateInputValue(val) {
       return;
     }
 
-    let pool;
-
-    if (!_consultsFullCache) {
-      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 중...</td></tr>';
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 8000);
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
-        clearTimeout(timer);
-        const data = await res.json();
-        if (data.status === 'ok') _consultsFullCache = data.rows || [];
-        else throw new Error(data.message || '오류');
-      } catch(e) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#c0392b;">불러오기 실패. 다시 시도해주세요.</td></tr>';
-        return;
-      }
-    }
-    pool = _consultsFullCache || allConsults;
+    const pool = allConsults;
 
     const matched = pool.filter(r =>
       (r.name||'').toLowerCase().includes(q) ||
