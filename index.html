@@ -5964,7 +5964,9 @@ function csDateInputValue(val) {
             action: 'sendSolapi',
             receiver: phone, msg
           });
-          const res = await fetchWithRetry(`${ERP_URL}?${params}`);
+          // ★ 발송은 부작용이 있는 요청이므로 자동 재시도 금지(중복 발송 방지).
+          //   응답이 늦어도 재시도하지 않도록 retries=0, 타임아웃은 넉넉히 30초.
+          const res = await fetchWithRetry(`${ERP_URL}?${params}`, undefined, 0, 30000);
           const data = await res.json();
           result = data.status === 'ok' ? '발송성공' : ('발송실패:' + (data.message||''));
         }
@@ -5986,6 +5988,11 @@ function csDateInputValue(val) {
     //   실제 발송·발송내역 기록은 기존 sendSMS 를 그대로 재사용한다.
     window.sendTestSms = async function(templateKey) {
       const resultEl = document.getElementById('smsTestResult');
+      // 발송 중 재진입(버튼 연타) 방지 — 중복 발송 차단
+      if (window._smsTestSending) {
+        if (resultEl) { resultEl.style.color = '#a87900'; resultEl.textContent = '발송 처리 중입니다. 잠시만 기다려주세요.'; }
+        return;
+      }
       const phone = (document.getElementById('smsTestPhone').value || '').trim();
       const name = (document.getElementById('smsTestName').value || '').trim();
       const schedule = (document.getElementById('smsTestSchedule').value || '').trim();
@@ -5999,6 +6006,7 @@ function csDateInputValue(val) {
       const label = { confirm: '예약확정', cancel: '예약취소', today: '당일예약안내' }[templateKey] || templateKey;
       if (resultEl) { resultEl.style.color = '#888'; resultEl.textContent = `${label} 문자 발송 중...`; }
 
+      window._smsTestSending = true;
       try {
         const r = await sendSMS(phone, name, schedule, counselor, templateKey);
         if (!resultEl) return;
@@ -6016,6 +6024,8 @@ function csDateInputValue(val) {
         if (typeof loadSmsLog === 'function') loadSmsLog();
       } catch(e) {
         if (resultEl) { resultEl.style.color = '#c0392b'; resultEl.textContent = '발송 오류: ' + e.message; }
+      } finally {
+        window._smsTestSending = false;
       }
     };
 
