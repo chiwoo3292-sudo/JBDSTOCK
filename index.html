@@ -6182,7 +6182,8 @@ function csDateInputValue(val) {
     if (progEl) progEl.textContent = '구글시트에서 전체 데이터를 불러오는 중...';
 
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`, undefined, 0, 60000);
+      // 마이그레이션 전용 경량 함수 사용 (캐싱·정렬 로직 없이 시트를 그대로 반환 — 실행시간 초과 방지)
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsForMigration`, undefined, 0, 90000);
       const data = await res.json();
       if (data.status !== 'ok') { if (progEl) progEl.textContent = '오류: ' + (data.message||''); return; }
       const rows = data.rows || [];
