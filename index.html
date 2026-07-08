@@ -3574,13 +3574,13 @@ function csDateInputValue(val) {
       }
 
       const matched = pool.filter(r =>
-        (r.name||'').toLowerCase().includes(q) ||
-        (r.phone||'').includes(q) ||
-        (r.company||'').toLowerCase().includes(q) ||
-        (r.address||'').toLowerCase().includes(q) ||
-        (r.products||'').toLowerCase().includes(q) ||
-        (r.counselor||'').toLowerCase().includes(q) ||
-        (r.memo||'').toLowerCase().includes(q)
+        String(r.name||'').toLowerCase().includes(q) ||
+        String(r.phone||'').toLowerCase().includes(q) ||
+        String(r.company||'').toLowerCase().includes(q) ||
+        String(r.address||'').toLowerCase().includes(q) ||
+        String(r.products||'').toLowerCase().includes(q) ||
+        String(r.counselor||'').toLowerCase().includes(q) ||
+        String(r.memo||'').toLowerCase().includes(q)
       ).slice(0, 4);
       _revisitMatches = matched;
       window._revisitMatchesGlobal = matched;
@@ -6146,15 +6146,17 @@ function csDateInputValue(val) {
         document.getElementById('loginId').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
     }
 
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'F12' ||
-            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-            (e.ctrlKey && e.key === 'U')) {
-            e.preventDefault();
-            return false;
-        }
-    });
+    // ── [임시 해제] 개발자도구(F12)·우클릭·소스보기 차단 — 디버깅 위해 비활성화 ──
+    //   다시 막으려면 아래 주석을 해제하세요.
+    // document.addEventListener('contextmenu', e => e.preventDefault());
+    // document.addEventListener('keydown', function(e) {
+    //     if (e.key === 'F12' ||
+    //         (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+    //         (e.ctrlKey && e.key === 'U')) {
+    //         e.preventDefault();
+    //         return false;
+    //     }
+    // });
 })();
 </script>
 
