@@ -2448,7 +2448,7 @@
 
   <div class="dw-search-controls">
     <div class="dw-search-box">
-      <input type="text" id="csSearch" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchConsultAndRefresh();}">
+      <input type="text" id="csSearch" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchConsultAndRefresh();}" oninput="if(!this.value.trim()){searchConsultAndRefresh();}">
       <span class="icon" onclick="searchConsultAndRefresh()" style="cursor:pointer;pointer-events:auto;padding:6px;margin:-6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
     </div>
     <button class="dw-cond-btn" id="csCondBtn" onclick="toggleCondPanel()">+ 조건추가</button>
@@ -2797,9 +2797,10 @@
 <script>
 (function(){
   let allConsults = [];
-  let _consultsCache = null;      // 마지막으로 받은 상담 데이터 캐시 (최근 100건)
-  let _consultsFullCache = null;  // 전체검색 시 1회 조회해 캐시하는 전체 상담 데이터
-  let _consultsFullLoading = false; // 전체검색 요청 중복 방지 가드 (돋보기 연타/Enter 연타 대비)
+  let _consultsCache = null;      // 최근 100건 캐시 (getConsults)
+  let _consultsFullCache = null;  // 전체 데이터 캐시 (getConsultsFull) — 검색/재방문 시에만 확보
+  let _consultsFullLoading = false; // 전체조회 요청 중복 방지 가드 (돋보기 연타/Enter 연타 대비)
+  let _consultsMode = 'recent';   // 현재 allConsults가 담고 있는 데이터 종류: 'recent'(100건) | 'full'(전체)
   let _revisitMatches = []; // 재방문 검색 결과 임시 저장 (더블클릭 적용 시 참조)
   window._revisitMatchesGlobal = _revisitMatches;
   let _consultsLoading = false;   // 현재 서버 요청 진행 중 여부
@@ -2997,16 +2998,48 @@
   // ── 목록 불러오기 ──
   // ── 돋보기 버튼: 검색 + 새로고침 통합 (새로고침 버튼 삭제하고 이걸로 대체) ──
   window.searchConsultAndRefresh = async function() {
+    const q = (document.getElementById('csSearch').value || '').trim();
+    if (q) {
+      // 검색어 있음 → 전체 데이터로 전환(최초 1회만 서버조회 후 캐시)
+      if (_consultsMode !== 'full' || !_consultsFullCache) {
+        const bodyEl = document.getElementById('csTableBody');
+        if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
+        const full = await ensureFullConsults();
+        allConsults = full;
+        _consultsMode = 'full';
+        _syncConsultRefs();
+        currentPage = 1;
+      }
+    } else {
+      // 검색어 지움 → 최근 100건으로 복귀
+      if (_consultsMode === 'full') {
+        allConsults = _consultsCache || [];
+        _consultsMode = 'recent';
+        _syncConsultRefs();
+        currentPage = 1;
+      }
+    }
     await renderConsultList();
   };
 
 
+  // ── 평상시 목록 로드: 최근 100건만 (getConsults) ──
+  //   전체 2000여건은 검색/재방문 시에만 별도로 확보한다(ensureFullConsults).
   window.loadConsults = async function(force) {
-    if (force) { _consultsFullCache = null; _consultsCache = null; } // 강제 새로고침 시 캐시 초기화
+    if (force) {
+      _consultsFullCache = null; _consultsCache = null; // 강제 새로고침 시 캐시 초기화
+      window._allConsultsGlobal = null;
+      // 검색창을 비우고 최근 100건 모드로 복귀
+      const _cs = document.getElementById('csSearch'); if (_cs) _cs.value = '';
+      _consultsMode = 'recent';
+    }
     // 캐시가 있으면 즉시 화면에 표시 (stale-while-revalidate)
     if (_consultsCache && !force) {
-      allConsults = _consultsCache;
-      window._allConsultsRef = allConsults;
+      // 검색어가 걸려 전체(full) 모드로 보고 있던 중이 아니라면 최근 100건으로 표시
+      if (_consultsMode !== 'full') {
+        allConsults = _consultsCache;
+        _syncConsultRefs();
+      }
       renderConsultList();
       // 백그라운드에서 최신 데이터로 조용히 갱신
       _refreshConsultsInBackground();
@@ -3018,20 +3051,26 @@
     await _fetchConsults();
   };
 
-  // 실제 서버 요청 (성공 시 캐시 갱신 + 렌더)
+  // allConsults 를 window 참조들과 동기화 (상세 열기·재방문 검색이 같은 배열을 보도록)
+  function _syncConsultRefs() {
+    window._allConsultsRef = allConsults;      // 목록 행 클릭(_origIdx) → 상세 열기용
+  }
+
+  // 실제 서버 요청: 최근 100건 (getConsults). 성공 시 캐시 갱신 + 렌더
   async function _fetchConsults() {
     if (_consultsLoading) return;
     _consultsLoading = true;
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsults`);
       const data = await res.json();
       if (data.status === 'ok') {
         _consultsCache = data.rows || [];
-        _consultsFullCache = _consultsCache;
-        allConsults = _consultsCache;
-        window._allConsultsRef = allConsults;
-        window._allConsultsGlobal = allConsults;
-        renderConsultList();
+        // 현재 전체검색 모드가 아니면 화면 데이터도 최근 100건으로 교체
+        if (_consultsMode !== 'full') {
+          allConsults = _consultsCache;
+          _syncConsultRefs();
+          renderConsultList();
+        }
       } else if (!_consultsCache) {
         const bodyEl = document.getElementById('csTableBody');
         if (bodyEl) bodyEl.innerHTML = `<tr class="dw-empty-row"><td colspan="8">불러오기 실패: ${data.message||''}</td></tr>`;
@@ -3043,6 +3082,32 @@
       }
     } finally {
       _consultsLoading = false;
+    }
+  }
+
+  // ── 전체 데이터 확보(온디맨드): 검색·재방문에서만 호출 ──
+  //   최초 1회만 getConsultsFull 서버조회 후 _consultsFullCache 에 캐시. 이후엔 캐시 재사용.
+  async function ensureFullConsults() {
+    if (_consultsFullCache) return _consultsFullCache;
+    if (_consultsFullLoading) {
+      // 이미 로딩 중이면 완료될 때까지 대기 (연타 대비)
+      while (_consultsFullLoading) { await new Promise(r => setTimeout(r, 120)); }
+      return _consultsFullCache || [];
+    }
+    _consultsFullLoading = true;
+    try {
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        _consultsFullCache = data.rows || [];
+        window._allConsultsGlobal = _consultsFullCache; // 재방문 검색이 참조하는 풀
+        return _consultsFullCache;
+      }
+      return [];
+    } catch(e) {
+      return [];
+    } finally {
+      _consultsFullLoading = false;
     }
   }
 
@@ -3135,8 +3200,19 @@
     const map = await loadAllStaffMap();
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
 
-      // ★ 검색어가 있으면 전체 데이터로 전환(최초 1회만 서버조회 후 캐시), 검색어를 지우면 최근 100건으로 복귀
-      // allConsults는 이미 전체 데이터가 로드된 상태 - 그대로 사용
+    // ★ 모드 정합성 가드
+    //   검색어가 있는데 아직 전체(full) 모드가 아니면 → 전체 데이터 확보 후 전환
+    //   검색어가 없는데 전체 모드로 남아있으면 → 최근 100건으로 복귀
+    //   (정렬/필터칩 등에서 renderConsultList가 직접 호출돼도 올바른 데이터셋을 보게 함)
+    if (q && _consultsMode !== 'full') {
+      allConsults = await ensureFullConsults();
+      _consultsMode = 'full';
+      _syncConsultRefs();
+    } else if (!q && _consultsMode === 'full') {
+      allConsults = _consultsCache || [];
+      _consultsMode = 'recent';
+      _syncConsultRefs();
+    }
     window._allConsultsRef = allConsults;
 
     // 원본 인덱스를 함께 보관
@@ -3484,9 +3560,11 @@ function csDateInputValue(val) {
       return;
     }
 
-    const pool = window._allConsultsGlobal || allConsults;
+    // 재방문 검색은 전체 2000여건 대상 → 온디맨드로 전체 데이터 확보(최초 1회만 서버조회 후 캐시)
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 중...</td></tr>';
+    const pool = await ensureFullConsults();
     if (!pool || !pool.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">데이터 로딩 중입니다. 잠시 후 다시 시도해주세요.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</td></tr>';
       return;
     }
 
