@@ -2588,7 +2588,7 @@
         <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:12px;">
           <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
           <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <input type="text" id="cfRevisitInput" placeholder="성함, 연락처, 업체명, 주소 등 검색" onkeydown="if(event.key==='Enter') window.searchRevisitOverlay();" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            <input type="text" id="cfRevisitInput" placeholder="성함, 연락처, 업체명, 주소 등 검색" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box;">
             <button type="button" onclick="window.searchRevisitOverlay()" style="padding:8px 14px;background:#A2693E;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;">검색</button>
           </div>
           <div id="cfRevisitResults">
@@ -3441,10 +3441,16 @@ function csDateInputValue(val) {
     const isRevisit = document.getElementById('cfVisitStatus').value === '재방문';
     if (box) box.style.display = isRevisit ? 'block' : 'none';
     if (isRevisit) {
-      setTimeout(() => {
-        const inp = document.getElementById('cfRevisitInput');
-        if (inp) inp.focus();
-      }, 100);
+      const inp = document.getElementById('cfRevisitInput');
+      if (inp) {
+        // 기존 리스너 제거 후 새로 등록
+        const newInp = inp.cloneNode(true);
+        inp.parentNode.replaceChild(newInp, inp);
+        newInp.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') window.searchRevisitOverlay();
+        });
+        setTimeout(() => newInp.focus(), 100);
+      }
     }
   };
 
@@ -6771,9 +6777,15 @@ function applyTabOrder() {
   if (!order) return;
   const tabBar = document.getElementById('mainTabBar');
   if (!tabBar) return;
+  // 저장된 순서대로 먼저 배치
   order.forEach(id => {
     const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
     if (btn) tabBar.appendChild(btn);
+  });
+  // 저장된 순서에 없는 새 탭은 맨 뒤에 배치
+  Array.from(tabBar.querySelectorAll('.tab-btn')).forEach(btn => {
+    const id = btn.dataset.tab;
+    if (id && !order.includes(id)) tabBar.appendChild(btn);
   });
 }
 
