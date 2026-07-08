@@ -5,6 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
+<script type="module">
+  // ══════════════════════════════════════════════════════════════
+  //  Firebase 초기화 (Firestore 이전 1단계: 문자템플릿·월별휴무안내·
+  //  문자발송내역·예약접수·예약관리)
+  //  로그인 UI/절차는 기존 앱스스크립트 방식 그대로 유지하고,
+  //  로그인 성공 시점(unlock 함수)에서 조용히 Firebase 익명 인증을 함께 실행해
+  //  Firestore 보안 규칙이 "인증된 사용자만 허용"을 걸 수 있도록 한다.
+  // ══════════════════════════════════════════════════════════════
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc,
+    updateDoc, deleteDoc, query, orderBy, limit, where, writeBatch, serverTimestamp,
+    runTransaction, startAfter, getCountFromServer
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDWUU2Fz1s9taDWAkt7Uz_NdwG6qB9UxhQ",
+    authDomain: "jibokdeukmaru-2cb6a.firebaseapp.com",
+    projectId: "jibokdeukmaru-2cb6a",
+    storageBucket: "jibokdeukmaru-2cb6a.firebasestorage.app",
+    messagingSenderId: "519034532583",
+    appId: "1:519034532583:web:a9cc6bf7a8b2f136922842"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const auth = getAuth(fbApp);
+
+  // 다른 <script>(모듈이 아닌 일반 스크립트)에서 window.FB.* 로 접근할 수 있도록 노출
+  window.FB = {
+    db, auth,
+    collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
+    query, orderBy, limit, where, writeBatch, serverTimestamp,
+    runTransaction, startAfter, getCountFromServer,
+    signInAnonymously, onAuthStateChanged
+  };
+
+  // 익명 인증 트리거 — 로그인(unlock) 시점에서 window.fbEnsureAuth() 호출
+  let _fbAuthPromise = null;
+  window.fbEnsureAuth = function() {
+    if (auth.currentUser) return Promise.resolve(auth.currentUser);
+    if (_fbAuthPromise) return _fbAuthPromise;
+    _fbAuthPromise = signInAnonymously(auth)
+      .then(cred => cred.user)
+      .catch(err => { console.error('Firebase 익명 인증 실패:', err); _fbAuthPromise = null; throw err; });
+    return _fbAuthPromise;
+  };
+</script>
+
 <script>
 // ── 윅스(Wix) iframe 안 모바일 접속 시, 정상 화면으로 이동하는 버튼 표시 ──
 (function () {
@@ -1817,18 +1867,15 @@
     }
   });
 
-  // ── 예약 목록 불러오기 ──
+  // ── 예약 목록 불러오기 (Firestore) ──
   window.loadReservations = async function() {
     document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        allReservations = data.rows || [];
-        renderRsvList();
-      } else {
-        document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오기 실패: ' + (data.message||'') + '</div>';
-      }
+      await window.fbEnsureAuth();
+      // 대기 목록 화면이므로 대기 상태 위주로 확인이 필요하지만, 상세 필터는 클라이언트에서 처리(주 50건 이하라 부담 없음)
+      const snap = await window.FB.getDocs(window.FB.collection(window.FB.db, 'reservations'));
+      allReservations = snap.docs.map(d => d.data());
+      renderRsvList();
     } catch(e) {
       document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">오류: ' + e.message + '</div>';
     }
@@ -1970,46 +2017,70 @@
     `;
   }
 
-  // ── 상태 변경 ──
+  // ── 상태 변경 (Firestore) ──
   window.updateStatus = async function(newStatus) {
     if (!selectedRsv) return;
     if (!confirm(`[${selectedRsv.name}] 예약을 "${newStatus}" 처리하시겠습니까?`)) return;
     document.getElementById('rsvActionMsg').textContent = '처리 중...';
     try {
-      // ── Apps Script도 동시 처리 (시트 동기화 + 쇼룸상담 자동생성) ──
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        selectedRsv.status = newStatus;
-        const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
-        if (idx !== -1) allReservations[idx].status = newStatus;
-        renderRsvList();
+      await _applyReservationStatus(selectedRsv, newStatus);
+      selectedRsv.status = newStatus;
+      const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
+      if (idx !== -1) allReservations[idx].status = newStatus;
+      renderRsvList();
 
-        // 문자 발송
-        if (typeof sendSMS === 'function' && selectedRsv.phone) {
-          const templateKey = newStatus === '예약' ? 'confirm' : newStatus === '취소' ? 'cancel' : null;
-          if (templateKey) {
-            const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(selectedRsv.date||'') : (selectedRsv.date||'');
-            const schedule = `${dateFormatted} ${selectedRsv.time||''}`.trim();
-            sendSMS(selectedRsv.phone, selectedRsv.name||'', schedule, selectedRsv.counselor||'', templateKey);
-          }
+      // 문자 발송
+      if (typeof sendSMS === 'function' && selectedRsv.phone) {
+        const templateKey = newStatus === '예약' ? 'confirm' : newStatus === '취소' ? 'cancel' : null;
+        if (templateKey) {
+          const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(selectedRsv.date||'') : (selectedRsv.date||'');
+          const schedule = `${dateFormatted} ${selectedRsv.time||''}`.trim();
+          sendSMS(selectedRsv.phone, selectedRsv.name||'', schedule, selectedRsv.counselor||'', templateKey);
         }
+      }
 
-        if (newStatus === '취소' || newStatus === '예약') {
-          selectedRsv = null;
-          document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
-          document.getElementById('rsvActionMsg').textContent = '';
-        } else {
-          renderRsvDetail(selectedRsv);
-          document.getElementById('rsvActionMsg').textContent = `"${newStatus}" 처리 완료`;
-        }
+      if (newStatus === '취소' || newStatus === '예약') {
+        selectedRsv = null;
+        document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
+        document.getElementById('rsvActionMsg').textContent = '';
       } else {
-        document.getElementById('rsvActionMsg').textContent = '오류: ' + (data.message||'');
+        renderRsvDetail(selectedRsv);
+        document.getElementById('rsvActionMsg').textContent = `"${newStatus}" 처리 완료`;
       }
     } catch(e) {
       document.getElementById('rsvActionMsg').textContent = '오류: ' + e.message;
     }
   };
+
+  // ── 예약 상태를 Firestore에 반영. '예약' 확정 시 쇼룸상담 자동 생성(앱스스크립트 경유) 후 예약 문서 삭제 ──
+  //   (예전 구글시트 로직: 확정되면 예약접수 시트에서 쇼룸상담 시트로 행을 옮기고 원본 삭제 — 그 동작을 그대로 재현)
+  async function _applyReservationStatus(rsv, newStatus) {
+    await window.fbEnsureAuth();
+    const ref = window.FB.doc(window.FB.db, 'reservations', rsv.receiptNo);
+    if (newStatus === '예약') {
+      // 쇼룸상담도 Firestore이므로 클라이언트에서 직접 consults에 추가
+      const consultRec = {
+        date: rsv.date||'', time: rsv.time||'', visitorType: rsv.visitorType||'',
+        visitCount: rsv.visitCount||'', revisit: rsv.revisit||'', name: rsv.name||'',
+        phone: rsv.phone||'', company: rsv.company||'', address: rsv.address||'',
+        size: rsv.size||'', workDate: rsv.workDate||'', workPeriod: rsv.workPeriod||'',
+        content: rsv.memo||'', statusField: '예약',
+        nameLower: (rsv.name||'').toLowerCase(),
+        companyLower: (rsv.company||'').toLowerCase(),
+        phoneDigits: String(rsv.phone||'').replace(/[^0-9]/g,''),
+        createdAtMs: _reservationToMs(rsv) || Date.now(),
+        updatedAtMs: Date.now(),
+        receiptAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }),
+        fromReservation: rsv.receiptNo || ''
+      };
+      await window.FB.addDoc(window.FB.collection(window.FB.db, 'consults'), consultRec);
+      _invalidateConsultsCache();
+      // 쇼룸상담으로 이관 완료 → 예약 문서 삭제
+      await window.FB.deleteDoc(ref);
+    } else {
+      await window.FB.updateDoc(ref, { status: newStatus });
+    }
+  }
 
   // ── 일괄 확정 (대기중인 예약 전체 확정) ──
   window.bulkConfirmSelected = async function() {
@@ -2025,19 +2096,14 @@
       const rsv = targets[i];
       if (btn) btn.innerHTML = `처리 중... (${i+1}/${targets.length})`;
       try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(rsv.receiptNo)}&status=예약&email=${encodeURIComponent(rsv.email||'')}`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          successCount++;
-          rsv.status = '예약';
+        await _applyReservationStatus(rsv, '예약');
+        successCount++;
+        rsv.status = '예약';
 
-          if (typeof sendSMS === 'function' && rsv.phone) {
-            const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(rsv.date||'') : (rsv.date||'');
-            const schedule = `${dateFormatted} ${rsv.time||''}`.trim();
-            sendSMS(rsv.phone, rsv.name||'', schedule, rsv.counselor||'', 'confirm');
-          }
-        } else {
-          failCount++;
+        if (typeof sendSMS === 'function' && rsv.phone) {
+          const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(rsv.date||'') : (rsv.date||'');
+          const schedule = `${dateFormatted} ${rsv.time||''}`.trim();
+          sendSMS(rsv.phone, rsv.name||'', schedule, rsv.counselor||'', 'confirm');
         }
       } catch(e) {
         failCount++;
@@ -2805,6 +2871,24 @@
 <script>
 (function(){
   let allConsults = [];
+  // 예약 객체(rsv)의 날짜/시간 → 정렬용 밀리초
+  function _reservationToMs(rsv) {
+    return _consultDateToMs(rsv && rsv.date, rsv && rsv.time);
+  }
+  // 상담 캐시 무효화 (다음 조회 시 Firestore에서 다시 읽도록)
+  function _invalidateConsultsCache() {
+    _consultsCache = null;
+    _consultsFullCache = null;
+    window._allConsultsGlobal = null;
+  }
+  // 상담 날짜(YYYY-MM-DD)+시간(HH:mm) → 정렬용 밀리초. 파싱 실패 시 0 반환(호출부에서 보정)
+  function _consultDateToMs(dateStr, timeStr) {
+    if (!dateStr) return 0;
+    const d = String(dateStr).replace(/[.\/]/g, '-').trim();
+    const t = (timeStr && String(timeStr).trim()) ? String(timeStr).trim() : '00:00';
+    const ms = new Date(`${d}T${t.length===5?t:'00:00'}:00+09:00`).getTime();
+    return isNaN(ms) ? 0 : ms;
+  }
   let _consultsCache = null;      // 최근 100건 캐시 (getConsults)
   let _consultsFullCache = null;  // 전체 데이터 캐시 (getConsultsFull) — 검색/재방문 시에만 확보
   let _consultsFullLoading = false; // 전체조회 요청 중복 방지 가드 (돋보기 연타/Enter 연타 대비)
@@ -3005,34 +3089,21 @@
 
   // ── 목록 불러오기 ──
   // ── 돋보기 버튼: 검색 + 새로고침 통합 (새로고침 버튼 삭제하고 이걸로 대체) ──
+  // 검색은 renderConsultList 내부의 _searchConsultsByPrefix(이름/업체명 접두사 쿼리)가 처리하므로
+  // 여기서는 검색 중 로딩 표시와 페이지 초기화만 담당한다.
   window.searchConsultAndRefresh = async function() {
     const q = (document.getElementById('csSearch').value || '').trim();
     if (q) {
-      // 검색어 있음 → 전체 데이터로 전환(최초 1회만 서버조회 후 캐시)
-      if (_consultsMode !== 'full' || !_consultsFullCache) {
-        const bodyEl = document.getElementById('csTableBody');
-        if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 데이터에서 검색 중...</td></tr>';
-        const full = await ensureFullConsults();
-        allConsults = full;
-        _consultsMode = 'full';
-        _syncConsultRefs();
-        currentPage = 1;
-      }
-    } else {
-      // 검색어 지움 → 최근 100건으로 복귀
-      if (_consultsMode === 'full') {
-        allConsults = _consultsCache || [];
-        _consultsMode = 'recent';
-        _syncConsultRefs();
-        currentPage = 1;
-      }
+      const bodyEl = document.getElementById('csTableBody');
+      if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">검색 중...</td></tr>';
     }
+    currentPage = 1;
     await renderConsultList();
   };
 
 
   // ── 평상시 목록 로드: 최근 100건만 (getConsults) ──
-  //   전체 2000여건은 검색/재방문 시에만 별도로 확보한다(ensureFullConsults).
+  //   검색/재방문은 이름·업체명 접두사 쿼리로 전체읽기 없이 처리한다(ensureFullConsults는 현재 미사용).
   window.loadConsults = async function(force) {
     if (force) {
       _consultsFullCache = null; _consultsCache = null; // 강제 새로고침 시 캐시 초기화
@@ -3043,8 +3114,8 @@
     }
     // 캐시가 있으면 즉시 화면에 표시 (stale-while-revalidate)
     if (_consultsCache && !force) {
-      // 검색어가 걸려 전체(full) 모드로 보고 있던 중이 아니라면 최근 100건으로 표시
-      if (_consultsMode !== 'full') {
+      // 검색 결과를 보고 있는 중이 아닐 때만(최근100 모드) 캐시로 표시 — 검색결과 화면을 덮어쓰지 않도록
+      if (_consultsMode === 'recent') {
         allConsults = _consultsCache;
         _syncConsultRefs();
       }
@@ -3069,19 +3140,19 @@
     if (_consultsLoading) return;
     _consultsLoading = true;
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsults`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        _consultsCache = data.rows || [];
-        // 현재 전체검색 모드가 아니면 화면 데이터도 최근 100건으로 교체
-        if (_consultsMode !== 'full') {
-          allConsults = _consultsCache;
-          _syncConsultRefs();
-          renderConsultList();
-        }
-      } else if (!_consultsCache) {
-        const bodyEl = document.getElementById('csTableBody');
-        if (bodyEl) bodyEl.innerHTML = `<tr class="dw-empty-row"><td colspan="8">불러오기 실패: ${data.message||''}</td></tr>`;
+      await window.fbEnsureAuth();
+      // 최신 100건만 조회 (createdAtMs 내림차순, limit 100) — 읽기 최소화
+      const q = window.FB.query(
+        window.FB.collection(window.FB.db, 'consults'),
+        window.FB.orderBy('createdAtMs', 'desc'),
+        window.FB.limit(100)
+      );
+      const snap = await window.FB.getDocs(q);
+      _consultsCache = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      if (_consultsMode === 'recent') {
+        allConsults = _consultsCache;
+        _syncConsultRefs();
+        renderConsultList();
       }
     } catch(e) {
       if (!_consultsCache) {
@@ -3094,24 +3165,25 @@
   }
 
   // ── 전체 데이터 확보(온디맨드): 검색·재방문에서만 호출 ──
-  //   최초 1회만 getConsultsFull 서버조회 후 _consultsFullCache 에 캐시. 이후엔 캐시 재사용.
+  //   최초 1회만 Firestore 전체 조회 후 _consultsFullCache 에 캐시. 이후엔 캐시 재사용.
+  //   (검색은 부분일치가 필요하므로, 하루 몇 번뿐인 검색 시에만 전체를 1회 읽어 클라이언트 필터링)
   async function ensureFullConsults() {
     if (_consultsFullCache) return _consultsFullCache;
     if (_consultsFullLoading) {
-      // 이미 로딩 중이면 완료될 때까지 대기 (연타 대비)
       while (_consultsFullLoading) { await new Promise(r => setTimeout(r, 120)); }
       return _consultsFullCache || [];
     }
     _consultsFullLoading = true;
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        _consultsFullCache = data.rows || [];
-        window._allConsultsGlobal = _consultsFullCache; // 재방문 검색이 참조하는 풀
-        return _consultsFullCache;
-      }
-      return [];
+      await window.fbEnsureAuth();
+      const q = window.FB.query(
+        window.FB.collection(window.FB.db, 'consults'),
+        window.FB.orderBy('createdAtMs', 'desc')
+      );
+      const snap = await window.FB.getDocs(q);
+      _consultsFullCache = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      window._allConsultsGlobal = _consultsFullCache;
+      return _consultsFullCache;
     } catch(e) {
       return [];
     } finally {
@@ -3204,33 +3276,41 @@
     updateActiveFilterBadges();
   };
 
+  async function _searchConsultsByPrefix(q) {
+    await window.fbEnsureAuth();
+    const col = window.FB.collection(window.FB.db, 'consults');
+    const [byName, byCompany] = await Promise.all([
+      window.FB.getDocs(window.FB.query(col, window.FB.orderBy('nameLower'),
+        window.FB.where('nameLower', '>=', q), window.FB.where('nameLower', '<=', q + '\uf8ff'), window.FB.limit(50))),
+      window.FB.getDocs(window.FB.query(col, window.FB.orderBy('companyLower'),
+        window.FB.where('companyLower', '>=', q), window.FB.where('companyLower', '<=', q + '\uf8ff'), window.FB.limit(50)))
+    ]);
+    const byId = new Map();
+    byName.docs.forEach(d => byId.set(d.id, { ...d.data(), _docId: d.id }));
+    byCompany.docs.forEach(d => byId.set(d.id, { ...d.data(), _docId: d.id }));
+    return Array.from(byId.values());
+  }
+
   window.renderConsultList = async function() {
     const map = await loadAllStaffMap();
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
 
-    // ★ 모드 정합성 가드
-    //   검색어가 있는데 아직 전체(full) 모드가 아니면 → 전체 데이터 확보 후 전환
-    //   검색어가 없는데 전체 모드로 남아있으면 → 최근 100건으로 복귀
-    //   (정렬/필터칩 등에서 renderConsultList가 직접 호출돼도 올바른 데이터셋을 보게 함)
-    if (q && _consultsMode !== 'full') {
-      allConsults = await ensureFullConsults();
-      _consultsMode = 'full';
+    if (q) {
+      allConsults = await _searchConsultsByPrefix(q);
+      _consultsMode = 'searchResult';
       _syncConsultRefs();
-    } else if (!q && _consultsMode === 'full') {
+    } else if (_consultsMode !== 'recent') {
       allConsults = _consultsCache || [];
       _consultsMode = 'recent';
       _syncConsultRefs();
     }
     window._allConsultsRef = allConsults;
 
-    // 원본 인덱스를 함께 보관
     let list = allConsults.map((r, origIdx) => ({ ...r, _origIdx: origIdx })).filter(r => {
       const status = getDisplayStatus(r);
       if (csCurrentFilter !== '전체' && status !== csCurrentFilter) return false;
-      // 날짜 필터 (KST 기준 실시간)
       if (typeof csDateFilter !== 'undefined' && csDateFilter) {
         const now = new Date();
-        // KST = UTC+9
         const kstOffset = 9 * 60 * 60 * 1000;
         const kstNow = new Date(now.getTime() + kstOffset);
         const todayKST = kstNow.toISOString().slice(0,10);
@@ -3239,16 +3319,6 @@
         if (csDateFilter === '2day') target.setUTCDate(target.getUTCDate()-2);
         const targetStr = target.toISOString().slice(0,10);
         if ((r.date||'').slice(0,10) !== targetStr) return false;
-      }
-      if (q) {
-        const haystack = [
-          r.name, r.phone, r.date, r.company, r.counselor,
-          r.address, r.spaceType, r.size, r.visitorType,
-          r.products, r.memo, r.status, r.elevator,
-          r.workDate, r.workTiming, r.revisit, r.priceInfo,
-          r.sampleGiven, r.cardGiven, r.content, r.revisitConsult
-        ].map(v => String(v||'')).join(' ').toLowerCase();
-        if (!haystack.includes(q)) return false;
       }
       return true;
     });
@@ -3563,33 +3633,28 @@ function csDateInputValue(val) {
     const tbody = document.getElementById('cfRevisitResultsBody');
     if (!tbody) return;
     try {
-      const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
+      const qRaw = (document.getElementById('cfRevisitInput').value || '').trim();
+      const q = qRaw.toLowerCase();
       if (!q) {
         tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
         return;
       }
 
-      // 재방문 검색은 전체 2000여건 대상 → 온디맨드로 전체 데이터 확보(최초 1회만 서버조회 후 캐시)
+      // ★ 재방문 검색: 이름 접두사(prefix) 검색으로 전환 — 전체 2000여건을 읽지 않고
+      //   Firestore에서 "이름이 q로 시작하는" 문서만 직접 조회한다 (읽기 최소화).
+      //   단, "~로 시작"만 지원되므로 이름 뒷부분 검색은 지원하지 않는다(합의됨).
       tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 중...</td></tr>';
-      // 이미 탭 전체검색으로 확보돼 있으면 그 캐시를, 아니면 온디맨드 조회
-      let pool = _consultsFullCache || (window._allConsultsGlobal && window._allConsultsGlobal.length ? window._allConsultsGlobal : null);
-      if (!pool || !pool.length) {
-        pool = await ensureFullConsults();
-      }
-      if (!pool || !pool.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</td></tr>';
-        return;
-      }
+      await window.fbEnsureAuth();
+      const qy = window.FB.query(
+        window.FB.collection(window.FB.db, 'consults'),
+        window.FB.orderBy('nameLower'),
+        window.FB.where('nameLower', '>=', q),
+        window.FB.where('nameLower', '<=', q + '\uf8ff'),
+        window.FB.limit(4)
+      );
+      const snap = await window.FB.getDocs(qy);
+      const matched = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
 
-      const matched = pool.filter(r =>
-        String(r.name||'').toLowerCase().includes(q) ||
-        String(r.phone||'').toLowerCase().includes(q) ||
-        String(r.company||'').toLowerCase().includes(q) ||
-        String(r.address||'').toLowerCase().includes(q) ||
-        String(r.products||'').toLowerCase().includes(q) ||
-        String(r.counselor||'').toLowerCase().includes(q) ||
-        String(r.memo||'').toLowerCase().includes(q)
-      ).slice(0, 4);
       _revisitMatches = matched;
       window._revisitMatchesGlobal = matched;
       if (!matched.length) {
@@ -3832,15 +3897,53 @@ function csDateInputValue(val) {
     document.getElementById('cfMsg').textContent = '저장 중...';
 
     try {
-      const params = new URLSearchParams(payload);
-      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        await loadConsults(true);
-        closeConsultForm();
+      await window.fbEnsureAuth();
+      // 검색·정렬용 파생 필드 생성
+      const derived = {
+        nameLower: (payload.name||'').toLowerCase(),
+        companyLower: (payload.company||'').toLowerCase(),
+        phoneDigits: String(payload.phone||'').replace(/[^0-9]/g,''),
+        createdAtMs: _consultDateToMs(payload.date, payload.time),
+        updatedAtMs: Date.now(),
+      };
+      const record = { ...payload, ...derived };
+      delete record.action; delete record.rowIndex; // Firestore 문서엔 액션/행번호 불필요
+
+      // ★ 낙관적 업데이트: 저장 성공 시 서버 재조회(읽기 100) 없이 화면 캐시에 바로 반영한다.
+      //   저장 값과 화면에 보여줄 값이 완전히 동일하므로(서버가 값을 가공하지 않음) 안전하다.
+      if (selectedConsult && selectedConsult._docId) {
+        // 수정: 기존 문서 갱신
+        const ref = window.FB.doc(window.FB.db, 'consults', selectedConsult._docId);
+        await window.FB.updateDoc(ref, record);
+        const docId = selectedConsult._docId;
+        const updated = { ...selectedConsult, ...record, _docId: docId };
+        // 최근100 캐시·전체검색 캐시 안의 동일 문서를 최신값으로 교체
+        if (_consultsCache) {
+          const i = _consultsCache.findIndex(x => x._docId === docId);
+          if (i !== -1) _consultsCache[i] = updated;
+        }
+        if (_consultsFullCache) {
+          const i = _consultsFullCache.findIndex(x => x._docId === docId);
+          if (i !== -1) _consultsFullCache[i] = updated;
+        }
+        // 현재 화면(allConsults)에도 반영
+        const j = allConsults.findIndex(x => x._docId === docId);
+        if (j !== -1) allConsults[j] = updated;
       } else {
-        document.getElementById('cfMsg').textContent = '' + (data.message||'저장 실패');
+        // 신규: 접수일시 기록 후 자동 ID로 생성
+        record.receiptAt = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+        if (!record.createdAtMs) record.createdAtMs = Date.now();
+        const newRef = await window.FB.addDoc(window.FB.collection(window.FB.db, 'consults'), record);
+        const created = { ...record, _docId: newRef.id };
+        // 최근100건 목록 맨 위에 바로 끼워넣기 (신규는 보통 최신순 맨 앞에 보여야 함)
+        if (_consultsCache) _consultsCache.unshift(created);
+        if (_consultsMode === 'recent') {
+          allConsults.unshift(created);
+        }
       }
+      _syncConsultRefs();
+      renderConsultList();
+      closeConsultForm();
     } catch(e) {
       document.getElementById('cfMsg').textContent = '오류: ' + e.message;
     }
@@ -4562,30 +4665,49 @@ function csDateInputValue(val) {
     </div>
     <div style="display:flex;flex-direction:column;gap:20px;">
 
-      <!-- 알리고 SMS -->
+      <!-- 솔라피 SMS -->
       <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          알리고 SMS API
+          솔라피(SOLAPI) SMS API <span style="font-size:10.5px;background:#e8f5ec;color:#1a7a45;border-radius:4px;padding:2px 7px;font-weight:700;margin-left:4px;">권장 · IP 등록 불필요</span>
+        </div>
+        <div style="font-size:11px;color:#999;margin-bottom:14px;line-height:1.6;">
+          솔라피 콘솔에서 API Key 발급 시 <b>‘모든 IP 허용’</b>으로 생성하세요. 발신번호는 솔라피에 사전등록·인증된 번호여야 합니다.
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
           <div>
             <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">API Key</label>
-            <input type="password" id="adminAligoApiKey" placeholder="알리고 API Key" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
+            <input type="password" id="adminSolapiApiKey" placeholder="솔라피 API Key" autocomplete="off" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
           </div>
           <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">User ID</label>
-            <input type="text" id="adminAligoUserId" placeholder="알리고 아이디" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
+            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">API Secret</label>
+            <input type="password" id="adminSolapiApiSecret" placeholder="솔라피 API Secret" autocomplete="off" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
           </div>
           <div>
             <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">발신번호</label>
-            <input type="text" id="adminAligoSender" placeholder="예: 0215767736" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
+            <input type="text" id="adminSolapiSender" placeholder="예: 0312345678" autocomplete="off" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
           </div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;">
-          <span id="adminAligoSaved" style="font-size:12px;color:#1a7a45;font-weight:700;display:none;">✓ 저장됨</span>
-          <button onclick="adminSaveAligoSettings()" class="admin-btn primary" style="padding:8px 20px;">저장</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span id="adminSolapiSecretHint" style="font-size:11px;color:#aaa;"></span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="adminSolapiSaved" style="font-size:12px;color:#1a7a45;font-weight:700;display:none;">✓ 저장됨</span>
+            <button onclick="adminSaveSolapiSettings()" class="admin-btn primary" style="padding:8px 20px;">저장</button>
+          </div>
         </div>
+      </div>
+
+      <!-- Firestore 초기 마이그레이션 (쇼룸상담: 구글시트 → Firestore 일괄 업로드) -->
+      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          쇼룸상담 Firestore 마이그레이션
+        </div>
+        <div style="font-size:11px;color:#999;margin-bottom:14px;line-height:1.6;">
+          구글시트 [쇼룸상담] 시트의 전체 데이터를 Firestore로 일괄 업로드합니다. 문서 ID를 시트 행번호 기준으로 고정하므로, <b>여러 번 실행해도 중복 등록되지 않습니다.</b>
+        </div>
+        <button onclick="runConsultMigration()" class="admin-btn primary" style="padding:8px 20px;">전체 데이터 마이그레이션 실행</button>
+        <div id="migrationProgress" style="font-size:12px;color:#888;margin-top:10px;"></div>
       </div>
 
       <!-- Google Gemini API -->
@@ -4951,6 +5073,12 @@ function csDateInputValue(val) {
     }
 
     function unlock(loginType, userData) {
+        // Firestore 이전 데이터 접근을 위한 Firebase 익명 인증 — 로그인 성공 시점에 조용히 실행
+        // (모듈 스크립트 로드가 아직 안 끝났을 극히 드문 경우 대비, 잠깐 재시도)
+        (function ensureFbAuthWithRetry(tries) {
+            if (typeof window.fbEnsureAuth === 'function') { window.fbEnsureAuth().catch(() => {}); return; }
+            if (tries > 0) setTimeout(() => ensureFbAuthWithRetry(tries - 1), 200);
+        })(15);
         if (lockSection) lockSection.style.display = 'none';
         if (mainSection) mainSection.style.display = 'block';
         unlockBody();
@@ -5852,23 +5980,22 @@ function csDateInputValue(val) {
     };
 
     // ── 문자발송 탭 ──
-    // ★ 템플릿은 구글시트 [JBD_고객예약] 파일의 [문자템플릿] 시트에만 저장/조회한다.
+    // ★ Firestore 이전 1단계: 템플릿은 이제 Firestore [settings/smsTemplates] 문서에 저장/조회한다.
     //   (기기별 localStorage 사용 안 함 — 모든 직원/기기가 항상 동일한 최신 템플릿을 봄)
+    //   기존 구글시트(getSmsTemplates/saveSmsTemplate)는 롤백 대비로 그대로 남겨두되 더 이상 호출하지 않음.
     window.loadSmsTemplates = async function() {
       try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsTemplates`);
-        const data = await res.json();
-        if (data.status === 'ok' && data.templates) {
-          ['confirm','cancel','today'].forEach(k => {
-            const el = document.getElementById(`smsTemplate_${k}`);
-            if (el && data.templates[k]) el.value = data.templates[k];
-            updateSmsCharCount(k);
-          });
-        } else {
-          console.warn('문자 템플릿 로드 실패:', data.message || '');
-        }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'smsTemplates');
+        const snap = await window.FB.getDoc(ref);
+        const templates = snap.exists() ? (snap.data() || {}) : {};
+        ['confirm','cancel','today'].forEach(k => {
+          const el = document.getElementById(`smsTemplate_${k}`);
+          if (el && templates[k]) el.value = templates[k];
+          updateSmsCharCount(k);
+        });
       } catch(e) {
-        console.warn('문자 템플릿 로드 실패:', e.message);
+        console.warn('문자 템플릿 로드 실패(Firestore):', e.message);
       }
     };
 
@@ -5884,10 +6011,10 @@ function csDateInputValue(val) {
       if (!el) return;
       const text = el.value;
       try {
-        const params = new URLSearchParams({ action: 'saveSmsTemplate', key, text });
-        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status !== 'ok') { alert('템플릿 저장 실패: ' + (data.message||'')); return; }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'smsTemplates');
+        // merge 옵션 없이 setDoc하면 다른 키(confirm/cancel/today)가 지워지므로 병합 저장
+        await window.FB.setDoc(ref, { [key]: text }, { merge: true });
       } catch(e) {
         alert('템플릿 저장 실패: ' + e.message);
         return;
@@ -5898,8 +6025,8 @@ function csDateInputValue(val) {
       }
     };
 
-    // ── 알리고 API 설정 저장/불러오기 (ERP스크립트 PropertiesService — 서버 저장, 기기 간 공유) ──
-    // ── 문자 발송 공통 함수 (알리고 API 연동 — ERP스크립트 웹앱 경유) ──
+    // ── 솔라피 API 설정 저장/불러오기 (ERP스크립트 PropertiesService — 서버 저장, 기기 간 공유) ──
+    // ── 문자 발송 공통 함수 (솔라피 API 연동 — ERP스크립트 웹앱 경유) ──
     window.sendSMS = async function(phone, name, schedule, counselor, templateKey) {
       const tmplEl = document.getElementById(`smsTemplate_${templateKey}`);
       let tmpl = tmplEl ? tmplEl.value : '';
@@ -5920,33 +6047,32 @@ function csDateInputValue(val) {
         .replace(/{상담자}/g, counselor || '')
         .replace(/{연락처}/g, phone || '');
 
-      // 알리고 API 설정은 ERP스크립트 서버(PropertiesService)에서 조회 — ★ sendAligo도 ERP_URL로 호출해야 함(RESERVE_URL에는 해당 action 없음)
+      // 솔라피 API로 바로 발송 시도. 설정(key/secret/발신번호)은 서버(PropertiesService)에 저장돼 있어
+      // 화면에서 별도로 연동 여부를 먼저 확인하지 않는다(왕복 1회 절약 — 속도 개선).
+      // 서버가 미연동이면 에러 메시지로 알려주므로, 그 메시지를 보고 'API미연동'으로 판별한다.
       let result = 'API미연동';
       try {
-        const settingsRes = await fetchWithRetry(`${ERP_URL}?action=getAligoSettings`);
-        const settingsData = await settingsRes.json();
-        const s = settingsData.settings || {};
-        if (s.apiKey && s.userId && s.sender) {
-          const params = new URLSearchParams({
-            action: 'sendAligo',
-            apiKey: s.apiKey, userId: s.userId, sender: s.sender,
-            receiver: phone, msg
-          });
-          const res = await fetchWithRetry(`${ERP_URL}?${params}`);
-          const data = await res.json();
-          result = data.status === 'ok' ? '발송성공' : ('발송실패:' + (data.message||''));
+        const params = new URLSearchParams({ action: 'sendSolapi', receiver: phone, msg });
+        // ★ 발송은 부작용이 있는 요청이므로 자동 재시도 금지(중복 발송 방지).
+        //   응답이 늦어도 재시도하지 않도록 retries=0, 타임아웃은 넉넉히 30초.
+        const res = await fetchWithRetry(`${ERP_URL}?${params}`, undefined, 0, 30000);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          result = '발송성공';
+        } else if (data.message && data.message.indexOf('설정 없음') >= 0) {
+          result = 'API미연동';
+        } else {
+          result = '발송실패:' + (data.message || '');
         }
       } catch(e) {
         result = '발송오류:' + e.message;
       }
 
-      // 발송 내역 기록
-      try {
-        const typeLabel = { confirm: '예약확정', cancel: '예약취소', today: '당일안내' }[templateKey] || templateKey;
-        await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result })}`);
-      } catch(e) {}
+      // 발송 내역 기록 — 화면 응답 속도를 위해 완료를 기다리지 않고 백그라운드로 처리(fire-and-forget)
+      const typeLabel = { confirm: '예약확정', cancel: '예약취소', today: '당일안내' }[templateKey] || templateKey;
+      writeSmsLog(phone, name, typeLabel, result).catch(() => {});
 
-      return { ok: result === '발송성공', msg, result };
+      return { ok: result === '발송성공', msg, result, typeLabel };
     };
 
     // ── 문자 발송 테스트 (베타 검증용) ──
@@ -5954,6 +6080,11 @@ function csDateInputValue(val) {
     //   실제 발송·발송내역 기록은 기존 sendSMS 를 그대로 재사용한다.
     window.sendTestSms = async function(templateKey) {
       const resultEl = document.getElementById('smsTestResult');
+      // 발송 중 재진입(버튼 연타) 방지 — 중복 발송 차단
+      if (window._smsTestSending) {
+        if (resultEl) { resultEl.style.color = '#a87900'; resultEl.textContent = '발송 처리 중입니다. 잠시만 기다려주세요.'; }
+        return;
+      }
       const phone = (document.getElementById('smsTestPhone').value || '').trim();
       const name = (document.getElementById('smsTestName').value || '').trim();
       const schedule = (document.getElementById('smsTestSchedule').value || '').trim();
@@ -5967,6 +6098,7 @@ function csDateInputValue(val) {
       const label = { confirm: '예약확정', cancel: '예약취소', today: '당일예약안내' }[templateKey] || templateKey;
       if (resultEl) { resultEl.style.color = '#888'; resultEl.textContent = `${label} 문자 발송 중...`; }
 
+      window._smsTestSending = true;
       try {
         const r = await sendSMS(phone, name, schedule, counselor, templateKey);
         if (!resultEl) return;
@@ -5980,24 +6112,48 @@ function csDateInputValue(val) {
           resultEl.style.color = '#c0392b';
           resultEl.textContent = `✖ ${label} 발송 실패: ${r.result || r.reason || '알 수 없는 오류'}`;
         }
-        // 발송내역 즉시 갱신
-        if (typeof loadSmsLog === 'function') loadSmsLog();
+        // 발송내역 즉시 갱신 — 서버 재조회 없이 방금 보낸 1건을 목록 맨 위에 바로 끼워넣음(낙관적 업데이트, 빠름)
+        if (typeof prependSmsLogRow === 'function') {
+          prependSmsLogRow({
+            sentAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }),
+            type: r.typeLabel || label, name, phone, result: r.result
+          });
+        }
       } catch(e) {
         if (resultEl) { resultEl.style.color = '#c0392b'; resultEl.textContent = '발송 오류: ' + e.message; }
+      } finally {
+        window._smsTestSending = false;
       }
     };
 
   // ── 관리자 탭 API 통합 설정 함수 ──
   window.loadAdminApiSettings = async function() {
-    // 알리고 설정 로드 (ERP스크립트 PropertiesService)
+    // 솔라피 설정 로드
+    //   apiKey/secret 실제 값은 서버가 주지 않음 → 저장돼 있으면 마스킹(●)으로 "저장됨"을 시각적으로 표시.
+    //   발신번호는 민감도가 낮아 실제 값을 그대로 표시.
     try {
-      const res = await fetchWithRetry(`${ERP_URL}?action=getAligoSettings`);
+      const res = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
       const data = await res.json();
       if (data.status === 'ok' && data.settings) {
         const s = data.settings;
-        if (document.getElementById('adminAligoApiKey')) document.getElementById('adminAligoApiKey').value = s.apiKey || '';
-        if (document.getElementById('adminAligoUserId')) document.getElementById('adminAligoUserId').value = s.userId || '';
-        if (document.getElementById('adminAligoSender')) document.getElementById('adminAligoSender').value = s.sender || '';
+        const keyEl = document.getElementById('adminSolapiApiKey');
+        const secEl = document.getElementById('adminSolapiApiSecret');
+        const sendEl = document.getElementById('adminSolapiSender');
+        // API Key: 저장돼 있으면 동그라미 + 식별용 뒤 4자리를 placeholder로 표시, 값칸은 비워 마스킹 유지
+        if (keyEl) {
+          keyEl.value = '';
+          keyEl.placeholder = s.hasApiKey ? ('●●●●●●●●●●' + (s.apiKeyLast4 ? ' ····' + s.apiKeyLast4 : '') + ' (저장됨)') : '솔라피 API Key';
+        }
+        // API Secret: 저장 여부만 동그라미 placeholder로
+        if (secEl) {
+          secEl.value = '';
+          secEl.placeholder = s.hasSecret ? '●●●●●●●●●● (저장됨)' : '솔라피 API Secret';
+        }
+        if (sendEl) sendEl.value = s.sender || '';
+        const hint = document.getElementById('adminSolapiSecretHint');
+        if (hint) hint.textContent = s.hasSecret
+          ? '※ API Key·Secret이 저장되어 있습니다. 변경할 때만 다시 입력하세요.'
+          : '※ 아직 저장되지 않았습니다. API Key·Secret을 입력해주세요.';
       }
     } catch(e) {}
 
@@ -6014,19 +6170,79 @@ function csDateInputValue(val) {
     if (document.getElementById('adminErpUrl')) document.getElementById('adminErpUrl').value = ERP_URL;
   };
 
-  window.adminSaveAligoSettings = async function() {
-    const apiKey = document.getElementById('adminAligoApiKey').value.trim();
-    const userId = document.getElementById('adminAligoUserId').value.trim();
-    const sender = document.getElementById('adminAligoSender').value.trim();
+  // ── 쇼룸상담 Firestore 초기 마이그레이션 ──
+  //   구글시트 [쇼룸상담] 전체를 1회 조회(getConsultsFull)한 뒤 Firestore로 batch 업로드.
+  //   문서 ID를 시트 행번호(row_N) 기준으로 고정해 재실행해도 중복 생성되지 않는다(멱등성).
+  window.runConsultMigration = async function() {
+    if (!confirm('구글시트 [쇼룸상담]의 전체 데이터를 Firestore로 업로드하시겠습니까?\n(여러 번 실행해도 중복되지 않습니다)')) return;
+    const progEl = document.getElementById('migrationProgress');
+    if (progEl) progEl.textContent = '구글시트에서 전체 데이터를 불러오는 중...';
+
     try {
-      const params = new URLSearchParams({ action: 'saveAligoSettings', apiKey, userId, sender });
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getConsultsFull`, undefined, 0, 60000);
+      const data = await res.json();
+      if (data.status !== 'ok') { if (progEl) progEl.textContent = '오류: ' + (data.message||''); return; }
+      const rows = data.rows || [];
+      if (!rows.length) { if (progEl) progEl.textContent = '마이그레이션할 데이터가 없습니다.'; return; }
+
+      await window.fbEnsureAuth();
+      const CHUNK = 450;
+      let done = 0;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const slice = rows.slice(i, i + CHUNK);
+        const batch = window.FB.writeBatch(window.FB.db);
+        slice.forEach(r => {
+          const id = 'row_' + (r._rowIndex != null ? r._rowIndex : (i + done));
+          const ref = window.FB.doc(window.FB.db, 'consults', id);
+          const rec = { ...r };
+          rec.nameLower = (rec.name||'').toLowerCase();
+          rec.companyLower = (rec.company||'').toLowerCase();
+          rec.phoneDigits = String(rec.phone||'').replace(/[^0-9]/g,'');
+          rec.createdAtMs = _consultDateToMs(rec.date, rec.time) || Date.now();
+          rec.updatedAtMs = Date.now();
+          batch.set(ref, rec);
+        });
+        await batch.commit();
+        done += slice.length;
+        if (progEl) progEl.textContent = `${done}/${rows.length}건 업로드 중...`;
+      }
+
+      _invalidateConsultsCache();
+      if (progEl) progEl.textContent = `✔ 완료: 총 ${done}건 업로드됨`;
+      if (typeof loadConsults === 'function') loadConsults(true);
+    } catch(e) {
+      if (progEl) progEl.textContent = '마이그레이션 오류: ' + e.message;
+    }
+  };
+
+  window.adminSaveSolapiSettings = async function() {
+    const apiKey = document.getElementById('adminSolapiApiKey').value.trim();
+    const apiSecret = document.getElementById('adminSolapiApiSecret').value.trim();
+    const sender = document.getElementById('adminSolapiSender').value.trim();
+    if (!sender) { alert('발신번호는 필수입니다.'); return; }
+    try {
+      // 현재 저장 상태 확인 (apiKey/secret 을 비워둔 채 저장할 수 있는지 판단)
+      const chk = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
+      const chkData = await chk.json();
+      const cur = (chkData.status === 'ok' && chkData.settings) ? chkData.settings : {};
+
+      // apiKey/secret 은 새로 입력한 경우에만 전송 → 빈칸이면 서버가 기존값 유지
+      if (!apiKey && !cur.hasApiKey) { alert('API Key를 입력해주세요. (아직 저장된 값이 없습니다)'); return; }
+      if (!apiSecret && !cur.hasSecret) { alert('API Secret을 입력해주세요. (아직 저장된 값이 없습니다)'); return; }
+
+      const params = new URLSearchParams({ action: 'saveSolapiSettings', sender });
+      if (apiKey) params.set('apiKey', apiKey);
+      if (apiSecret) params.set('apiSecret', apiSecret);
+
       const res = await fetchWithRetry(`${ERP_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
-        const el = document.getElementById('adminAligoSaved');
+        const el = document.getElementById('adminSolapiSaved');
         if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2500); }
+        // 저장 후 마스킹 상태로 다시 로드
+        if (typeof loadAdminApiSettings === 'function') loadAdminApiSettings();
       }
-    } catch(e) { alert('알리고 설정 저장 실패: ' + e.message); }
+    } catch(e) { alert('솔라피 설정 저장 실패: ' + e.message); }
   };
 
   window.adminSaveGeminiKey = function() {
@@ -6105,15 +6321,13 @@ function csDateInputValue(val) {
       const ed = document.getElementById('monthlyNoticeEditor');
       if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
       const savedEl = document.getElementById('monthlyNoticeSaved');
-      const noticeJson = JSON.stringify(_monthlyData);
       try {
-        const params = new URLSearchParams({ action: 'saveMonthlyNotice', notice: noticeJson });
-        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
-          renderNoticePreview();
-        } else { alert('저장 실패: ' + (data.message||'')); }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'monthlyNotice');
+        // _monthlyData 객체를 문서 필드로 그대로 저장 (merge로 다른 월 데이터 보존)
+        await window.FB.setDoc(ref, _monthlyData, { merge: true });
+        if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
+        renderNoticePreview();
       } catch(e) { alert('오류: ' + e.message); }
     };
 
@@ -6133,18 +6347,13 @@ function csDateInputValue(val) {
 
     async function loadMonthlyNoticeEditor() {
       try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getMonthlyNotice`);
-        const data = await res.json();
-        if (data.status === 'ok' && data.notice) {
-          try {
-            _monthlyData = JSON.parse(data.notice);
-          } catch(e) {
-            _monthlyData = {};
-          }
-          const ed = document.getElementById('monthlyNoticeEditor');
-          const key = `${_noticeYear}_${_selectedMonth}`;
-          if (ed) ed.value = _monthlyData[key] || '';
-        }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'monthlyNotice');
+        const snap = await window.FB.getDoc(ref);
+        _monthlyData = snap.exists() ? (snap.data() || {}) : {};
+        const ed = document.getElementById('monthlyNoticeEditor');
+        const key = `${_noticeYear}_${_selectedMonth}`;
+        if (ed) ed.value = _monthlyData[key] || '';
       } catch(e) {}
       updateMonthBtns();
       // 데이터 로드 완료 후 미리보기 강제 렌더링
@@ -6169,27 +6378,74 @@ function csDateInputValue(val) {
     });
 
     // ── 문자 발송 내역 조회 ──
+    // ── 문자발송내역 기록 — Firestore [smsLog] 컬렉션에 추가 후 최근 10건만 유지 ──
+    async function writeSmsLog(phone, name, type, result) {
+      try {
+        await window.fbEnsureAuth();
+        const nowMs = Date.now();
+        const nowStr = new Date(nowMs).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+        await window.FB.addDoc(window.FB.collection(window.FB.db, 'smsLog'), {
+          sentAt: nowStr, sentAtMs: nowMs, type: type || '', name: name || '', phone: phone || '', result: result || ''
+        });
+        // 10건 초과분 정리 — 최신순 정렬해서 11번째부터 삭제
+        const q = window.FB.query(
+          window.FB.collection(window.FB.db, 'smsLog'),
+          window.FB.orderBy('sentAtMs', 'desc')
+        );
+        const snap = await window.FB.getDocs(q);
+        if (snap.docs.length > 10) {
+          const toDelete = snap.docs.slice(10);
+          const batch = window.FB.writeBatch(window.FB.db);
+          toDelete.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+      } catch(e) {
+        console.warn('문자발송내역 기록 실패(Firestore):', e.message);
+      }
+    }
+
+    // 발송내역 행 HTML — loadSmsLog(전체 조회)와 prependSmsLogRow(낙관적 추가)가 공유
+    function _renderSmsLogRow(r) {
+      return `
+        <tr>
+          <td>${r.sentAt||''}</td>
+          <td>${r.type||''}</td>
+          <td>${r.name||''}</td>
+          <td>${r.phone||''}</td>
+          <td><span style="color:${r.result==='성공'?'#1a7a45':'#e74c3c'};font-weight:700;">${r.result||''}</span></td>
+        </tr>`;
+    }
+
+    // 방금 보낸 1건을 서버 재조회 없이 목록 맨 위에 바로 추가(낙관적 업데이트) — 발송 후 체감 속도 개선용
+    window.prependSmsLogRow = function(r) {
+      const tbody = document.getElementById('smsLogBody');
+      if (!tbody) return;
+      // "내역이 없습니다" 빈 상태면 먼저 비움
+      if (tbody.querySelector('.admin-empty')) tbody.innerHTML = '';
+      tbody.insertAdjacentHTML('afterbegin', _renderSmsLogRow(r));
+      // 10건 초과분은 화면에서도 잘라내 실제 저장 상태(최근 10건)와 맞춤
+      const rowsEl = tbody.querySelectorAll('tr');
+      if (rowsEl.length > 10) { for (let i = 10; i < rowsEl.length; i++) rowsEl[i].remove(); }
+    };
+
     window.loadSmsLog = async function() {
       const tbody = document.getElementById('smsLogBody');
       if (!tbody) return;
       try {
-        let rows = [];
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsLog`);
-        const data = await res.json();
-        rows = data.rows || [];
+        await window.fbEnsureAuth();
+        // 최신 10건만 조회 (읽기 최소화 — Firestore 이전 원칙)
+        const q = window.FB.query(
+          window.FB.collection(window.FB.db, 'smsLog'),
+          window.FB.orderBy('sentAtMs', 'desc'),
+          window.FB.limit(10)
+        );
+        const snap = await window.FB.getDocs(q);
+        const rows = snap.docs.map(d => d.data());
         if (!rows.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="admin-empty">내역이 없습니다.</td></tr>';
           return;
         }
-        tbody.innerHTML = rows.map(r => `
-          <tr>
-            <td>${r.sentAt||''}</td>
-            <td>${r.type||''}</td>
-            <td>${r.name||''}</td>
-            <td>${r.phone||''}</td>
-            <td><span style="color:${r.result==='성공'?'#1a7a45':'#e74c3c'};font-weight:700;">${r.result||''}</span></td>
-          </tr>
-        `).join('');
+        tbody.innerHTML = rows.map(_renderSmsLogRow).join('');
       } catch(e) {
         tbody.innerHTML = `<tr><td colspan="5" class="admin-empty">오류: ${e.message}</td></tr>`;
       }
@@ -9428,10 +9684,10 @@ if ('serviceWorker' in navigator) {
   async function checkNewReservations() {
     try {
       let pending = [];
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
-      const data = await res.json();
-      if (data.status !== 'ok') return;
-      pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
+      await window.fbEnsureAuth();
+      const snap = await window.FB.getDocs(window.FB.collection(window.FB.db, 'reservations'));
+      const rows = snap.docs.map(d => d.data());
+      pending = rows.filter(r => (r.status||'대기') === '대기');
       const count = pending.length;
 
       // 전역 카운트 갱신 (setTab N뱃지 복원용)
@@ -9489,34 +9745,32 @@ if ('serviceWorker' in navigator) {
   // 로그인 후 즉시 첫 체크 (unlock 함수에서 호출) — 단 1회만 실행됨
   window._triggerRsvCheck = checkNewReservations;
 
-  // ── 6. 삭제 기능 ──
+  // ── 6. 삭제 기능 (Firestore) ──
   window.deleteCheckedConsults = async function() {
     const checkboxes = document.querySelectorAll('#csTableBody .dw-checkbox:checked');
     if (!checkboxes.length) { alert('삭제할 항목을 선택해주세요.'); return; }
 
-    const rowIndexes = [];
+    const docIds = [];
     checkboxes.forEach(cb => {
       const tr = cb.closest('tr');
       if (tr) {
         const origIdx = parseInt(tr.dataset.origIdx);
         const r = window._allConsultsRef && !isNaN(origIdx) ? window._allConsultsRef[origIdx] : null;
-        if (r && r._rowIndex) rowIndexes.push(r._rowIndex);
+        if (r && r._docId) docIds.push(r._docId);
       }
     });
 
-    if (!rowIndexes.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
-    if (!confirm(`${rowIndexes.length}건을 삭제하시겠습니까?`)) return;
+    if (!docIds.length) { alert('삭제할 항목을 찾을 수 없습니다.'); return; }
+    if (!confirm(`${docIds.length}건을 삭제하시겠습니까?`)) return;
 
     try {
-      const params = new URLSearchParams({ action: 'deleteConsults', rowIndexes: rowIndexes.join(',') });
-      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        alert('삭제 완료!');
-        if (typeof loadConsults === 'function') loadConsults(true);
-      } else {
-        alert('삭제 실패: ' + (data.message||''));
-      }
+      await window.fbEnsureAuth();
+      const batch = window.FB.writeBatch(window.FB.db);
+      docIds.forEach(id => batch.delete(window.FB.doc(window.FB.db, 'consults', id)));
+      await batch.commit();
+      _consultsFullCache = null; window._allConsultsGlobal = null;
+      alert('삭제 완료!');
+      if (typeof loadConsults === 'function') loadConsults(true);
     } catch(e) { alert('삭제 오류: ' + e.message); }
   };
 
@@ -9527,27 +9781,23 @@ if ('serviceWorker' in navigator) {
     const field = el.dataset.field;
     const value = el.value.trim();
     const r = allConsults[idx];
-    if (!r || !r._rowIndex) return;
+    if (!r || !r._docId) return;
     if (String(r[field]||'') === value) return;
     allConsults[idx][field] = value;
     try {
-      const params = new URLSearchParams({
-        action: 'saveConsult',
-        rowIndex: r._rowIndex,
-        counselor: field === 'counselor' ? value : (r.counselor||''),
-        company:   field === 'company'   ? value : (r.company||''),
-        content: r.content||'', date: r.date||'', time: r.time||'',
-        visitorType: r.visitorType||'', visitCount: r.visitCount||'',
-        visitStatus: r.revisit||'', name: r.name||'',
-        phone: r.phone||'', address: r.address||'',
-        spaceType: r.spaceType||'', size: r.size||'',
-        elevator: r.elevator||'', workDate: r.workDate||'',
-        products: r.products||'', priceInfo: r.priceInfo||'',
-        reqSample: r.sampleGiven||'', reqCard: r.cardGiven||'',
-        reqRevisit: r.revisitConsult||'', reqQuote: r.reqQuote||'',
-        workTiming: r.workTiming||'', workPeriod: r.workPeriod||'',
-      });
-      await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      await window.fbEnsureAuth();
+      const ref = window.FB.doc(window.FB.db, 'consults', r._docId);
+      const patch = { [field]: value, updatedAtMs: Date.now() };
+      // 이름/연락처가 바뀌면 검색용 파생필드도 함께 갱신
+      if (field === 'name') patch.nameLower = value.toLowerCase();
+      if (field === 'company') patch.companyLower = value.toLowerCase();
+      if (field === 'phone') patch.phoneDigits = value.replace(/[^0-9]/g,'');
+      await window.FB.updateDoc(ref, patch);
+      // 캐시 갱신
+      if (_consultsFullCache) {
+        const fc = _consultsFullCache.find(x => x._docId === r._docId);
+        if (fc) fc[field] = value;
+      }
     } catch(e) { console.error('자동저장 실패:', e); }
   };
 
@@ -9560,23 +9810,55 @@ if ('serviceWorker' in navigator) {
   window.importFromDaouSheet = async function() {
     if (!confirm('구글시트 [다우import] 탭의 데이터를 쇼룸상담으로 변환 등록하시겠습니까?')) return;
 
-    // 진행 알림 — 화면 상단 중앙에 크고 눈에 띄게 표시
     const notif = document.createElement('div');
     notif.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:#A2693E;color:#fff;padding:14px 26px;border-radius:10px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.25);white-space:nowrap;';
     notif.textContent = '다우 시트 변환 중...';
     document.body.appendChild(notif);
 
     try {
+      // 1) 구글시트 [다우import]를 정리된 JSON 배열로 받아옴 (시트 쓰기는 서버에서 안 함)
       const res = await fetchWithRetry(`${RESERVE_URL}?action=importFromDaouSheet`);
       const data = await res.json();
-      if (data.status === 'ok') {
-        notif.textContent = `${data.count}건 변환 완료!`;
-        notif.style.background = '#1a7a45';
-        loadConsults(true);
-      } else {
+      if (data.status !== 'ok') {
         notif.textContent = '' + (data.message||'실패');
         notif.style.background = '#c0392b';
+        setTimeout(() => notif.remove(), 3000);
+        return;
       }
+      const rows = data.rows || [];
+      if (!rows.length) {
+        notif.textContent = '변환할 데이터가 없습니다.';
+        notif.style.background = '#c0392b';
+        setTimeout(() => notif.remove(), 3000);
+        return;
+      }
+
+      // 2) Firestore batch write (500건 제한 → 청크 분할)
+      await window.fbEnsureAuth();
+      const CHUNK = 450;
+      let written = 0;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const slice = rows.slice(i, i + CHUNK);
+        const batch = window.FB.writeBatch(window.FB.db);
+        const col = window.FB.collection(window.FB.db, 'consults');
+        slice.forEach(r => {
+          const rec = { ...r };
+          rec.nameLower = (rec.name||'').toLowerCase();
+          rec.companyLower = (rec.company||'').toLowerCase();
+          rec.phoneDigits = String(rec.phone||'').replace(/[^0-9]/g,'');
+          rec.createdAtMs = _consultDateToMs(rec.date, rec.time) || Date.now();
+          rec.updatedAtMs = Date.now();
+          batch.set(window.FB.doc(col), rec);
+        });
+        await batch.commit();
+        written += slice.length;
+        notif.textContent = `${written}/${rows.length}건 변환 중...`;
+      }
+
+      _invalidateConsultsCache();
+      notif.textContent = `${written}건 변환 완료!`;
+      notif.style.background = '#1a7a45';
+      loadConsults(true);
     } catch(e) {
       notif.textContent = '오류: ' + e.message;
       notif.style.background = '#c0392b';
@@ -9726,23 +10008,23 @@ if ('serviceWorker' in navigator) {
       document.getElementById('csvProgressBar').style.width = `${Math.round(imported / total * 100)}%`;
 
       try {
-        const params = new URLSearchParams({
-          action: 'bulkImportConsults',
-          data: JSON.stringify(chunk),
+        await window.fbEnsureAuth();
+        const batch = window.FB.writeBatch(window.FB.db);
+        const col = window.FB.collection(window.FB.db, 'consults');
+        chunk.forEach(rec => {
+          const r = { ...rec };
+          r.nameLower = (r.name||'').toLowerCase();
+          r.companyLower = (r.company||'').toLowerCase();
+          r.phoneDigits = String(r.phone||'').replace(/[^0-9]/g,'');
+          r.createdAtMs = _consultDateToMs(r.date, r.time) || Date.now();
+          r.updatedAtMs = Date.now();
+          batch.set(window.FB.doc(col), r);
         });
-        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          imported += data.count || chunk.length;
-        } else {
-          failed += chunk.length;
-        }
+        await batch.commit();
+        imported += chunk.length;
       } catch(e) {
         failed += chunk.length;
       }
-
-      // 청크 간 딜레이 (Apps Script 과부하 방지)
-      if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 300));
     }
 
     // 완료
