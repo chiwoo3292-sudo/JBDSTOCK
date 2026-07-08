@@ -2882,13 +2882,16 @@
     window._allConsultsGlobal = null;
   }
   // 상담 날짜(YYYY-MM-DD)+시간(HH:mm) → 정렬용 밀리초. 파싱 실패 시 0 반환(호출부에서 보정)
-  function _consultDateToMs(dateStr, timeStr) {
+  // ★ window에 노출 — 이 함수를 쓰는 다른 <script> 블록(마이그레이션·CSV등록·다우변환)은
+  //   서로 다른 스코프라 지역 함수로 두면 "is not defined" 에러가 나기 때문.
+  window._consultDateToMs = function(dateStr, timeStr) {
     if (!dateStr) return 0;
     const d = String(dateStr).replace(/[.\/]/g, '-').trim();
     const t = (timeStr && String(timeStr).trim()) ? String(timeStr).trim() : '00:00';
     const ms = new Date(`${d}T${t.length===5?t:'00:00'}:00+09:00`).getTime();
     return isNaN(ms) ? 0 : ms;
-  }
+  };
+  const _consultDateToMs = window._consultDateToMs; // 같은 스코프 내 호출부는 그대로 이름만 사용 가능하도록
   let _consultsCache = null;      // 최근 100건 캐시 (getConsults)
   let _consultsFullCache = null;  // 전체 데이터 캐시 (getConsultsFull) — 검색/재방문 시에만 확보
   let _consultsFullLoading = false; // 전체조회 요청 중복 방지 가드 (돋보기 연타/Enter 연타 대비)
@@ -6198,7 +6201,7 @@ function csDateInputValue(val) {
           rec.nameLower = (rec.name||'').toLowerCase();
           rec.companyLower = (rec.company||'').toLowerCase();
           rec.phoneDigits = String(rec.phone||'').replace(/[^0-9]/g,'');
-          rec.createdAtMs = _consultDateToMs(rec.date, rec.time) || Date.now();
+          rec.createdAtMs = window._consultDateToMs(rec.date, rec.time) || Date.now();
           rec.updatedAtMs = Date.now();
           batch.set(ref, rec);
         });
@@ -6207,7 +6210,9 @@ function csDateInputValue(val) {
         if (progEl) progEl.textContent = `${done}/${rows.length}건 업로드 중...`;
       }
 
-      _invalidateConsultsCache();
+      // 다른 <script> 스코프라 지역 캐시변수는 못 지우지만, 바로 아래 loadConsults(true)가
+      // 강제로 서버에서 다시 읽어오므로 화면 캐시 무효화 여부와 무관하게 최신 데이터로 반영된다.
+      if (typeof _invalidateConsultsCache === 'function') _invalidateConsultsCache();
       if (progEl) progEl.textContent = `✔ 완료: 총 ${done}건 업로드됨`;
       if (typeof loadConsults === 'function') loadConsults(true);
     } catch(e) {
@@ -9846,7 +9851,7 @@ if ('serviceWorker' in navigator) {
           rec.nameLower = (rec.name||'').toLowerCase();
           rec.companyLower = (rec.company||'').toLowerCase();
           rec.phoneDigits = String(rec.phone||'').replace(/[^0-9]/g,'');
-          rec.createdAtMs = _consultDateToMs(rec.date, rec.time) || Date.now();
+          rec.createdAtMs = window._consultDateToMs(rec.date, rec.time) || Date.now();
           rec.updatedAtMs = Date.now();
           batch.set(window.FB.doc(col), rec);
         });
@@ -9855,7 +9860,7 @@ if ('serviceWorker' in navigator) {
         notif.textContent = `${written}/${rows.length}건 변환 중...`;
       }
 
-      _invalidateConsultsCache();
+      if (typeof _invalidateConsultsCache === 'function') _invalidateConsultsCache();
       notif.textContent = `${written}건 변환 완료!`;
       notif.style.background = '#1a7a45';
       loadConsults(true);
@@ -10016,7 +10021,7 @@ if ('serviceWorker' in navigator) {
           r.nameLower = (r.name||'').toLowerCase();
           r.companyLower = (r.company||'').toLowerCase();
           r.phoneDigits = String(r.phone||'').replace(/[^0-9]/g,'');
-          r.createdAtMs = _consultDateToMs(r.date, r.time) || Date.now();
+          r.createdAtMs = window._consultDateToMs(r.date, r.time) || Date.now();
           r.updatedAtMs = Date.now();
           batch.set(window.FB.doc(col), r);
         });
