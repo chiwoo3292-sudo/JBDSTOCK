@@ -2065,8 +2065,8 @@
         phone: rsv.phone||'', company: rsv.company||'', address: rsv.address||'',
         size: rsv.size||'', workDate: rsv.workDate||'', workPeriod: rsv.workPeriod||'',
         content: rsv.memo||'', statusField: '예약',
-        nameLower: (rsv.name||'').toLowerCase(),
-        companyLower: (rsv.company||'').toLowerCase(),
+        nameLower: String(rsv.name||'').toLowerCase(),
+        companyLower: String(rsv.company||'').toLowerCase(),
         phoneDigits: String(rsv.phone||'').replace(/[^0-9]/g,''),
         createdAtMs: _reservationToMs(rsv) || Date.now(),
         updatedAtMs: Date.now(),
@@ -3903,8 +3903,8 @@ function csDateInputValue(val) {
       await window.fbEnsureAuth();
       // 검색·정렬용 파생 필드 생성
       const derived = {
-        nameLower: (payload.name||'').toLowerCase(),
-        companyLower: (payload.company||'').toLowerCase(),
+        nameLower: String(payload.name||'').toLowerCase(),
+        companyLower: String(payload.company||'').toLowerCase(),
         phoneDigits: String(payload.phone||'').replace(/[^0-9]/g,''),
         createdAtMs: _consultDateToMs(payload.date, payload.time),
         updatedAtMs: Date.now(),
@@ -6198,8 +6198,8 @@ function csDateInputValue(val) {
           const id = 'row_' + (r._rowIndex != null ? r._rowIndex : (i + done));
           const ref = window.FB.doc(window.FB.db, 'consults', id);
           const rec = { ...r };
-          rec.nameLower = (rec.name||'').toLowerCase();
-          rec.companyLower = (rec.company||'').toLowerCase();
+          rec.nameLower = String(rec.name||'').toLowerCase();
+          rec.companyLower = String(rec.company||'').toLowerCase();
           rec.phoneDigits = String(rec.phone||'').replace(/[^0-9]/g,'');
           rec.createdAtMs = window._consultDateToMs(rec.date, rec.time) || Date.now();
           rec.updatedAtMs = Date.now();
@@ -9848,8 +9848,8 @@ if ('serviceWorker' in navigator) {
         const col = window.FB.collection(window.FB.db, 'consults');
         slice.forEach(r => {
           const rec = { ...r };
-          rec.nameLower = (rec.name||'').toLowerCase();
-          rec.companyLower = (rec.company||'').toLowerCase();
+          rec.nameLower = String(rec.name||'').toLowerCase();
+          rec.companyLower = String(rec.company||'').toLowerCase();
           rec.phoneDigits = String(rec.phone||'').replace(/[^0-9]/g,'');
           rec.createdAtMs = window._consultDateToMs(rec.date, rec.time) || Date.now();
           rec.updatedAtMs = Date.now();
@@ -10018,8 +10018,8 @@ if ('serviceWorker' in navigator) {
         const col = window.FB.collection(window.FB.db, 'consults');
         chunk.forEach(rec => {
           const r = { ...rec };
-          r.nameLower = (r.name||'').toLowerCase();
-          r.companyLower = (r.company||'').toLowerCase();
+          r.nameLower = String(r.name||'').toLowerCase();
+          r.companyLower = String(r.company||'').toLowerCase();
           r.phoneDigits = String(r.phone||'').replace(/[^0-9]/g,'');
           r.createdAtMs = window._consultDateToMs(r.date, r.time) || Date.now();
           r.updatedAtMs = Date.now();
