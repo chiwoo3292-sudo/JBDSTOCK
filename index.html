@@ -5,6 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
+<script type="module">
+  // ══════════════════════════════════════════════════════════════
+  //  Firebase 초기화 (Firestore 이전 1단계: 문자템플릿·월별휴무안내·
+  //  문자발송내역·예약접수·예약관리)
+  //  로그인 UI/절차는 기존 앱스스크립트 방식 그대로 유지하고,
+  //  로그인 성공 시점(unlock 함수)에서 조용히 Firebase 익명 인증을 함께 실행해
+  //  Firestore 보안 규칙이 "인증된 사용자만 허용"을 걸 수 있도록 한다.
+  // ══════════════════════════════════════════════════════════════
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc,
+    updateDoc, deleteDoc, query, orderBy, limit, where, writeBatch, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDWUU2Fz1s9taDWAkt7Uz_NdwG6qB9UxhQ",
+    authDomain: "jibokdeukmaru-2cb6a.firebaseapp.com",
+    projectId: "jibokdeukmaru-2cb6a",
+    storageBucket: "jibokdeukmaru-2cb6a.firebasestorage.app",
+    messagingSenderId: "519034532583",
+    appId: "1:519034532583:web:a9cc6bf7a8b2f136922842"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const auth = getAuth(fbApp);
+
+  // 다른 <script>(모듈이 아닌 일반 스크립트)에서 window.FB.* 로 접근할 수 있도록 노출
+  window.FB = {
+    db, auth,
+    collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
+    query, orderBy, limit, where, writeBatch, serverTimestamp,
+    signInAnonymously, onAuthStateChanged
+  };
+
+  // 익명 인증 트리거 — 로그인(unlock) 시점에서 window.fbEnsureAuth() 호출
+  let _fbAuthPromise = null;
+  window.fbEnsureAuth = function() {
+    if (auth.currentUser) return Promise.resolve(auth.currentUser);
+    if (_fbAuthPromise) return _fbAuthPromise;
+    _fbAuthPromise = signInAnonymously(auth)
+      .then(cred => cred.user)
+      .catch(err => { console.error('Firebase 익명 인증 실패:', err); _fbAuthPromise = null; throw err; });
+    return _fbAuthPromise;
+  };
+</script>
+
 <script>
 // ── 윅스(Wix) iframe 안 모바일 접속 시, 정상 화면으로 이동하는 버튼 표시 ──
 (function () {
@@ -1817,18 +1865,15 @@
     }
   });
 
-  // ── 예약 목록 불러오기 ──
+  // ── 예약 목록 불러오기 (Firestore) ──
   window.loadReservations = async function() {
     document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오는 중...</div>';
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        allReservations = data.rows || [];
-        renderRsvList();
-      } else {
-        document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">불러오기 실패: ' + (data.message||'') + '</div>';
-      }
+      await window.fbEnsureAuth();
+      // 대기 목록 화면이므로 대기 상태 위주로 확인이 필요하지만, 상세 필터는 클라이언트에서 처리(주 50건 이하라 부담 없음)
+      const snap = await window.FB.getDocs(window.FB.collection(window.FB.db, 'reservations'));
+      allReservations = snap.docs.map(d => d.data());
+      renderRsvList();
     } catch(e) {
       document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">오류: ' + e.message + '</div>';
     }
@@ -1970,46 +2015,64 @@
     `;
   }
 
-  // ── 상태 변경 ──
+  // ── 상태 변경 (Firestore) ──
   window.updateStatus = async function(newStatus) {
     if (!selectedRsv) return;
     if (!confirm(`[${selectedRsv.name}] 예약을 "${newStatus}" 처리하시겠습니까?`)) return;
     document.getElementById('rsvActionMsg').textContent = '처리 중...';
     try {
-      // ── Apps Script도 동시 처리 (시트 동기화 + 쇼룸상담 자동생성) ──
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(selectedRsv.receiptNo)}&status=${encodeURIComponent(newStatus)}&email=${encodeURIComponent(selectedRsv.email||'')}`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        selectedRsv.status = newStatus;
-        const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
-        if (idx !== -1) allReservations[idx].status = newStatus;
-        renderRsvList();
+      await _applyReservationStatus(selectedRsv, newStatus);
+      selectedRsv.status = newStatus;
+      const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
+      if (idx !== -1) allReservations[idx].status = newStatus;
+      renderRsvList();
 
-        // 문자 발송
-        if (typeof sendSMS === 'function' && selectedRsv.phone) {
-          const templateKey = newStatus === '예약' ? 'confirm' : newStatus === '취소' ? 'cancel' : null;
-          if (templateKey) {
-            const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(selectedRsv.date||'') : (selectedRsv.date||'');
-            const schedule = `${dateFormatted} ${selectedRsv.time||''}`.trim();
-            sendSMS(selectedRsv.phone, selectedRsv.name||'', schedule, selectedRsv.counselor||'', templateKey);
-          }
+      // 문자 발송
+      if (typeof sendSMS === 'function' && selectedRsv.phone) {
+        const templateKey = newStatus === '예약' ? 'confirm' : newStatus === '취소' ? 'cancel' : null;
+        if (templateKey) {
+          const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(selectedRsv.date||'') : (selectedRsv.date||'');
+          const schedule = `${dateFormatted} ${selectedRsv.time||''}`.trim();
+          sendSMS(selectedRsv.phone, selectedRsv.name||'', schedule, selectedRsv.counselor||'', templateKey);
         }
+      }
 
-        if (newStatus === '취소' || newStatus === '예약') {
-          selectedRsv = null;
-          document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
-          document.getElementById('rsvActionMsg').textContent = '';
-        } else {
-          renderRsvDetail(selectedRsv);
-          document.getElementById('rsvActionMsg').textContent = `"${newStatus}" 처리 완료`;
-        }
+      if (newStatus === '취소' || newStatus === '예약') {
+        selectedRsv = null;
+        document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
+        document.getElementById('rsvActionMsg').textContent = '';
       } else {
-        document.getElementById('rsvActionMsg').textContent = '오류: ' + (data.message||'');
+        renderRsvDetail(selectedRsv);
+        document.getElementById('rsvActionMsg').textContent = `"${newStatus}" 처리 완료`;
       }
     } catch(e) {
       document.getElementById('rsvActionMsg').textContent = '오류: ' + e.message;
     }
   };
+
+  // ── 예약 상태를 Firestore에 반영. '예약' 확정 시 쇼룸상담 자동 생성(앱스스크립트 경유) 후 예약 문서 삭제 ──
+  //   (예전 구글시트 로직: 확정되면 예약접수 시트에서 쇼룸상담 시트로 행을 옮기고 원본 삭제 — 그 동작을 그대로 재현)
+  async function _applyReservationStatus(rsv, newStatus) {
+    await window.fbEnsureAuth();
+    const ref = window.FB.doc(window.FB.db, 'reservations', rsv.receiptNo);
+    if (newStatus === '예약') {
+      // 쇼룸상담은 아직 구글시트에 있으므로, 생성은 앱스스크립트에 위임
+      const params = new URLSearchParams({
+        action: 'createConsultFromReservation',
+        date: rsv.date||'', time: rsv.time||'', visitorType: rsv.visitorType||'',
+        visitCount: rsv.visitCount||'', revisit: rsv.revisit||'', name: rsv.name||'',
+        phone: rsv.phone||'', company: rsv.company||'', address: rsv.address||'',
+        size: rsv.size||'', workDate: rsv.workDate||'', workPeriod: rsv.workPeriod||'', memo: rsv.memo||''
+      });
+      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status !== 'ok') throw new Error(data.message || '쇼룸상담 생성 실패');
+      // 쇼룸상담으로 이관 완료 → 예약 문서는 삭제(원본 시트에서 행 삭제하던 것과 동일)
+      await window.FB.deleteDoc(ref);
+    } else {
+      await window.FB.updateDoc(ref, { status: newStatus });
+    }
+  }
 
   // ── 일괄 확정 (대기중인 예약 전체 확정) ──
   window.bulkConfirmSelected = async function() {
@@ -2025,19 +2088,14 @@
       const rsv = targets[i];
       if (btn) btn.innerHTML = `처리 중... (${i+1}/${targets.length})`;
       try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=updateStatus&receiptNo=${encodeURIComponent(rsv.receiptNo)}&status=예약&email=${encodeURIComponent(rsv.email||'')}`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          successCount++;
-          rsv.status = '예약';
+        await _applyReservationStatus(rsv, '예약');
+        successCount++;
+        rsv.status = '예약';
 
-          if (typeof sendSMS === 'function' && rsv.phone) {
-            const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(rsv.date||'') : (rsv.date||'');
-            const schedule = `${dateFormatted} ${rsv.time||''}`.trim();
-            sendSMS(rsv.phone, rsv.name||'', schedule, rsv.counselor||'', 'confirm');
-          }
-        } else {
-          failCount++;
+        if (typeof sendSMS === 'function' && rsv.phone) {
+          const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(rsv.date||'') : (rsv.date||'');
+          const schedule = `${dateFormatted} ${rsv.time||''}`.trim();
+          sendSMS(rsv.phone, rsv.name||'', schedule, rsv.counselor||'', 'confirm');
         }
       } catch(e) {
         failCount++;
@@ -4562,32 +4620,6 @@ function csDateInputValue(val) {
     </div>
     <div style="display:flex;flex-direction:column;gap:20px;">
 
-      <!-- 알리고 SMS -->
-      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:14px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          알리고 SMS API
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-          <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">API Key</label>
-            <input type="password" id="adminAligoApiKey" placeholder="알리고 API Key" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
-          </div>
-          <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">User ID</label>
-            <input type="text" id="adminAligoUserId" placeholder="알리고 아이디" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
-          </div>
-          <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">발신번호</label>
-            <input type="text" id="adminAligoSender" placeholder="예: 0215767736" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;">
-          <span id="adminAligoSaved" style="font-size:12px;color:#1a7a45;font-weight:700;display:none;">✓ 저장됨</span>
-          <button onclick="adminSaveAligoSettings()" class="admin-btn primary" style="padding:8px 20px;">저장</button>
-        </div>
-      </div>
-
       <!-- 솔라피 SMS -->
       <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
         <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
@@ -4983,6 +5015,12 @@ function csDateInputValue(val) {
     }
 
     function unlock(loginType, userData) {
+        // Firestore 이전 데이터 접근을 위한 Firebase 익명 인증 — 로그인 성공 시점에 조용히 실행
+        // (모듈 스크립트 로드가 아직 안 끝났을 극히 드문 경우 대비, 잠깐 재시도)
+        (function ensureFbAuthWithRetry(tries) {
+            if (typeof window.fbEnsureAuth === 'function') { window.fbEnsureAuth().catch(() => {}); return; }
+            if (tries > 0) setTimeout(() => ensureFbAuthWithRetry(tries - 1), 200);
+        })(15);
         if (lockSection) lockSection.style.display = 'none';
         if (mainSection) mainSection.style.display = 'block';
         unlockBody();
@@ -5884,23 +5922,22 @@ function csDateInputValue(val) {
     };
 
     // ── 문자발송 탭 ──
-    // ★ 템플릿은 구글시트 [JBD_고객예약] 파일의 [문자템플릿] 시트에만 저장/조회한다.
+    // ★ Firestore 이전 1단계: 템플릿은 이제 Firestore [settings/smsTemplates] 문서에 저장/조회한다.
     //   (기기별 localStorage 사용 안 함 — 모든 직원/기기가 항상 동일한 최신 템플릿을 봄)
+    //   기존 구글시트(getSmsTemplates/saveSmsTemplate)는 롤백 대비로 그대로 남겨두되 더 이상 호출하지 않음.
     window.loadSmsTemplates = async function() {
       try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsTemplates`);
-        const data = await res.json();
-        if (data.status === 'ok' && data.templates) {
-          ['confirm','cancel','today'].forEach(k => {
-            const el = document.getElementById(`smsTemplate_${k}`);
-            if (el && data.templates[k]) el.value = data.templates[k];
-            updateSmsCharCount(k);
-          });
-        } else {
-          console.warn('문자 템플릿 로드 실패:', data.message || '');
-        }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'smsTemplates');
+        const snap = await window.FB.getDoc(ref);
+        const templates = snap.exists() ? (snap.data() || {}) : {};
+        ['confirm','cancel','today'].forEach(k => {
+          const el = document.getElementById(`smsTemplate_${k}`);
+          if (el && templates[k]) el.value = templates[k];
+          updateSmsCharCount(k);
+        });
       } catch(e) {
-        console.warn('문자 템플릿 로드 실패:', e.message);
+        console.warn('문자 템플릿 로드 실패(Firestore):', e.message);
       }
     };
 
@@ -5916,10 +5953,10 @@ function csDateInputValue(val) {
       if (!el) return;
       const text = el.value;
       try {
-        const params = new URLSearchParams({ action: 'saveSmsTemplate', key, text });
-        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status !== 'ok') { alert('템플릿 저장 실패: ' + (data.message||'')); return; }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'smsTemplates');
+        // merge 옵션 없이 setDoc하면 다른 키(confirm/cancel/today)가 지워지므로 병합 저장
+        await window.FB.setDoc(ref, { [key]: text }, { merge: true });
       } catch(e) {
         alert('템플릿 저장 실패: ' + e.message);
         return;
@@ -5930,8 +5967,8 @@ function csDateInputValue(val) {
       }
     };
 
-    // ── 알리고 API 설정 저장/불러오기 (ERP스크립트 PropertiesService — 서버 저장, 기기 간 공유) ──
-    // ── 문자 발송 공통 함수 (알리고 API 연동 — ERP스크립트 웹앱 경유) ──
+    // ── 솔라피 API 설정 저장/불러오기 (ERP스크립트 PropertiesService — 서버 저장, 기기 간 공유) ──
+    // ── 문자 발송 공통 함수 (솔라피 API 연동 — ERP스크립트 웹앱 경유) ──
     window.sendSMS = async function(phone, name, schedule, counselor, templateKey) {
       const tmplEl = document.getElementById(`smsTemplate_${templateKey}`);
       let tmpl = tmplEl ? tmplEl.value : '';
@@ -5959,7 +5996,7 @@ function csDateInputValue(val) {
         const settingsRes = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
         const settingsData = await settingsRes.json();
         const s = settingsData.settings || {};
-        if (s.apiKey && s.sender && s.hasSecret) {
+        if (s.hasApiKey && s.sender && s.hasSecret) {
           const params = new URLSearchParams({
             action: 'sendSolapi',
             receiver: phone, msg
@@ -5974,10 +6011,10 @@ function csDateInputValue(val) {
         result = '발송오류:' + e.message;
       }
 
-      // 발송 내역 기록
+      // 발송 내역 기록 (Firestore)
       try {
         const typeLabel = { confirm: '예약확정', cancel: '예약취소', today: '당일안내' }[templateKey] || templateKey;
-        await fetchWithRetry(`${RESERVE_URL}?${new URLSearchParams({ action: 'logSms', phone, name, type: typeLabel, result })}`);
+        await writeSmsLog(phone, name, typeLabel, result);
       } catch(e) {}
 
       return { ok: result === '발송성공', msg, result };
@@ -6031,28 +6068,32 @@ function csDateInputValue(val) {
 
   // ── 관리자 탭 API 통합 설정 함수 ──
   window.loadAdminApiSettings = async function() {
-    // 알리고 설정 로드 (ERP스크립트 PropertiesService)
-    try {
-      const res = await fetchWithRetry(`${ERP_URL}?action=getAligoSettings`);
-      const data = await res.json();
-      if (data.status === 'ok' && data.settings) {
-        const s = data.settings;
-        if (document.getElementById('adminAligoApiKey')) document.getElementById('adminAligoApiKey').value = s.apiKey || '';
-        if (document.getElementById('adminAligoUserId')) document.getElementById('adminAligoUserId').value = s.userId || '';
-        if (document.getElementById('adminAligoSender')) document.getElementById('adminAligoSender').value = s.sender || '';
-      }
-    } catch(e) {}
-
-    // 솔라피 설정 로드 (secret 은 값 대신 저장 여부만 표시)
+    // 솔라피 설정 로드
+    //   apiKey/secret 실제 값은 서버가 주지 않음 → 저장돼 있으면 마스킹(●)으로 "저장됨"을 시각적으로 표시.
+    //   발신번호는 민감도가 낮아 실제 값을 그대로 표시.
     try {
       const res = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
       const data = await res.json();
       if (data.status === 'ok' && data.settings) {
         const s = data.settings;
-        if (document.getElementById('adminSolapiApiKey')) document.getElementById('adminSolapiApiKey').value = s.apiKey || '';
-        if (document.getElementById('adminSolapiSender')) document.getElementById('adminSolapiSender').value = s.sender || '';
+        const keyEl = document.getElementById('adminSolapiApiKey');
+        const secEl = document.getElementById('adminSolapiApiSecret');
+        const sendEl = document.getElementById('adminSolapiSender');
+        // API Key: 저장돼 있으면 동그라미 + 식별용 뒤 4자리를 placeholder로 표시, 값칸은 비워 마스킹 유지
+        if (keyEl) {
+          keyEl.value = '';
+          keyEl.placeholder = s.hasApiKey ? ('●●●●●●●●●●' + (s.apiKeyLast4 ? ' ····' + s.apiKeyLast4 : '') + ' (저장됨)') : '솔라피 API Key';
+        }
+        // API Secret: 저장 여부만 동그라미 placeholder로
+        if (secEl) {
+          secEl.value = '';
+          secEl.placeholder = s.hasSecret ? '●●●●●●●●●● (저장됨)' : '솔라피 API Secret';
+        }
+        if (sendEl) sendEl.value = s.sender || '';
         const hint = document.getElementById('adminSolapiSecretHint');
-        if (hint) hint.textContent = s.hasSecret ? '※ API Secret이 저장되어 있습니다. 변경 시에만 다시 입력하세요.' : '※ API Secret이 아직 저장되지 않았습니다.';
+        if (hint) hint.textContent = s.hasSecret
+          ? '※ API Key·Secret이 저장되어 있습니다. 변경할 때만 다시 입력하세요.'
+          : '※ 아직 저장되지 않았습니다. API Key·Secret을 입력해주세요.';
       }
     } catch(e) {}
 
@@ -6069,48 +6110,32 @@ function csDateInputValue(val) {
     if (document.getElementById('adminErpUrl')) document.getElementById('adminErpUrl').value = ERP_URL;
   };
 
-  window.adminSaveAligoSettings = async function() {
-    const apiKey = document.getElementById('adminAligoApiKey').value.trim();
-    const userId = document.getElementById('adminAligoUserId').value.trim();
-    const sender = document.getElementById('adminAligoSender').value.trim();
-    try {
-      const params = new URLSearchParams({ action: 'saveAligoSettings', apiKey, userId, sender });
-      const res = await fetchWithRetry(`${ERP_URL}?${params}`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        const el = document.getElementById('adminAligoSaved');
-        if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2500); }
-      }
-    } catch(e) { alert('알리고 설정 저장 실패: ' + e.message); }
-  };
-
   window.adminSaveSolapiSettings = async function() {
     const apiKey = document.getElementById('adminSolapiApiKey').value.trim();
     const apiSecret = document.getElementById('adminSolapiApiSecret').value.trim();
     const sender = document.getElementById('adminSolapiSender').value.trim();
-    if (!apiKey || !sender) { alert('API Key와 발신번호는 필수입니다.'); return; }
+    if (!sender) { alert('발신번호는 필수입니다.'); return; }
     try {
-      // secret 은 비워두면 기존 저장값을 유지 (매번 다시 입력하지 않아도 되도록)
-      const params = new URLSearchParams({ action: 'saveSolapiSettings', apiKey, sender });
+      // 현재 저장 상태 확인 (apiKey/secret 을 비워둔 채 저장할 수 있는지 판단)
+      const chk = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
+      const chkData = await chk.json();
+      const cur = (chkData.status === 'ok' && chkData.settings) ? chkData.settings : {};
+
+      // apiKey/secret 은 새로 입력한 경우에만 전송 → 빈칸이면 서버가 기존값 유지
+      if (!apiKey && !cur.hasApiKey) { alert('API Key를 입력해주세요. (아직 저장된 값이 없습니다)'); return; }
+      if (!apiSecret && !cur.hasSecret) { alert('API Secret을 입력해주세요. (아직 저장된 값이 없습니다)'); return; }
+
+      const params = new URLSearchParams({ action: 'saveSolapiSettings', sender });
+      if (apiKey) params.set('apiKey', apiKey);
       if (apiSecret) params.set('apiSecret', apiSecret);
-      else {
-        // secret 미입력 시, 기존 저장 여부 확인 — 없으면 경고
-        const chk = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
-        const chkData = await chk.json();
-        if (!(chkData.status === 'ok' && chkData.settings && chkData.settings.hasSecret)) {
-          alert('API Secret을 입력해주세요. (아직 저장된 Secret이 없습니다)');
-          return;
-        }
-        params.set('apiSecret', ''); // 서버에서 빈값이면 기존값 유지하도록 아래 서버 로직과 맞춤
-      }
+
       const res = await fetchWithRetry(`${ERP_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         const el = document.getElementById('adminSolapiSaved');
         if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2500); }
-        document.getElementById('adminSolapiApiSecret').value = '';
-        const hint = document.getElementById('adminSolapiSecretHint');
-        if (hint) hint.textContent = '※ API Secret이 저장되어 있습니다. 변경 시에만 다시 입력하세요.';
+        // 저장 후 마스킹 상태로 다시 로드
+        if (typeof loadAdminApiSettings === 'function') loadAdminApiSettings();
       }
     } catch(e) { alert('솔라피 설정 저장 실패: ' + e.message); }
   };
@@ -6191,15 +6216,13 @@ function csDateInputValue(val) {
       const ed = document.getElementById('monthlyNoticeEditor');
       if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
       const savedEl = document.getElementById('monthlyNoticeSaved');
-      const noticeJson = JSON.stringify(_monthlyData);
       try {
-        const params = new URLSearchParams({ action: 'saveMonthlyNotice', notice: noticeJson });
-        const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
-          renderNoticePreview();
-        } else { alert('저장 실패: ' + (data.message||'')); }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'monthlyNotice');
+        // _monthlyData 객체를 문서 필드로 그대로 저장 (merge로 다른 월 데이터 보존)
+        await window.FB.setDoc(ref, _monthlyData, { merge: true });
+        if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
+        renderNoticePreview();
       } catch(e) { alert('오류: ' + e.message); }
     };
 
@@ -6219,18 +6242,13 @@ function csDateInputValue(val) {
 
     async function loadMonthlyNoticeEditor() {
       try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getMonthlyNotice`);
-        const data = await res.json();
-        if (data.status === 'ok' && data.notice) {
-          try {
-            _monthlyData = JSON.parse(data.notice);
-          } catch(e) {
-            _monthlyData = {};
-          }
-          const ed = document.getElementById('monthlyNoticeEditor');
-          const key = `${_noticeYear}_${_selectedMonth}`;
-          if (ed) ed.value = _monthlyData[key] || '';
-        }
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'settings', 'monthlyNotice');
+        const snap = await window.FB.getDoc(ref);
+        _monthlyData = snap.exists() ? (snap.data() || {}) : {};
+        const ed = document.getElementById('monthlyNoticeEditor');
+        const key = `${_noticeYear}_${_selectedMonth}`;
+        if (ed) ed.value = _monthlyData[key] || '';
       } catch(e) {}
       updateMonthBtns();
       // 데이터 로드 완료 후 미리보기 강제 렌더링
@@ -6255,14 +6273,45 @@ function csDateInputValue(val) {
     });
 
     // ── 문자 발송 내역 조회 ──
+    // ── 문자발송내역 기록 — Firestore [smsLog] 컬렉션에 추가 후 최근 10건만 유지 ──
+    async function writeSmsLog(phone, name, type, result) {
+      try {
+        await window.fbEnsureAuth();
+        const nowMs = Date.now();
+        const nowStr = new Date(nowMs).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+        await window.FB.addDoc(window.FB.collection(window.FB.db, 'smsLog'), {
+          sentAt: nowStr, sentAtMs: nowMs, type: type || '', name: name || '', phone: phone || '', result: result || ''
+        });
+        // 10건 초과분 정리 — 최신순 정렬해서 11번째부터 삭제
+        const q = window.FB.query(
+          window.FB.collection(window.FB.db, 'smsLog'),
+          window.FB.orderBy('sentAtMs', 'desc')
+        );
+        const snap = await window.FB.getDocs(q);
+        if (snap.docs.length > 10) {
+          const toDelete = snap.docs.slice(10);
+          const batch = window.FB.writeBatch(window.FB.db);
+          toDelete.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+      } catch(e) {
+        console.warn('문자발송내역 기록 실패(Firestore):', e.message);
+      }
+    }
+
     window.loadSmsLog = async function() {
       const tbody = document.getElementById('smsLogBody');
       if (!tbody) return;
       try {
-        let rows = [];
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getSmsLog`);
-        const data = await res.json();
-        rows = data.rows || [];
+        await window.fbEnsureAuth();
+        // 최신 10건만 조회 (읽기 최소화 — Firestore 이전 원칙)
+        const q = window.FB.query(
+          window.FB.collection(window.FB.db, 'smsLog'),
+          window.FB.orderBy('sentAtMs', 'desc'),
+          window.FB.limit(10)
+        );
+        const snap = await window.FB.getDocs(q);
+        const rows = snap.docs.map(d => d.data());
         if (!rows.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="admin-empty">내역이 없습니다.</td></tr>';
           return;
@@ -9514,10 +9563,10 @@ if ('serviceWorker' in navigator) {
   async function checkNewReservations() {
     try {
       let pending = [];
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getReservations`);
-      const data = await res.json();
-      if (data.status !== 'ok') return;
-      pending = (data.rows || []).filter(r => (r.status||'대기') === '대기');
+      await window.fbEnsureAuth();
+      const snap = await window.FB.getDocs(window.FB.collection(window.FB.db, 'reservations'));
+      const rows = snap.docs.map(d => d.data());
+      pending = rows.filter(r => (r.status||'대기') === '대기');
       const count = pending.length;
 
       // 전역 카운트 갱신 (setTab N뱃지 복원용)
