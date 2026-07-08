@@ -4323,6 +4323,46 @@ function csDateInputValue(val) {
       </tbody>
     </table>
   </div>
+
+  <!-- ── 문자 발송 테스트 (베타 검증용) ── -->
+  <div class="sms-template-card" style="margin-top:16px;border:1.5px dashed #A2693E;background:#FCF9F4;">
+    <div class="sms-template-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      문자 발송 테스트 <span style="font-size:11px;background:#F3EADB;color:#A2693E;border-radius:4px;padding:2px 8px;font-weight:700;">지정한 번호로 즉시 발송</span>
+    </div>
+    <div class="sms-vars" style="margin-bottom:14px;">입력한 값이 각 템플릿의 변수(<span>{이름}</span><span>{일정}</span><span>{상담자}</span><span>{연락처}</span>)에 치환되어 발송됩니다. API 미연동 상태에서는 발송내역에 <b>API미연동</b>으로 기록됩니다.</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">연락처 <span style="color:#e74c3c;">*</span></label>
+        <input id="smsTestPhone" type="tel" placeholder="010-0000-0000" autocomplete="off"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">이름</label>
+        <input id="smsTestName" type="text" placeholder="홍길동" autocomplete="off"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">일정</label>
+        <input id="smsTestSchedule" type="text" placeholder="2026-01-15 14:00" autocomplete="off"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">상담자</label>
+        <input id="smsTestCounselor" type="text" placeholder="김상담" autocomplete="off"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" onclick="sendTestSms('confirm')" style="flex:1;min-width:120px;padding:11px 16px;border:none;border-radius:8px;background:#1a7a45;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">예약확정 발송</button>
+      <button type="button" onclick="sendTestSms('cancel')" style="flex:1;min-width:120px;padding:11px 16px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">예약취소 발송</button>
+      <button type="button" onclick="sendTestSms('today')" style="flex:1;min-width:120px;padding:11px 16px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">당일예약안내 발송</button>
+    </div>
+    <div id="smsTestResult" style="font-size:12.5px;margin-top:12px;min-height:18px;"></div>
+  </div>
+
 </div>
 </section>
 
@@ -5907,6 +5947,44 @@ function csDateInputValue(val) {
       } catch(e) {}
 
       return { ok: result === '발송성공', msg, result };
+    };
+
+    // ── 문자 발송 테스트 (베타 검증용) ──
+    //   입력한 번호로 선택한 템플릿을 즉시 발송하고 결과를 화면에 표시.
+    //   실제 발송·발송내역 기록은 기존 sendSMS 를 그대로 재사용한다.
+    window.sendTestSms = async function(templateKey) {
+      const resultEl = document.getElementById('smsTestResult');
+      const phone = (document.getElementById('smsTestPhone').value || '').trim();
+      const name = (document.getElementById('smsTestName').value || '').trim();
+      const schedule = (document.getElementById('smsTestSchedule').value || '').trim();
+      const counselor = (document.getElementById('smsTestCounselor').value || '').trim();
+
+      if (!phone) {
+        if (resultEl) { resultEl.style.color = '#c0392b'; resultEl.textContent = '연락처를 입력해주세요.'; }
+        return;
+      }
+
+      const label = { confirm: '예약확정', cancel: '예약취소', today: '당일예약안내' }[templateKey] || templateKey;
+      if (resultEl) { resultEl.style.color = '#888'; resultEl.textContent = `${label} 문자 발송 중...`; }
+
+      try {
+        const r = await sendSMS(phone, name, schedule, counselor, templateKey);
+        if (!resultEl) return;
+        if (r.ok) {
+          resultEl.style.color = '#1a7a45';
+          resultEl.textContent = `✔ ${label} 발송 성공 (${phone})`;
+        } else if (r.result === 'API미연동') {
+          resultEl.style.color = '#a87900';
+          resultEl.textContent = `⚠ API 미연동 상태입니다. 발송내역에 'API미연동'으로 기록되었습니다. (${phone})`;
+        } else {
+          resultEl.style.color = '#c0392b';
+          resultEl.textContent = `✖ ${label} 발송 실패: ${r.result || r.reason || '알 수 없는 오류'}`;
+        }
+        // 발송내역 즉시 갱신
+        if (typeof loadSmsLog === 'function') loadSmsLog();
+      } catch(e) {
+        if (resultEl) { resultEl.style.color = '#c0392b'; resultEl.textContent = '발송 오류: ' + e.message; }
+      }
     };
 
   // ── 관리자 탭 API 통합 설정 함수 ──
