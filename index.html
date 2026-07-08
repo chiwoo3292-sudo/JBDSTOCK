@@ -2801,6 +2801,7 @@
   let _consultsFullCache = null;  // 전체검색 시 1회 조회해 캐시하는 전체 상담 데이터
   let _consultsFullLoading = false; // 전체검색 요청 중복 방지 가드 (돋보기 연타/Enter 연타 대비)
   let _revisitMatches = []; // 재방문 검색 결과 임시 저장 (더블클릭 적용 시 참조)
+  window._revisitMatchesGlobal = _revisitMatches;
   let _consultsLoading = false;   // 현재 서버 요청 진행 중 여부
   let selectedConsult = null;
   let csCurrentFilter = '전체';
@@ -3029,6 +3030,7 @@
         _consultsFullCache = _consultsCache;
         allConsults = _consultsCache;
         window._allConsultsRef = allConsults;
+        window._allConsultsGlobal = allConsults;
         renderConsultList();
       } else if (!_consultsCache) {
         const bodyEl = document.getElementById('csTableBody');
@@ -3482,7 +3484,7 @@ function csDateInputValue(val) {
       return;
     }
 
-    const pool = allConsults;
+    const pool = window._allConsultsGlobal || allConsults;
     if (!pool || !pool.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">데이터 로딩 중입니다. 잠시 후 다시 시도해주세요.</td></tr>';
       return;
@@ -3498,6 +3500,7 @@ function csDateInputValue(val) {
       (r.memo||'').toLowerCase().includes(q)
     ).slice(0, 4);
     _revisitMatches = matched;
+    window._revisitMatchesGlobal = matched;
     if (!matched.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 결과 없음</td></tr>';
       return;
@@ -3546,7 +3549,7 @@ function csDateInputValue(val) {
   }
 
   window.applyRevisitOverlay = function(idx) {
-    const r = _revisitMatches[idx];
+    const r = (window._revisitMatchesGlobal || _revisitMatches)[idx];
     if (!r) return;
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
     set('cfName', r.name);
