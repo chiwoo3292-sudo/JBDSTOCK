@@ -3552,55 +3552,65 @@ function csDateInputValue(val) {
   };
 
   window.searchRevisitOverlay = async function() {
-    const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
     const tbody = document.getElementById('cfRevisitResultsBody');
     if (!tbody) return;
-    if (!q) {
-      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
-      return;
-    }
+    try {
+      const q = (document.getElementById('cfRevisitInput').value || '').trim().toLowerCase();
+      if (!q) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>';
+        return;
+      }
 
-    // 재방문 검색은 전체 2000여건 대상 → 온디맨드로 전체 데이터 확보(최초 1회만 서버조회 후 캐시)
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 중...</td></tr>';
-    const pool = await ensureFullConsults();
-    if (!pool || !pool.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</td></tr>';
-      return;
-    }
+      // 재방문 검색은 전체 2000여건 대상 → 온디맨드로 전체 데이터 확보(최초 1회만 서버조회 후 캐시)
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 중...</td></tr>';
+      // 이미 탭 전체검색으로 확보돼 있으면 그 캐시를, 아니면 온디맨드 조회
+      let pool = _consultsFullCache || (window._allConsultsGlobal && window._allConsultsGlobal.length ? window._allConsultsGlobal : null);
+      if (!pool || !pool.length) {
+        pool = await ensureFullConsults();
+      }
+      if (!pool || !pool.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</td></tr>';
+        return;
+      }
 
-    const matched = pool.filter(r =>
-      (r.name||'').toLowerCase().includes(q) ||
-      (r.phone||'').includes(q) ||
-      (r.company||'').toLowerCase().includes(q) ||
-      (r.address||'').toLowerCase().includes(q) ||
-      (r.products||'').toLowerCase().includes(q) ||
-      (r.counselor||'').toLowerCase().includes(q) ||
-      (r.memo||'').toLowerCase().includes(q)
-    ).slice(0, 4);
-    _revisitMatches = matched;
-    window._revisitMatchesGlobal = matched;
-    if (!matched.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 결과 없음</td></tr>';
-      return;
+      const matched = pool.filter(r =>
+        (r.name||'').toLowerCase().includes(q) ||
+        (r.phone||'').includes(q) ||
+        (r.company||'').toLowerCase().includes(q) ||
+        (r.address||'').toLowerCase().includes(q) ||
+        (r.products||'').toLowerCase().includes(q) ||
+        (r.counselor||'').toLowerCase().includes(q) ||
+        (r.memo||'').toLowerCase().includes(q)
+      ).slice(0, 4);
+      _revisitMatches = matched;
+      window._revisitMatchesGlobal = matched;
+      if (!matched.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색 결과 없음</td></tr>';
+        return;
+      }
+      const statusColor = (s) => {
+        if (s==='예약') return 'background:#fdf1d0;color:#a87900;';
+        if (s==='상담완료') return 'background:#eceff5;color:#5b6472;';
+        if (s==='샘플수령') return 'background:#d4edda;color:#1a7a45;';
+        if (s==='미방문') return 'background:#fde8e8;color:#c0392b;';
+        if (s==='전화상담') return 'background:#e8f0fb;color:#2c5fc4;';
+        return 'background:#eee;color:#666;';
+      };
+      tbody.innerHTML = matched.map((r, i) => `
+        <tr ondblclick="applyRevisitOverlay(${i})" style="cursor:pointer;border-bottom:1px solid #f0e8da;"
+          onmouseover="this.style.background='#FDF6ED'" onmouseout="this.style.background=''">
+          <td style="padding:7px 8px;"><span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;${statusColor(r.status||'')}">${r.status||'-'}</span></td>
+          <td style="padding:7px 8px;font-weight:700;">${r.name||'-'}</td>
+          <td style="padding:7px 8px;color:#666;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.company||'-'}</td>
+          <td style="padding:7px 8px;color:#666;">${r.date||'-'}</td>
+          <td style="padding:7px 8px;color:#666;">${r.phone||'-'}</td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      // 예외가 나도 "검색 중..."에 멈추지 않도록 원인을 화면에 노출
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#c0392b;">검색 오류: ' + (err && err.message ? err.message : err) + '</td></tr>';
+      console.error('searchRevisitOverlay 오류:', err);
     }
-    const statusColor = (s) => {
-      if (s==='예약') return 'background:#fdf1d0;color:#a87900;';
-      if (s==='상담완료') return 'background:#eceff5;color:#5b6472;';
-      if (s==='샘플수령') return 'background:#d4edda;color:#1a7a45;';
-      if (s==='미방문') return 'background:#fde8e8;color:#c0392b;';
-      if (s==='전화상담') return 'background:#e8f0fb;color:#2c5fc4;';
-      return 'background:#eee;color:#666;';
-    };
-    tbody.innerHTML = matched.map((r, i) => `
-      <tr ondblclick="applyRevisitOverlay(${i})" style="cursor:pointer;border-bottom:1px solid #f0e8da;"
-        onmouseover="this.style.background='#FDF6ED'" onmouseout="this.style.background=''">
-        <td style="padding:7px 8px;"><span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;${statusColor(r.status||'')}">${r.status||'-'}</span></td>
-        <td style="padding:7px 8px;font-weight:700;">${r.name||'-'}</td>
-        <td style="padding:7px 8px;color:#666;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.company||'-'}</td>
-        <td style="padding:7px 8px;color:#666;">${r.date||'-'}</td>
-        <td style="padding:7px 8px;color:#666;">${r.phone||'-'}</td>
-      </tr>
-    `).join('');
   };
 
   // 지난 상담이력 한 줄 요약 생성: "지난 방문(6/3): 오크헤링본, 쪽샘플(월넛 3종), 명함 전달함(김철수 팀장)"
