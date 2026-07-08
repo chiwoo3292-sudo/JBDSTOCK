@@ -175,8 +175,14 @@
   .title { margin:0 0 14px; font-size:17px; font-weight:700; font-family:'Pretendard','Noto Sans KR',sans-serif; color:#241F1B; letter-spacing:-.015em; }
   .topbar { display:grid; grid-template-columns:auto minmax(180px, 280px); justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
   .product-add { display:grid; grid-template-columns:minmax(220px, 240px) auto; gap:8px; align-items:center; }
-  select, input[type="text"], input[type="number"], textarea { font-family:inherit; font-size:13px; border:1px solid #E5D9C6; border-radius:10px; background:#F7F1E7; }
-  select, input[type="text"], input[type="number"] { height:38px; padding:0 12px; width:100%; }
+  select, input[type="text"], input[type="search"], input[type="number"], textarea { font-family:inherit; font-size:13px; border:1px solid #E5D9C6; border-radius:10px; background:#F7F1E7; }
+  select, input[type="text"], input[type="search"], input[type="number"] { height:38px; padding:0 12px; width:100%; }
+  /* type=search 기본 지우기(X) 버튼·장식 제거 — 기존 텍스트 입력창과 동일한 외형 유지 */
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration { -webkit-appearance:none; appearance:none; display:none; }
+  input[type="search"] { -webkit-appearance:none; appearance:none; }
   textarea { width:100%; min-height:380px; padding:12px; line-height:1.6; resize:vertical; }
   button { min-height:35px; padding:0 15px; border:1px solid #A2693E; border-radius:10px; background:#A2693E; color:#FCF7F0; font-size:12px; font-weight:700; cursor:pointer; transition:background .14s ease, box-shadow .14s ease, transform .06s ease; box-shadow:0 1px 2px rgba(120,70,30,0.18); }
   button:hover { background:#8C5530; box-shadow:0 2px 6px rgba(120,70,30,0.26); }
@@ -323,6 +329,7 @@
     /* 6. 모바일 터치 두께 확대 (입력창, 선택창 크기 보정) */
     .calc-form select, 
     input[type="text"], 
+    input[type="search"], 
     input[type="number"] {
         height: max(calc(var(--ui-scale) * 44px), 36px) !important; /* 손가락으로 터치하기 편한 두께 */
         font-size: calc(var(--ui-scale) * 14px) !important;
@@ -386,6 +393,7 @@
     /* 3. 모바일 터치 편의를 위해 버튼 및 입력창 크기 확대 */
     .product-add select, 
     .product-add input[type="text"], 
+    .product-add input[type="search"], 
     .product-add button {
         height: max(calc(var(--ui-scale) * 44px), 36px) !important; /* 손가락 터치하기 미스 안 나는 두께 */
         font-size: calc(var(--ui-scale) * 14px) !important; /* 아이폰 줌인 현상 방지 */
@@ -741,7 +749,7 @@
             <select id="productSelect"></select>
             <button id="addBtn" type="button">추가</button>
           </div>
-          <input type="text" id="searchInput" placeholder="빠른검색(품번/품명/스펙)" />
+          <input type="search" id="searchInput" name="pricing_search_noauto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="빠른검색(품번/품명/스펙)" />
         </div>
         <div class="scroll">
           <table>
@@ -1522,7 +1530,7 @@
       <h2 style="margin:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>연락처</h2>
       <button type="button" id="contactsRefreshBtn" style="padding:6px 14px; background:#111; color:#fff; border:none; border-radius:8px; font-size:12px; cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>새로고침</button>
     </div>
-    <input type="text" id="contactsSearch" placeholder="업체명 / 이름 / 번호 검색" style="width:100%; padding:12px 16px; border:1px solid #ddd; border-radius:12px; font-size:14px; margin-bottom:16px; background:#f9f9f9; box-sizing:border-box;">
+    <input type="search" id="contactsSearch" name="contacts_search_noauto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="업체명 / 이름 / 번호 검색" style="width:100%; padding:12px 16px; border:1px solid #ddd; border-radius:12px; font-size:14px; margin-bottom:16px; background:#f9f9f9; box-sizing:border-box;">
     <div id="contactsLoading" style="text-align:center; color:#aaa; font-size:13px; padding:30px;">불러오는 중...</div>
     <div id="contactsList" style="display:none; display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
     <div id="contactsEmpty" style="display:none; text-align:center; color:#aaa; font-size:13px; padding:40px;">저장된 연락처가 없습니다.</div>
@@ -2448,7 +2456,7 @@
 
   <div class="dw-search-controls">
     <div class="dw-search-box">
-      <input type="text" id="csSearch" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchConsultAndRefresh();}" oninput="if(!this.value.trim()){searchConsultAndRefresh();}">
+      <input type="search" id="csSearch" name="cs_search_noauto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="텍스트 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchConsultAndRefresh();}" oninput="if(!this.value.trim()){searchConsultAndRefresh();}">
       <span class="icon" onclick="searchConsultAndRefresh()" style="cursor:pointer;pointer-events:auto;padding:6px;margin:-6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
     </div>
     <button class="dw-cond-btn" id="csCondBtn" onclick="toggleCondPanel()">+ 조건추가</button>
@@ -2588,7 +2596,7 @@
         <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:12px;">
           <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
           <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <input type="text" id="cfRevisitInput" placeholder="성함, 연락처, 업체명, 주소 등 검색" onkeydown="if(event.key==='Enter') window.searchRevisitOverlay();" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            <input type="search" id="cfRevisitInput" name="revisit_lookup_noauto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="성함, 연락처, 업체명, 주소 등 검색" onkeydown="if(event.key==='Enter') window.searchRevisitOverlay();" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box;">
             <button type="button" onclick="window.searchRevisitOverlay()" style="padding:8px 14px;background:#A2693E;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;">검색</button>
           </div>
           <div id="cfRevisitResults">
@@ -3607,8 +3615,8 @@ function csDateInputValue(val) {
         </tr>
       `).join('');
     } catch (err) {
-      // 예외가 나도 "검색 중..."에 멈추지 않도록 원인을 화면에 노출
-      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#c0392b;">검색 오류: ' + (err && err.message ? err.message : err) + '</td></tr>';
+      // 예외가 나도 "검색 중..."에 멈추지 않도록 사용자 친화적 안내 표시 (상세 원인은 콘솔에만)
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#c0392b;">검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</td></tr>';
       console.error('searchRevisitOverlay 오류:', err);
     }
   };
@@ -6146,17 +6154,15 @@ function csDateInputValue(val) {
         document.getElementById('loginId').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
     }
 
-    // ── [임시 해제] 개발자도구(F12)·우클릭·소스보기 차단 — 디버깅 위해 비활성화 ──
-    //   다시 막으려면 아래 주석을 해제하세요.
-    // document.addEventListener('contextmenu', e => e.preventDefault());
-    // document.addEventListener('keydown', function(e) {
-    //     if (e.key === 'F12' ||
-    //         (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-    //         (e.ctrlKey && e.key === 'U')) {
-    //         e.preventDefault();
-    //         return false;
-    //     }
-    // });
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+            (e.ctrlKey && e.key === 'U')) {
+            e.preventDefault();
+            return false;
+        }
+    });
 })();
 </script>
 
