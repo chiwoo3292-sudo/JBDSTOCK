@@ -9942,6 +9942,9 @@ if ('serviceWorker' in navigator) {
     openConsultDetail(idx);
   };
 
+  // ── [다우 시트 변환] 원래 기능대로 복원 ──
+  //   구글시트 [다우import] → 구글시트 [쇼룸상담]으로만 옮긴다. Firestore는 건드리지 않는다.
+  //   (Firestore 반영은 관리자 탭의 별도 마이그레이션 버튼으로 필요할 때만 수행)
   window.importFromDaouSheet = async function() {
     if (!confirm('구글시트 [다우import] 탭의 데이터를 쇼룸상담으로 변환 등록하시겠습니까?')) return;
 
@@ -9951,49 +9954,15 @@ if ('serviceWorker' in navigator) {
     document.body.appendChild(notif);
 
     try {
-      // 1) 구글시트 [다우import]를 정리된 JSON 배열로 받아옴 (시트 쓰기는 서버에서 안 함)
       const res = await fetchWithRetry(`${RESERVE_URL}?action=importFromDaouSheet`);
       const data = await res.json();
-      if (data.status !== 'ok') {
+      if (data.status === 'ok') {
+        notif.textContent = `${data.count}건 변환 완료! (구글시트 [쇼룸상담]에 저장됨)`;
+        notif.style.background = '#1a7a45';
+      } else {
         notif.textContent = '' + (data.message||'실패');
         notif.style.background = '#c0392b';
-        setTimeout(() => notif.remove(), 3000);
-        return;
       }
-      const rows = data.rows || [];
-      if (!rows.length) {
-        notif.textContent = '변환할 데이터가 없습니다.';
-        notif.style.background = '#c0392b';
-        setTimeout(() => notif.remove(), 3000);
-        return;
-      }
-
-      // 2) Firestore batch write (500건 제한 → 청크 분할)
-      await window.fbEnsureAuth();
-      const CHUNK = 450;
-      let written = 0;
-      for (let i = 0; i < rows.length; i += CHUNK) {
-        const slice = rows.slice(i, i + CHUNK);
-        const batch = window.FB.writeBatch(window.FB.db);
-        const col = window.FB.collection(window.FB.db, 'consults');
-        slice.forEach(r => {
-          const rec = { ...r };
-          rec.nameLower = String(rec.name||'').toLowerCase();
-          rec.companyLower = String(rec.company||'').toLowerCase();
-          rec.phoneDigits = String(rec.phone||'').replace(/[^0-9]/g,'');
-          rec.createdAtMs = window._consultDateToMs(rec.date, rec.time) || Date.now();
-          rec.updatedAtMs = Date.now();
-          batch.set(window.FB.doc(col), rec);
-        });
-        await batch.commit();
-        written += slice.length;
-        notif.textContent = `${written}/${rows.length}건 변환 중...`;
-      }
-
-      if (typeof _invalidateConsultsCache === 'function') _invalidateConsultsCache();
-      notif.textContent = `${written}건 변환 완료!`;
-      notif.style.background = '#1a7a45';
-      loadConsults(true);
     } catch(e) {
       notif.textContent = '오류: ' + e.message;
       notif.style.background = '#c0392b';
