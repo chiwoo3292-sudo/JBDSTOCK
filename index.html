@@ -2071,13 +2071,13 @@
         nameLower: String(rsv.name||'').toLowerCase(),
         companyLower: String(rsv.company||'').toLowerCase(),
         phoneDigits: String(rsv.phone||'').replace(/[^0-9]/g,''),
-        createdAtMs: _reservationToMs(rsv) || Date.now(),
+        createdAtMs: window._reservationToMs(rsv) || Date.now(),
         updatedAtMs: Date.now(),
         receiptAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }),
         fromReservation: rsv.receiptNo || ''
       };
       await window.FB.addDoc(window.FB.collection(window.FB.db, 'consults'), consultRec);
-      _invalidateConsultsCache();
+      window._invalidateConsultsCache();
       // 쇼룸상담으로 이관 완료 → 예약 문서 삭제
       await window.FB.deleteDoc(ref);
     } else {
@@ -2876,15 +2876,21 @@
 (function(){
   let allConsults = [];
   // 예약 객체(rsv)의 날짜/시간 → 정렬용 밀리초
-  function _reservationToMs(rsv) {
-    return _consultDateToMs(rsv && rsv.date, rsv && rsv.time);
-  }
+  // ★ window에 노출 — 예약관리(_applyReservationStatus)는 다른 <script> 블록에 있어서
+  //   지역 함수로 두면 "is not defined" 에러가 나 예약확정 자체가 멈춘다.
+  window._reservationToMs = function(rsv) {
+    return window._consultDateToMs(rsv && rsv.date, rsv && rsv.time);
+  };
+  const _reservationToMs = window._reservationToMs;
   // 상담 캐시 무효화 (다음 조회 시 Firestore에서 다시 읽도록)
-  function _invalidateConsultsCache() {
+  // ★ 마찬가지로 window에 노출. 다른 스코프에서 호출되면 이 블록의 지역 캐시변수는
+  //   직접 못 비우지만, 최소한 예외 없이 넘어가도록 하고 window._allConsultsGlobal은 정리한다.
+  window._invalidateConsultsCache = function() {
     _consultsCache = null;
     _consultsFullCache = null;
     window._allConsultsGlobal = null;
-  }
+  };
+  const _invalidateConsultsCache = window._invalidateConsultsCache;
   // 상담 날짜(YYYY-MM-DD)+시간(HH:mm) → 정렬용 밀리초. 파싱 실패 시 0 반환(호출부에서 보정)
   // ★ window에 노출 — 이 함수를 쓰는 다른 <script> 블록(마이그레이션·CSV등록·다우변환)은
   //   서로 다른 스코프라 지역 함수로 두면 "is not defined" 에러가 나기 때문.
