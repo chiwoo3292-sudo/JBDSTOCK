@@ -1027,8 +1027,8 @@
 
         <!-- 재고부족 경고 배너 -->
         <div id="stockAlertBanner" style="display:none; background:linear-gradient(90deg,#fff1f0,#fff8e1); border:2px solid #ff4d4d; border-radius:12px; padding:0 16px; margin-bottom:14px; overflow:hidden; height:48px; align-items:center; gap:0; box-shadow:0 2px 8px rgba(255,77,77,0.15);">
-            <div style="flex:1; overflow:hidden; position:relative; height:48px;">
-                <div id="stockAlertMarquee" style="position:absolute; white-space:nowrap; top:50%; transform:translateY(-50%); font-size:14px; font-weight:900; color:#d63031; letter-spacing:0.5px;"></div>
+            <div style="flex:1; overflow:hidden; position:relative; height:48px; display:flex; align-items:center;">
+                <div id="stockAlertMarquee" style="white-space:nowrap; font-size:14px; font-weight:900; color:#d63031; letter-spacing:0.5px;"></div>
             </div>
         </div>
 
@@ -8493,31 +8493,54 @@ function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
     banner.style.display = 'flex';
 
     // 전광판 텍스트: "재고확인요망" + 품번들 한 세트로 구성 (중복 없이 한 번만)
-    const segment = '재고확인요망 ▶ ' + alertCodes.map(c => `【 ${c} 】`).join('  ') + '          ';
-    // 루프용: 세그먼트 2개 붙여서 끊김 없이 순환
-    marquee.innerHTML = segment + segment;
-
-    // 품번별 클릭 이벤트 (span으로 감싸기)
-    marquee.innerHTML = (segment + segment).replace(/【 ([^】]+) 】/g, (m, code) => {
+    const segmentText = '재고확인요망 ▶ ' + alertCodes.map(c => `【 ${c} 】`).join('  ') + '          ';
+    const segmentHtml = segmentText.replace(/【 ([^】]+) 】/g, (m, code) => {
         return `<span style="cursor:pointer;text-decoration:underline;text-underline-offset:2px;" onclick="openItemDetail('${code.trim()}')">${m}</span>`;
     });
+    // 루프용: 세그먼트 2개 붙여서 끊김 없이 순환
+    marquee.innerHTML = segmentHtml + segmentHtml;
 
-    // 애니메이션
-    requestAnimationFrame(() => {
-        const w = marquee.scrollWidth / 2;
+    // ── 정확한 세그먼트 너비 측정 ──
+    //   기존 방식("전체 너비 ÷ 2")은 폰트 로딩 시점·기기별 렌더링 차이로 오차가 생겨
+    //   루프 이음매가 매끄럽지 않게 튀는 문제가 있었다.
+    //   세그먼트 1개만 화면 밖(visibility:hidden)에 별도로 렌더링해 그 실측 너비를 직접 재면,
+    //   측정 대상과 애니메이션 대상이 항상 같은 기준이 되어 기기·해상도와 무관하게 매끄럽다.
+    //   또한 document.fonts.ready로 폰트 로딩 완료를 기다려, 느린 기기에서 폰트 로드 전에
+    //   측정해버려 값이 틀어지는 것도 방지한다.
+    const measureMarquee = () => {
+        let measureEl = document.getElementById('stockAlertMeasure');
+        if (!measureEl) {
+            measureEl = document.createElement('div');
+            measureEl.id = 'stockAlertMeasure';
+            measureEl.style.cssText = 'position:absolute; visibility:hidden; white-space:nowrap; pointer-events:none; top:-9999px; left:-9999px;';
+            document.body.appendChild(measureEl);
+        }
+        // marquee와 동일한 폰트 스타일을 그대로 물려받도록 같은 클래스/스타일 적용
+        measureEl.style.fontSize = getComputedStyle(marquee).fontSize;
+        measureEl.style.fontWeight = getComputedStyle(marquee).fontWeight;
+        measureEl.style.letterSpacing = getComputedStyle(marquee).letterSpacing;
+        measureEl.style.fontFamily = getComputedStyle(marquee).fontFamily;
+        measureEl.textContent = segmentText; // 태그 없는 순수 텍스트로 측정(정확한 텍스트 너비)
+        const w = measureEl.scrollWidth;
+
         const speed = 80; // px/s
-        const duration = Math.round(w / speed);
+        const duration = Math.max(1, Math.round(w / speed));
         const styleId = 'marquee-style';
         let styleEl = document.getElementById(styleId);
         if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = styleId; document.head.appendChild(styleEl); }
-        styleEl.textContent = `@keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-${w}px); } }`;
+        styleEl.textContent = `@keyframes marqueeScroll { from { transform: translateX(0); } to { transform: translateX(-${w}px); } }`;
         marquee.style.animation = 'none';
         marquee.style.left = '0';
-        marquee.style.transform = 'translateY(-50%)';
-        requestAnimationFrame(() => {
-            marquee.style.animation = `marqueeScroll ${duration}s linear infinite`;
-        });
-    });
+        // 강제 리플로우 후 재시작(애니메이션 재적용을 위한 표준 트릭)
+        void marquee.offsetWidth;
+        marquee.style.animation = `marqueeScroll ${duration}s linear infinite`;
+    };
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(measureMarquee).catch(measureMarquee);
+    } else {
+        requestAnimationFrame(measureMarquee);
+    }
 }
 
 // 재고 탭 클릭 시 데이터 로드 + 시계 + 업로드 초기화
