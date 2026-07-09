@@ -1729,6 +1729,9 @@
   //   ERP_URL     = ERP스크립트(재고·연락처 appendRow) 배포 URL
   var RESERVE_URL = 'https://script.google.com/macros/s/AKfycbzlh1AnXflIp6779wLnQNwYrSe6ahjCLVA-rgUoDsLIH0Z_so0iTdCqXKUiafEGStBLjQ/exec';
   var ERP_URL = 'https://script.google.com/macros/s/AKfycbw2JUC4LIZc8cJd1ONoWRDUzDp0KJB8c85SZCgLtPIdcuOApn98T5aMBfPTnJesGmWJ/exec';
+  // ★ 코드에 저장된 최신 기본값을 별도로 보존 (관리자 탭에서 "예전 캐시값 vs 최신값" 비교·경고에 사용)
+  window._DEFAULT_RESERVE_URL = RESERVE_URL;
+  window._DEFAULT_ERP_URL = ERP_URL;
   // 관리자 탭에서 변경한 URL이 있으면 localStorage 값으로 덮어씀
   (function() {
     const savedReserve = localStorage.getItem('baram_reserve_url');
@@ -4732,6 +4735,10 @@ function csDateInputValue(val) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           Apps Script 배포 URL
         </div>
+        <div id="adminUrlStaleWarning" style="display:none;background:#fdecea;border:1px solid #f5c2c0;color:#c0392b;font-size:12px;padding:10px 12px;border-radius:8px;margin-bottom:12px;line-height:1.6;">
+          ⚠ 현재 사용 중인 URL이 코드에 저장된 최신 배포 URL과 다릅니다(예전에 브라우저에 저장해둔 값을 계속 쓰고 있음). 문자발송·마이그레이션 등에서 원인모를 오류가 난다면 이 때문일 수 있습니다.
+          <button onclick="adminResetUrlsToDefault()" style="margin-left:6px;padding:4px 10px;border:1px solid #c0392b;border-radius:6px;background:#fff;color:#c0392b;font-size:11px;font-weight:700;cursor:pointer;">최신 기본값으로 초기화</button>
+        </div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
           <div>
             <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">RESERVE 스크립트 URL</label>
@@ -6168,9 +6175,30 @@ function csDateInputValue(val) {
       document.getElementById('adminGeminiStatus').style.color = '#4caf50';
     }
 
-    // Apps Script URL 로드 (현재 하드코딩된 값 표시)
+    // Apps Script URL 로드 (현재 실사용 값 표시 — localStorage 캐시가 있으면 그 값)
     if (document.getElementById('adminReserveUrl')) document.getElementById('adminReserveUrl').value = RESERVE_URL;
     if (document.getElementById('adminErpUrl')) document.getElementById('adminErpUrl').value = ERP_URL;
+
+    // ★ 현재 쓰는 URL이 코드에 저장된 최신 기본값과 다르면(=예전 localStorage 캐시를 쓰고 있으면) 경고 표시
+    const warnEl = document.getElementById('adminUrlStaleWarning');
+    if (warnEl) {
+      const isStale = (window._DEFAULT_RESERVE_URL && RESERVE_URL !== window._DEFAULT_RESERVE_URL)
+                    || (window._DEFAULT_ERP_URL && ERP_URL !== window._DEFAULT_ERP_URL);
+      warnEl.style.display = isStale ? 'block' : 'none';
+    }
+  };
+
+  // 예전에 저장해둔 URL(localStorage)을 지우고, 코드에 들어있는 최신 기본값으로 되돌린다.
+  window.adminResetUrlsToDefault = function() {
+    if (!confirm('저장된 URL을 지우고 코드의 최신 기본값으로 되돌리시겠습니까?')) return;
+    localStorage.removeItem('baram_reserve_url');
+    localStorage.removeItem('baram_erp_url');
+    RESERVE_URL = window._DEFAULT_RESERVE_URL;
+    ERP_URL = window._DEFAULT_ERP_URL;
+    window.RESERVE_URL = RESERVE_URL;
+    window.ERP_URL = ERP_URL;
+    if (typeof loadAdminApiSettings === 'function') loadAdminApiSettings();
+    alert('최신 기본값으로 초기화했습니다.');
   };
 
   // ── 쇼룸상담 Firestore 초기 마이그레이션 ──
@@ -6304,8 +6332,13 @@ function csDateInputValue(val) {
         if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2500); }
         // 저장 후 마스킹 상태로 다시 로드
         if (typeof loadAdminApiSettings === 'function') loadAdminApiSettings();
+      } else {
+        // ★ 실패 시에도 반드시 사용자에게 원인을 알려준다 (예전엔 이 분기가 없어 "무반응"으로 보였음)
+        alert('솔라피 설정 저장 실패: ' + (data.message || '서버가 실패로 응답했습니다.'));
       }
-    } catch(e) { alert('솔라피 설정 저장 실패: ' + e.message); }
+    } catch(e) {
+      alert('솔라피 설정 저장 실패: ' + e.message + '\n\n(서버 URL이 오래된 값일 수 있습니다. 관리자 탭의 Apps Script URL 설정을 확인해주세요.)');
+    }
   };
 
   window.adminSaveGeminiKey = function() {
