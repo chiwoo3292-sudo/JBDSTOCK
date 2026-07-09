@@ -2566,6 +2566,7 @@
   <div class="dw-toolbar">
     <button class="dw-toolbar-item" onclick="openManualRegister()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>등록</button>
     <button class="dw-toolbar-item" onclick="deleteCheckedConsults()" style="color:#c0392b;border-color:#e6b0aa;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>삭제</button>
+    <button class="dw-toolbar-item" id="myConsultsBtn" onclick="toggleMyConsults()" style="color:#2c5fc4;border-color:#b8cced;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>나의상담내역</button>
     <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#A2693E;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="downloadConsultCSV()">↓ 목록 다운로드(CSV)</button>
     <div class="dw-toolbar-spacer"></div>
@@ -2904,6 +2905,7 @@
   let _consultsLoading = false;   // 현재 서버 요청 진행 중 여부
   let selectedConsult = null;
   let csCurrentFilter = '전체';
+  let _myConsultsOnly = false; // '나의상담내역' 토글 상태 — true면 로그인한 내가 상담자로 포함된 건만 표시
   let selectedCounselors = [];
   let currentPage = 1;
   let csSort = { field: 'date', dir: 'desc' };
@@ -3202,6 +3204,31 @@
     _fetchConsults();
   }
 
+  // ── 나의상담내역 토글 ──
+  window.toggleMyConsults = function() {
+    const myName = (window._currentUser && window._currentUser.name || '').trim();
+    if (!myName) { alert('게스트 계정은 이용할 수 없는 기능입니다.'); return; }
+    _myConsultsOnly = !_myConsultsOnly;
+    const btn = document.getElementById('myConsultsBtn');
+    if (btn) {
+      if (_myConsultsOnly) {
+        btn.style.background = '#2c5fc4';
+        btn.style.color = '#fff';
+        btn.style.borderColor = '#2c5fc4';
+      } else {
+        btn.style.background = '';
+        btn.style.color = '#2c5fc4';
+        btn.style.borderColor = '#b8cced';
+      }
+    }
+    currentPage = 1;
+    if (_myConsultsOnly) {
+      const bodyEl = document.getElementById('csTableBody');
+      if (bodyEl && !_consultsFullCache) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">나의 상담내역 조회 중...</td></tr>';
+    }
+    renderConsultList();
+  };
+
   window.toggleCondPanel = function() {
     const p = document.getElementById('csCondPanel');
     const btn = document.getElementById('csCondBtn');
@@ -3301,7 +3328,13 @@
     const map = await loadAllStaffMap();
     const q = (document.getElementById('csSearch').value || '').trim().toLowerCase();
 
-    if (q) {
+    // 나의상담내역은 최근 100건만이 아니라 전체를 대상으로 걸러야 하므로,
+    // 검색어가 있을 때와 마찬가지로 전체 데이터를 온디맨드로 확보한다(캐시되어 재조회는 최초 1회뿐).
+    if (_myConsultsOnly) {
+      allConsults = await ensureFullConsults();
+      _consultsMode = 'searchResult'; // 최근100 모드가 아니므로 백그라운드 갱신에 덮어써지지 않도록
+      _syncConsultRefs();
+    } else if (q) {
       allConsults = await _searchConsultsByPrefix(q);
       _consultsMode = 'searchResult';
       _syncConsultRefs();
@@ -3315,6 +3348,11 @@
     let list = allConsults.map((r, origIdx) => ({ ...r, _origIdx: origIdx })).filter(r => {
       const status = getDisplayStatus(r);
       if (csCurrentFilter !== '전체' && status !== csCurrentFilter) return false;
+      // 나의상담내역 토글: 로그인한 내 이름이 상담자 필드에 포함된 건만 (공동상담 포함)
+      if (_myConsultsOnly) {
+        const myName = (window._currentUser && window._currentUser.name || '').trim();
+        if (!myName || !String(r.counselor||'').includes(myName)) return false;
+      }
       if (typeof csDateFilter !== 'undefined' && csDateFilter) {
         const now = new Date();
         const kstOffset = 9 * 60 * 60 * 1000;
