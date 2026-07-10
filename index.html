@@ -4038,6 +4038,12 @@ function csDateInputValue(val) {
   .notice-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; }
   .notice-detail-content { font-size:13px; line-height:1.8; color:#333; white-space:pre-wrap; background:#fafafa; border-radius:8px; padding:16px; min-height:100px; }
   .notice-detail-meta { font-size:12px; color:#aaa; margin-bottom:14px; }
+  #noticeContent[contenteditable]:empty:before { content: attr(placeholder); color:#aaa; }
+  #noticeContent img { max-width:100%; border-radius:6px; margin:6px 0; display:block; }
+  .notice-reply-item { background:#fafafa; border-radius:8px; padding:10px 12px; }
+  .notice-reply-author { font-size:12px; font-weight:700; color:#A2693E; margin-bottom:3px; }
+  .notice-reply-content { font-size:13px; color:#333; white-space:pre-wrap; }
+  .notice-reply-date { font-size:11px; color:#aaa; margin-top:4px; }
 </style>
 <div class="notice-wrap">
   <div class="notice-header">
@@ -4069,8 +4075,21 @@ function csDateInputValue(val) {
       <option value="공지">공지</option>
       <option value="중요">중요</option>
     </select>
-    <input type="text" id="noticeTitle" placeholder="제목을 입력하세요" onkeydown="if(event.key==='Enter'){event.preventDefault();submitNotice();}">
-    <textarea id="noticeContent" placeholder="내용을 입력하세요"></textarea>
+    <input type="text" id="noticeTitle" placeholder="제목을 입력하세요" onkeydown="if(event.key==='Enter'){event.preventDefault();}">
+
+    <!-- 사진첨부 버튼: 누르면 파일선택 → 자동 업로드 → 현재 커서 위치에 이미지 삽입 -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <button type="button" class="notice-btn-cancel" style="padding:7px 14px;font-size:12px;" onclick="document.getElementById('noticeImageInput').click()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>사진첨부
+      </button>
+      <input type="file" id="noticeImageInput" accept="image/*" style="display:none;" onchange="handleNoticeImageSelect(event)">
+      <span id="noticeImageUploadMsg" style="font-size:12px;color:#888;"></span>
+    </div>
+
+    <!-- 리치에디터: contenteditable — 사진첨부 시 커서 위치에 이미지가 그대로 삽입됨 -->
+    <div id="noticeContent" contenteditable="true" placeholder="내용을 입력하세요"
+      style="width:100%;min-height:180px;max-height:400px;overflow-y:auto;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:12px;line-height:1.6;"></div>
+
     <div class="notice-modal-footer">
       <button class="notice-btn-submit" onclick="submitNotice()">등록</button>
       <button class="notice-btn-cancel" onclick="closeNoticeWrite()">취소</button>
@@ -4085,6 +4104,17 @@ function csDateInputValue(val) {
     <h3 id="noticeDetailTitle"></h3>
     <div class="notice-detail-meta" id="noticeDetailMeta"></div>
     <div class="notice-detail-content" id="noticeDetailContent"></div>
+
+    <!-- 댓글 영역: 본문에만 댓글 가능(대댓글 없음) -->
+    <div style="margin-top:20px;border-top:1px solid #eee;padding-top:16px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;color:#555;">댓글 <span id="noticeReplyCount">0</span></div>
+      <div id="noticeReplyList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="noticeReplyInput" placeholder="댓글을 입력하세요" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitNoticeReply();}">
+        <button class="notice-btn-submit" style="padding:9px 16px;" onclick="submitNoticeReply()">등록</button>
+      </div>
+    </div>
+
     <div class="notice-modal-footer">
       <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open');document.body.style.removeProperty('overflow');">닫기</button>
     </div>
@@ -4094,12 +4124,27 @@ function csDateInputValue(val) {
 <script>
 (function(){
   let notices = [];
+  let replies = [];   // 전체 댓글 (noticeId로 필터링해서 사용)
+  let currentDetailNoticeId = null; // 현재 상세보기 중인 게시글 id (댓글 등록 시 사용)
+  let _savedRange = null; // 리치에디터에서 사진첨부 버튼 클릭 직전의 커서 위치 저장용
+
+  function currentAuthor() {
+    // 로그인 유지 여부에 따라 localStorage 또는 sessionStorage에 저장되므로 둘 다 확인
+    const user = JSON.parse(localStorage.getItem('baram_user') || sessionStorage.getItem('baram_user') || 'null');
+    return user ? `${user.name} ${user.title||''}`.trim() : '게스트';
+  }
+
+  // escHtml은 다른 <script> 블록(다른 스코프)에 있어 여기서 직접 접근 불가하므로 자체적으로 둔다.
+  function _noticeEscHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
 
   window.loadNotices = async function() {
     try {
       const res = await fetchWithRetry(`${RESERVE_URL}?action=getNotices`);
       const data = await res.json();
       notices = data.rows || [];
+      replies = data.replies || [];
       renderNotices();
     } catch(e) {
       document.getElementById('noticeTableBody').innerHTML = `<tr><td colspan="5" class="notice-empty">오류: ${e.message}</td></tr>`;
@@ -4112,10 +4157,12 @@ function csDateInputValue(val) {
     tbody.innerHTML = notices.slice().reverse().map((n, i) => {
       const badge = n.category === '공지' || n.category === '중요'
         ? `<span class="notice-badge">${n.category}</span>` : '';
+      const replyCount = replies.filter(r => String(r.noticeId) === String(n.id)).length;
+      const replyTag = replyCount > 0 ? ` <span style="color:#A2693E;font-weight:700;">[${replyCount}]</span>` : '';
       return `<tr onclick="showNoticeDetail(${notices.length-1-i})">
         <td style="text-align:center;">${notices.length - i}</td>
         <td style="text-align:center;">${n.category||'일반'}</td>
-        <td>${badge}${n.title||''}</td>
+        <td>${badge}${n.title||''}${replyTag}</td>
         <td style="text-align:center;">${n.author||''}</td>
         <td style="text-align:center;">${(n.date||'').slice(0,10)}</td>
       </tr>`;
@@ -4125,24 +4172,142 @@ function csDateInputValue(val) {
   window.showNoticeDetail = function(idx) {
     const n = notices[idx];
     if (!n) return;
+    currentDetailNoticeId = n.id;
     document.getElementById('noticeDetailTitle').textContent = n.title||'';
     document.getElementById('noticeDetailMeta').textContent = `${n.category||'일반'} · ${n.author||''} · ${(n.date||'').slice(0,10)}`;
-    document.getElementById('noticeDetailContent').textContent = n.content||'';
+    // content는 리치에디터에서 저장된 HTML(이미지 포함) — innerHTML로 그대로 표시
+    document.getElementById('noticeDetailContent').innerHTML = n.content||'';
+    renderNoticeReplies(n.id);
     document.getElementById('noticeDetailModal').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
 
-  window.openNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.add('open'); document.body.style.overflow='hidden'; };
+  function renderNoticeReplies(noticeId) {
+    const list = replies.filter(r => String(r.noticeId) === String(noticeId));
+    const listEl = document.getElementById('noticeReplyList');
+    const countEl = document.getElementById('noticeReplyCount');
+    countEl.textContent = list.length;
+    if (!list.length) {
+      listEl.innerHTML = '<div style="font-size:12px;color:#aaa;padding:8px 0;">아직 댓글이 없습니다.</div>';
+      return;
+    }
+    listEl.innerHTML = list.map(r => `
+      <div class="notice-reply-item">
+        <div class="notice-reply-author">${_noticeEscHtml(r.author||'')}</div>
+        <div class="notice-reply-content">${_noticeEscHtml(r.content||'')}</div>
+        <div class="notice-reply-date">${(r.date||'').slice(0,16)}</div>
+      </div>
+    `).join('');
+  }
+
+  window.submitNoticeReply = async function() {
+    const input = document.getElementById('noticeReplyInput');
+    const content = input.value.trim();
+    if (!content) return;
+    if (!currentDetailNoticeId && currentDetailNoticeId !== 0) return;
+    const author = currentAuthor();
+    try {
+      const params = new URLSearchParams({ action:'saveNoticeReply', noticeId: currentDetailNoticeId, author, content });
+      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      const data = await res.json();
+      if (data.status !== 'ok') { alert('댓글 등록 실패: ' + (data.message||'')); return; }
+      input.value = '';
+      // 낙관적 업데이트: 서버 재조회 없이 화면에 바로 반영
+      replies.push({ noticeId: currentDetailNoticeId, author, content, date: new Date().toLocaleString('ko-KR') });
+      renderNoticeReplies(currentDetailNoticeId);
+      renderNotices(); // 목록의 댓글수 표시도 갱신
+    } catch(e) { alert('댓글 등록 오류: ' + e.message); }
+  };
+
+  window.openNoticeWrite = function() {
+    document.getElementById('noticeWriteModal').classList.add('open');
+    document.body.style.overflow='hidden';
+    document.getElementById('noticeContent').innerHTML = '';
+    document.getElementById('noticeTitle').value = '';
+  };
   window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); document.body.style.removeProperty('overflow'); };
+
+  // ── 사진첨부: 파일선택 → base64 변환 → 서버(구글드라이브)로 업로드 → 커서 위치에 <img> 삽입 ──
+  window.handleNoticeImageSelect = async function(evt) {
+    const file = evt.target.files && evt.target.files[0];
+    if (!file) return;
+    const msgEl = document.getElementById('noticeImageUploadMsg');
+
+    // contenteditable 영역에 포커스가 없던 상태(방금 파일선택창 열었다 닫음)에서도
+    // 커서 위치를 기억해뒀다가 그 자리에 삽입하기 위해, 클릭 시점 selection을 저장해둔다.
+    const editor = document.getElementById('noticeContent');
+
+    msgEl.textContent = '업로드 중...';
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result); // data:image/...;base64,XXXX
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch(`${RESERVE_URL}`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'uploadNoticeImage', data: base64, fileName: file.name, mimeType: file.type })
+      });
+      const data = await res.json();
+      if (data.status !== 'ok') { msgEl.textContent = '업로드 실패: ' + (data.message||''); return; }
+
+      // 커서 위치(또는 저장해둔 위치, 없으면 맨 끝)에 이미지 삽입
+      editor.focus();
+      const sel = window.getSelection();
+      let range;
+      if (_savedRange) {
+        range = _savedRange;
+      } else if (sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+        range = sel.getRangeAt(0);
+      } else {
+        range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+      }
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      const img = document.createElement('img');
+      img.src = data.url;
+      range.deleteContents();
+      range.insertNode(img);
+      // 이미지 뒤에 커서 이동
+      range.setStartAfter(img);
+      range.setEndAfter(img);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      _savedRange = null;
+
+      msgEl.textContent = '✔ 첨부 완료';
+      setTimeout(() => { msgEl.textContent = ''; }, 2000);
+    } catch(e) {
+      msgEl.textContent = '업로드 오류: ' + e.message;
+    } finally {
+      evt.target.value = ''; // 같은 파일 다시 선택 가능하도록 초기화
+    }
+  };
+
+  // 에디터에서 커서 위치를 벗어나기 전(사진첨부 버튼 클릭 시) 위치를 기억해두기 위한 리스너
+  document.addEventListener('DOMContentLoaded', () => {
+    const editor = document.getElementById('noticeContent');
+    if (editor) {
+      editor.addEventListener('blur', () => {
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+          _savedRange = sel.getRangeAt(0).cloneRange();
+        }
+      });
+    }
+  });
 
   window.submitNotice = async function() {
     const title = document.getElementById('noticeTitle').value.trim();
-    const content = document.getElementById('noticeContent').value.trim();
+    const content = document.getElementById('noticeContent').innerHTML.trim();
     const category = document.getElementById('noticeCategory').value;
     if (!title) { alert('제목을 입력하세요.'); return; }
-    const user = JSON.parse(localStorage.getItem('baram_user')||'null');
-    const author = user ? `${user.name} ${user.title}` : '게스트';
-    const now = new Date().toISOString();
+    const author = currentAuthor();
     document.getElementById('noticeSaveMsg').textContent = '등록 중...';
     try {
       const params = new URLSearchParams({ action:'saveNotice', title, content, category, author });
@@ -4151,7 +4316,7 @@ function csDateInputValue(val) {
       if (data.status !== 'ok') { document.getElementById('noticeSaveMsg').textContent = '' + (data.message||'실패'); return; }
       document.getElementById('noticeSaveMsg').textContent = '등록 완료!';
       document.getElementById('noticeTitle').value = '';
-      document.getElementById('noticeContent').value = '';
+      document.getElementById('noticeContent').innerHTML = '';
       loadNotices();
       setTimeout(() => { closeNoticeWrite(); document.getElementById('noticeSaveMsg').textContent=''; }, 800);
     } catch(e) { document.getElementById('noticeSaveMsg').textContent = '오류: ' + e.message; }
