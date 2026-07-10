@@ -8474,10 +8474,16 @@ tr.innerHTML = `
 
 
 // ── 재고부족 배너 업데이트 ──
+// 이 함수가 짧은 시간 안에 여러 번 호출되면(탭 재방문, 데이터 재조회 등), 비동기 측정 콜백들의
+// 실행 순서가 뒤섞여 "예전 호출의 측정값을 최신 텍스트에 적용"하는 불일치가 생길 수 있다.
+// (이동거리가 실제 텍스트보다 훨씬 짧게 잡혀 좁은 구간에서만 왔다갔다하는 증상의 원인이었음)
+// 매 호출마다 토큰을 발급해, 측정이 끝난 시점에 자신이 "가장 최근 호출"인지 확인 후에만 적용한다.
+let _stockMarqueeToken = 0;
 function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
     const banner   = document.getElementById('stockAlertBanner');
     const marquee  = document.getElementById('stockAlertMarquee');
     if (!banner || !marquee) return;
+    const myToken = ++_stockMarqueeToken;
 
     // 품번별 총BOX 합산 후 음수 품번만 수집 (2번: 합산 기준)
     const sumByCode = {};
@@ -8520,11 +8526,15 @@ function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
     //   또한 document.fonts.ready로 폰트 로딩 완료를 기다려, 느린 기기에서 폰트 로드 전에
     //   측정해버려 값이 틀어지는 것도 방지한다.
     const measureMarquee = () => {
+        // ★ 이 콜백이 실행되는 시점에 더 최근 호출이 있었다면(토큰 불일치), 여기서 조용히 중단한다.
+        //   그래야 예전 호출의 측정값이 최신 텍스트/애니메이션을 덮어쓰는 불일치가 생기지 않는다.
+        if (myToken !== _stockMarqueeToken) return;
+
         let measureEl = document.getElementById('stockAlertMeasure');
         if (!measureEl) {
             measureEl = document.createElement('div');
             measureEl.id = 'stockAlertMeasure';
-            measureEl.style.cssText = 'position:absolute; visibility:hidden; white-space:nowrap; pointer-events:none; top:-9999px; left:-9999px;';
+            measureEl.style.cssText = 'position:absolute; visibility:hidden; white-space:nowrap; pointer-events:none; top:0; left:0;';
             document.body.appendChild(measureEl);
         }
         // marquee와 동일한 폰트 스타일을 그대로 물려받도록 같은 클래스/스타일 적용
@@ -8534,6 +8544,11 @@ function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
         measureEl.style.fontFamily = getComputedStyle(marquee).fontFamily;
         measureEl.textContent = segmentText; // 태그 없는 순수 텍스트로 측정(정확한 텍스트 너비)
         const w = measureEl.scrollWidth;
+
+        // 측정 도중(비동기 대기 중) 또 새 호출이 들어왔을 수 있으니 적용 직전에 한 번 더 확인
+        if (myToken !== _stockMarqueeToken) return;
+        // 측정값이 비정상(0 또는 지나치게 작음)이면 애니메이션을 걸지 않고 다음 정상 호출을 기다린다
+        if (!w || w < 50) return;
 
         const speed = 80; // px/s
         const duration = Math.max(1, Math.round(w / speed));
