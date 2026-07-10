@@ -5166,6 +5166,10 @@ function csDateInputValue(val) {
                 if (adminBtn) adminBtn.style.display = '';
             }
             applyTabPermissions(userData.allowedTabs, userData.role);
+            // ★ applyTabPermissions가 회사 권한에 따라 모든 탭을 일단 노출로 리셋한 뒤 적용하므로,
+            //   그 직후 개인이 햄버거 메뉴에서 숨겨둔 탭 설정(applyVisibleTabs)을 다시 한 번 덮어써야
+            //   새로고침/재접속 시에도 개인 설정이 유지된다. (이전엔 체크박스를 다시 눌러야만 반영됐음)
+            if (typeof window.applyVisibleTabs === 'function') window.applyVisibleTabs();
             fillMyInfo(userData);
             window._currentUser = userData;
             // 사용자별 화면 표시 설정(촘촘하게/기본/넓게) 동기화
@@ -5191,6 +5195,7 @@ function csDateInputValue(val) {
             if (guestNotice) guestNotice.style.display = 'block';
             // ★ 게스트 최상단 메뉴 제한: 단가표/계산기/재고현황/견적서/메모장 5개만 노출
             applyTabPermissions('pricingTab,calculatorTab,stockTab,invoiceTab,memoTab', 'guest');
+            if (typeof window.applyVisibleTabs === 'function') window.applyVisibleTabs();
         }
 
         const lastTab = localStorage.getItem('baram_last_tab');
@@ -7127,24 +7132,30 @@ window.saveMyHomeTab = async function() {
 };
 const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 
-function getVisibleTabs() {
+// ★ window에 노출 — 로그인 처리(applyTabPermissions 호출부)가 다른 <script> 블록에 있어서
+//   지역 함수로 두면 그쪽에서 "정의되지 않음"으로 보여, 로그인 직후 개인 탭 설정이
+//   반영되지 않고 체크박스를 다시 눌러야만 적용되는 문제가 있었다.
+window.getVisibleTabs = function() {
   const saved = localStorage.getItem(VISIBLE_TABS_KEY);
   if (saved) return JSON.parse(saved);
   return Object.keys(TAB_LABELS);
-}
+};
+const getVisibleTabs = window.getVisibleTabs;
 
-function saveVisibleTabs(list) {
+window.saveVisibleTabs = function(list) {
   localStorage.setItem(VISIBLE_TABS_KEY, JSON.stringify(list));
-}
+};
+const saveVisibleTabs = window.saveVisibleTabs;
 
-function applyVisibleTabs() {
-  const visible = getVisibleTabs();
+window.applyVisibleTabs = function() {
+  const visible = window.getVisibleTabs();
   document.querySelectorAll('#mainTabBar .tab-btn[data-tab]').forEach(btn => {
     const tab = btn.dataset.tab;
     if (tab === 'adminTab') return; // 관리자 탭은 권한으로 제어
     btn.style.display = visible.includes(tab) ? '' : 'none';
   });
-}
+};
+const applyVisibleTabs = window.applyVisibleTabs;
 
 function openHamburger() {
   renderHamburgerItems();
