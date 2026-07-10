@@ -3584,12 +3584,13 @@ function csDateInputValue(val) {
     return iso ? iso[1] : s;
   }
 
+  // ★ 문자 발송(예약확정/취소/당일안내)용 날짜 표기. 단문(SMS) 유지를 위해 연도를 뺀 MM-DD 형식.
+  //   (화면 목록 등 다른 곳에 쓰이는 날짜 표시는 이 함수와 무관 — 문자 발송 전용)
   function csDateDisplay(val) {
     if (!val) return '';
-    if (typeof fmtDateOnly === 'function') return fmtDateOnly(val);
     const s = String(val).trim();
     const parts = s.slice(0, 10).split('-');
-    if (parts.length === 3) return parts[0] + '년' + parts[1] + '월' + parts[2] + '일';
+    if (parts.length === 3) return parts[1] + '-' + parts[2]; // "07-10"
     return s;
   }
   function resetConsultForm() {
@@ -4489,7 +4490,7 @@ function csDateInputValue(val) {
       </div>
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">일정</label>
-        <input id="smsTestSchedule" type="text" placeholder="2026-01-15 14:00" autocomplete="off"
+        <input id="smsTestSchedule" type="text" placeholder="01-15 14:00 (단문 유지를 위해 연도 생략 권장)" autocomplete="off"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div>
