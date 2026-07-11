@@ -4248,6 +4248,8 @@ function csDateInputValue(val) {
 
       const res = await fetch(`${RESERVE_URL}`, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
         body: JSON.stringify({ action: 'uploadNoticeImage', data: base64, fileName: file.name, mimeType: file.type })
       });
       const data = await res.json();
