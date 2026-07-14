@@ -4238,7 +4238,7 @@ function csDateInputValue(val) {
     // 커서 위치를 기억해뒀다가 그 자리에 삽입하기 위해, 클릭 시점 selection을 저장해둔다.
     const editor = document.getElementById('noticeContent');
 
-    msgEl.textContent = '업로드 중...';
+    msgEl.textContent = '이미지 처리 중...';
     try {
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -4247,14 +4247,9 @@ function csDateInputValue(val) {
         reader.readAsDataURL(file);
       });
 
-      const res = await fetch(`${RESERVE_URL}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        redirect: 'follow',
-        body: JSON.stringify({ action: 'uploadNoticeImage', data: base64, fileName: file.name, mimeType: file.type })
-      });
-      const data = await res.json();
-      if (data.status !== 'ok') { msgEl.textContent = '업로드 실패: ' + (data.message||''); return; }
+      // ★ Drive 업로드 대신 base64 데이터를 바로 <img>에 삽입한다.
+      //   (구글 Drive 직링크(uc?export=view)는 외부 <img> 표시가 차단되어 이미지가 안 보임.
+      //    base64는 게시글 본문에 그대로 저장되어 항상 표시되고, 서버 왕복도 없어 빠름.)
 
       // 커서 위치(또는 저장해둔 위치, 없으면 맨 끝)에 이미지 삽입
       editor.focus();
@@ -4273,7 +4268,9 @@ function csDateInputValue(val) {
       sel.addRange(range);
 
       const img = document.createElement('img');
-      img.src = data.url;
+      img.src = base64;                       // ★ Drive URL 대신 base64 직접 사용
+      img.style.maxWidth = '100%';            // 게시글 폭에 맞춤
+      img.style.height = 'auto';
       range.deleteContents();
       range.insertNode(img);
       // 이미지 뒤에 커서 이동
@@ -4286,7 +4283,7 @@ function csDateInputValue(val) {
       msgEl.textContent = '✔ 첨부 완료';
       setTimeout(() => { msgEl.textContent = ''; }, 2000);
     } catch(e) {
-      msgEl.textContent = '업로드 오류: ' + e.message;
+      msgEl.textContent = '이미지 처리 오류: ' + e.message;
     } finally {
       evt.target.value = ''; // 같은 파일 다시 선택 가능하도록 초기화
     }
@@ -4313,8 +4310,13 @@ function csDateInputValue(val) {
     const author = currentAuthor();
     document.getElementById('noticeSaveMsg').textContent = '등록 중...';
     try {
-      const params = new URLSearchParams({ action:'saveNotice', title, content, category, author });
-      const res = await fetchWithRetry(`${RESERVE_URL}?${params}`);
+      // base64 이미지가 본문에 포함될 수 있어 URL 길이 제한을 넘으므로 POST(body)로 전송
+      const res = await fetch(`${RESERVE_URL}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+        body: JSON.stringify({ action:'saveNotice', title, content, category, author })
+      });
       const data = await res.json();
       if (data.status !== 'ok') { document.getElementById('noticeSaveMsg').textContent = '' + (data.message||'실패'); return; }
       document.getElementById('noticeSaveMsg').textContent = '등록 완료!';
