@@ -1174,6 +1174,7 @@
 .inv-remarks { font-family:'KoPubWorldDotum','KoPubWorld Dotum','맑은 고딕','Malgun Gothic',sans-serif; font-size:9.3px; font-weight:300; color:#172033; line-height:1.55; border:0; padding:0; margin:0; min-height:100px; }
 /* REMARKS 타이틀: Century Gothic 7pt Bold */
 .inv-remarks-title { font-family:'CenturyGothic','Century Gothic','AppleGothic','맑은 고딕',sans-serif; font-size:9.3px; font-weight:700; color:#020617; margin-bottom:5px; }
+#invRemarksEditor:empty:before { content: attr(data-placeholder); color:#aaa; }
 /* CONTACT 타이틀: Century Gothic 7pt Bold */
 .inv-contact-title { font-family:'CenturyGothic','Century Gothic','AppleGothic','맑은 고딕',sans-serif; font-size:9.3px; font-weight:700; color:#020617; margin-bottom:5px; }
 /* ACCOUNT INFO 타이틀: Century Gothic 7pt Bold */
@@ -1340,10 +1341,19 @@
       </label>
     </div>
 
-    <!-- REMARKS 직접입력 textarea (체크 시 표시) -->
+    <!-- REMARKS 직접입력 (체크 시 표시) — 리치에디터: 드래그 후 빨강 버튼으로 강조 -->
     <div id="invRemarksEditWrap" style="display:none; margin-bottom:12px;">
       <div class="inv-label" style="margin-bottom:6px;">REMARKS 내용 직접입력</div>
-      <textarea id="invRemarksTextarea" placeholder="REMARKS 하단 내용을 입력하세요." style="width:100%; min-height:80px !important; font-size:13px; font-family:inherit; color:#333; line-height:1.6; border:1px solid #ddd; border-radius:8px; padding:10px 12px; box-sizing:border-box; resize:vertical;" oninput="renderInvoice()"></textarea>
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <button type="button" onmousedown="event.preventDefault()" onclick="remarksApplyColor('#e11d48')" title="선택 글자를 빨강으로" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#e11d48;">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#e11d48;"></span>빨강
+        </button>
+        <button type="button" onmousedown="event.preventDefault()" onclick="remarksApplyColor('')" title="선택 글자 색 지우기(검정)" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#333;">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#172033;"></span>기본
+        </button>
+        <span style="font-size:11px;color:#aaa;align-self:center;">글자를 드래그한 뒤 버튼을 누르세요</span>
+      </div>
+      <div id="invRemarksEditor" contenteditable="true" data-placeholder="REMARKS 하단 내용을 입력하세요." style="width:100%; min-height:80px; font-size:13px; font-family:inherit; color:#333; line-height:1.6; border:1px solid #ddd; border-radius:8px; padding:10px 12px; box-sizing:border-box;" oninput="renderInvoice()"></div>
     </div>
 
     <div id="invAllItems"></div>
@@ -4207,7 +4217,9 @@ function csDateInputValue(val) {
     document.getElementById('noticeEditBtn').style.display   = canManage ? '' : 'none';
     document.getElementById('noticeDeleteBtn').style.display = canManage ? '' : 'none';
     renderNoticeReplies(n.id);
-    document.getElementById('noticeDetailModal').classList.add('open');
+    const _dm = document.getElementById('noticeDetailModal');
+    _dm.classList.add('open');
+    const _inner = _dm.querySelector('.notice-modal'); if (_inner) _inner.scrollTop = 0; // 항상 맨 위부터
     document.body.style.overflow = 'hidden';
   };
 
@@ -4254,6 +4266,7 @@ function csDateInputValue(val) {
     renderNoticeAttachList();
     document.getElementById('noticeWriteTitle').textContent = '전사게시판 글쓰기';
     document.getElementById('noticeWriteModal').classList.add('open');
+    { const _w = document.querySelector('#noticeWriteModal .notice-modal'); if (_w) _w.scrollTop = 0; }
     document.body.style.overflow='hidden';
     document.getElementById('noticeContent').innerHTML = '';
     document.getElementById('noticeTitle').value = '';
@@ -4276,6 +4289,7 @@ function csDateInputValue(val) {
     document.getElementById('noticeDetailModal').classList.remove('open');
     document.getElementById('noticeWriteTitle').textContent = '전사게시판 글 수정';
     document.getElementById('noticeWriteModal').classList.add('open');
+    { const _w = document.querySelector('#noticeWriteModal .notice-modal'); if (_w) _w.scrollTop = 0; }
     document.body.style.overflow='hidden';
     document.getElementById('noticeTitle').value = n.title || '';
     document.getElementById('noticeContent').innerHTML = n.content || '';
@@ -9123,11 +9137,27 @@ function initInvoiceTab() {
             if (el) el.addEventListener('input', renderInvoice);
             if (el && (el.tagName === 'SELECT')) el.addEventListener('change', renderInvoice);
 
-const remarksTextarea = document.getElementById('invRemarksTextarea');
-        if (remarksTextarea) {
-            remarksTextarea.addEventListener('input', renderInvoice);
+const remarksEditorEl = document.getElementById('invRemarksEditor');
+        if (remarksEditorEl) {
+            remarksEditorEl.addEventListener('input', renderInvoice);
         }
         });
+
+  // REMARKS 에디터: 선택한 글자에 색 적용 (color='' 이면 기본색으로 되돌림)
+  window.remarksApplyColor = function(color) {
+    const editor = document.getElementById('invRemarksEditor');
+    if (!editor) return;
+    editor.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return; // 드래그로 선택된 글자가 있어야 적용
+    // 선택 영역이 에디터 안에 있는지 확인
+    if (!editor.contains(sel.anchorNode)) return;
+    try {
+      document.execCommand('styleWithCSS', false, true);
+      document.execCommand('foreColor', false, color || '#172033');
+    } catch(e) {}
+    renderInvoice();
+  };
 
         // 공과잡비: 숫자 입력 시 콤마+원 포맷 표시
         const miscEl = document.getElementById('invMisc');
@@ -9472,15 +9502,16 @@ function renderInvoice() {
     const remarksEditCheck = !!document.getElementById('invRemarksEditCheck')?.checked;
     const remarksEditWrap  = document.getElementById('invRemarksEditWrap');
     const remarksDiv       = document.getElementById('pvRemarks');
-    const remarksTextarea  = document.getElementById('invRemarksTextarea');
+    const remarksEditor    = document.getElementById('invRemarksEditor');
 
-    // 좌측 패널 textarea 표시 토글
+    // 좌측 패널 에디터 표시 토글
     if (remarksEditWrap) remarksEditWrap.style.display = remarksEditCheck ? 'block' : 'none';
 
     // REMARKS 직접입력이 체크된 경우 → 항상 최우선 적용 (AS견적서/가견적서 무관)
-    if (remarksEditCheck && remarksTextarea) {
-        const customText = (remarksTextarea.value || '').replace(/\n/g, '<br>');
-        if (remarksDiv) remarksDiv.innerHTML = '<div class="inv-remarks-title">REMARKS</div><span style="font-family:\'KoPubWorldDotum\',\'KoPubWorld Dotum\',\'맑은 고딕\',sans-serif; font-size:9.3px; font-weight:300; color:#172033; line-height:1.55;">' + customText + '</span>';
+    if (remarksEditCheck && remarksEditor) {
+        // 에디터의 HTML(색상 span 포함)을 그대로 반영
+        const customHtml = remarksEditor.innerHTML || '';
+        if (remarksDiv) remarksDiv.innerHTML = '<div class="inv-remarks-title">REMARKS</div><span style="font-family:\'KoPubWorldDotum\',\'KoPubWorld Dotum\',\'맑은 고딕\',sans-serif; font-size:9.3px; font-weight:300; color:#172033; line-height:1.55;">' + customHtml + '</span>';
         return;
     }
 
