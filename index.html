@@ -1887,6 +1887,7 @@
       // 대기 목록 화면이므로 대기 상태 위주로 확인이 필요하지만, 상세 필터는 클라이언트에서 처리(주 50건 이하라 부담 없음)
       const snap = await window.FB.getDocs(window.FB.collection(window.FB.db, 'reservations'));
       allReservations = snap.docs.map(d => d.data());
+      window.allReservations = allReservations; // 홈 대시보드 등 다른 블록 참조용
       renderRsvList();
     } catch(e) {
       document.getElementById('rsvList').innerHTML = '<div class="rsv-empty">오류: ' + e.message + '</div>';
@@ -3172,6 +3173,7 @@
       );
       const snap = await window.FB.getDocs(q);
       _consultsCache = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      window._consultsCache = _consultsCache; // 홈 대시보드 등 다른 블록에서 참조용
       if (_consultsMode === 'recent') {
         allConsults = _consultsCache;
         _syncConsultRefs();
@@ -4177,6 +4179,91 @@ function csDateInputValue(val) {
     }
   };
 
+  // ── 홈 대시보드: 4개 영역 최근 목록 요약 ──
+  window.loadHomeDashboard = async function() {
+    _renderHomeNotices();   // 게시판 (notices 캐시 우선, 없으면 로드)
+    _renderHomeConsults();  // 쇼룸상담
+    _renderHomeReservations(); // 예약관리
+    _renderHomeEmails();    // 메일함(보낸메일)
+
+    // 게시판: 캐시 없으면 불러온 뒤 재렌더
+    if (!notices.length) {
+      try {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getNotices`);
+        const data = await res.json();
+        notices = data.rows || []; replies = data.replies || [];
+        _renderHomeNotices();
+      } catch(e) {}
+    }
+    // 쇼룸상담: 캐시 없으면 로드
+    if ((!window._consultsCache || !window._consultsCache.length) && typeof loadConsults === 'function') {
+      try { await loadConsults(); _renderHomeConsults(); } catch(e){}
+    }
+    // 예약: 캐시 없으면 로드
+    if ((!window.allReservations || !window.allReservations.length) && typeof loadReservations === 'function') {
+      try { await loadReservations(); _renderHomeReservations(); } catch(e){}
+    }
+  };
+
+  function _homeItem(main, sub, badge, onclick) {
+    const b = badge ? `<span class="home-dash-badge">${badge}</span>` : '';
+    return `<div class="home-dash-item" onclick="${onclick}">${b}<span class="home-dash-item-main">${main}</span><span class="home-dash-item-sub">${sub}</span></div>`;
+  }
+
+  function _renderHomeNotices() {
+    const el = document.getElementById('homeNoticeList'); if (!el) return;
+    if (!notices.length) { el.innerHTML = '<div class="home-dash-empty">등록된 공지가 없습니다.</div>'; return; }
+    // 최신순 5건
+    const list = notices.slice().reverse().slice(0, 5);
+    el.innerHTML = list.map((n) => {
+      const realIdx = notices.indexOf(n);
+      const badge = (n.category === '공지' || n.category === '중요') ? n.category : '';
+      return _homeItem(_noticeEscHtml(n.title||'(제목없음)'), (n.date||'').slice(5,10), badge, `showNoticeDetail(${realIdx})`);
+    }).join('');
+  }
+
+  function _renderHomeConsults() {
+    const el = document.getElementById('homeConsultList'); if (!el) return;
+    const cache = window._consultsCache || [];
+    if (!cache.length) { el.innerHTML = '<div class="home-dash-empty">상담 내역이 없습니다.</div>'; return; }
+    // 최근 5건 (캐시는 이미 최신순)
+    const list = cache.slice(0, 5);
+    el.innerHTML = list.map((c) => {
+      const who = (c.name||'-') + (c.company ? ` · ${c.company}` : '');
+      const when = (c.date||'').slice(5) + (c.time ? ` ${String(c.time).split('~')[0]}` : '');
+      return _homeItem(_noticeEscHtml(who), when, '', `setTab('consultTab')`);
+    }).join('');
+  }
+
+  function _renderHomeReservations() {
+    const el = document.getElementById('homeReservationList'); if (!el) return;
+    const all = window.allReservations || [];
+    const list = all.filter(r => (r.status||'대기') === '대기')
+                    .sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time))
+                    .slice(0, 5);
+    if (!list.length) { el.innerHTML = '<div class="home-dash-empty">대기 중인 예약이 없습니다.</div>'; return; }
+    el.innerHTML = list.map((r) => {
+      const main = (r.date||'') + (r.time ? ` ${r.time.split('~')[0]}` : '');
+      const sub = r.name || '';
+      return _homeItem(_noticeEscHtml(main), _noticeEscHtml(sub), '대기', `setTab('reservationTab')`);
+    }).join('');
+  }
+
+  function _renderHomeEmails() {
+    const el = document.getElementById('homeEmailList'); if (!el) return;
+    // 받은메일은 미연동 상태 → 보낸메일함(localStorage) 최근 5건 표시
+    const logKey = 'baram_email_log_' + ((window._currentUser && window._currentUser.id) || 'guest');
+    let items = [];
+    try { items = JSON.parse(localStorage.getItem(logKey) || '[]'); } catch(e) {}
+    if (!items.length) { el.innerHTML = '<div class="home-dash-empty">보낸 메일이 없습니다.</div>'; return; }
+    const list = items.slice(0, 5);
+    el.innerHTML = list.map((m) => {
+      const when = m.sentAt ? String(m.sentAt).slice(5,16) : '';
+      return _homeItem(_noticeEscHtml(m.subject||'(제목없음)'), when, '보냄', `setTab('emailTab')`);
+    }).join('');
+  }
+
+
   function renderNotices() {
     const tbody = document.getElementById('noticeTableBody');
     if (!notices.length) { tbody.innerHTML = '<tr><td colspan="5" class="notice-empty">등록된 공지가 없습니다.</td></tr>'; return; }
@@ -4663,7 +4750,63 @@ function csDateInputValue(val) {
     </div>
   </div>
 
-  <!-- 화면 표시 설정 -->
+  <!-- ★ 전사 요약 대시보드 (전사게시판/쇼룸상담/예약관리/이메일 최근 목록) -->
+  <style>
+    .home-dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+    @media (max-width:720px){ .home-dash-grid { grid-template-columns:1fr; } }
+    .home-dash-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:20px 22px; }
+    .home-dash-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; cursor:pointer; }
+    .home-dash-title { font-size:14px; font-weight:800; color:#222; display:flex; align-items:center; gap:7px; }
+    .home-dash-more { font-size:11.5px; color:#A2693E; font-weight:700; white-space:nowrap; }
+    .home-dash-list { display:flex; flex-direction:column; }
+    .home-dash-item { display:flex; align-items:center; gap:8px; padding:9px 0; border-top:1px solid #f2f2f2; font-size:12.5px; cursor:pointer; }
+    .home-dash-item:first-child { border-top:none; }
+    .home-dash-item:hover { background:#FAF6EF; }
+    .home-dash-item-main { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#333; font-weight:600; }
+    .home-dash-item-sub { color:#aaa; font-size:11px; white-space:nowrap; flex-shrink:0; }
+    .home-dash-badge { font-size:10px; font-weight:800; padding:1px 6px; border-radius:5px; background:#F3EADB; color:#A2693E; flex-shrink:0; }
+    .home-dash-empty { font-size:12px; color:#bbb; padding:16px 0; text-align:center; }
+  </style>
+  <div class="home-dash-grid">
+
+    <!-- 전사게시판 -->
+    <div class="home-dash-card">
+      <div class="home-dash-head" onclick="setTab('noticeTab')">
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>전사게시판</span>
+        <span class="home-dash-more">전체보기 ›</span>
+      </div>
+      <div class="home-dash-list" id="homeNoticeList"><div class="home-dash-empty">불러오는 중...</div></div>
+    </div>
+
+    <!-- 이메일 -->
+    <div class="home-dash-card">
+      <div class="home-dash-head" onclick="setTab('emailTab')">
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>메일함</span>
+        <span class="home-dash-more">전체보기 ›</span>
+      </div>
+      <div class="home-dash-list" id="homeEmailList"><div class="home-dash-empty">불러오는 중...</div></div>
+    </div>
+
+    <!-- 쇼룸상담 -->
+    <div class="home-dash-card">
+      <div class="home-dash-head" onclick="setTab('consultTab')">
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>쇼룸상담</span>
+        <span class="home-dash-more">전체보기 ›</span>
+      </div>
+      <div class="home-dash-list" id="homeConsultList"><div class="home-dash-empty">불러오는 중...</div></div>
+    </div>
+
+    <!-- 예약관리 -->
+    <div class="home-dash-card">
+      <div class="home-dash-head" onclick="setTab('reservationTab')">
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>예약관리</span>
+        <span class="home-dash-more">전체보기 ›</span>
+      </div>
+      <div class="home-dash-list" id="homeReservationList"><div class="home-dash-empty">불러오는 중...</div></div>
+    </div>
+
+  </div>
+
   <div class="myi-pw-card">
     <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>화면 표시 설정</div>
     <p style="font-size:12.5px;color:#888;margin:0 0 18px;">여백·글자 크기를 조절해 더 많은 정보를 한눈에 볼 수 있어요. 이 기기에서 내 계정으로 로그인할 때마다 설정한 값이 그대로 유지됩니다.</p>
@@ -7344,6 +7487,7 @@ function setTab(tabId, fromPopstate) {
     }
   }
   if (tabId === 'noticeTab' && typeof loadNotices === 'function') loadNotices();
+  if (tabId === 'myInfoTab' && typeof loadHomeDashboard === 'function') loadHomeDashboard();
   if (tabId === 'myInfoTab' && typeof applyUiDensity === 'function') {
     let saved = '100';
     try { saved = localStorage.getItem(getUiDensityStorageKey()) || '100'; } catch(_) {}
