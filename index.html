@@ -4070,7 +4070,7 @@ function csDateInputValue(val) {
 <!-- 글쓰기 모달 -->
 <div class="notice-modal-overlay" id="noticeWriteModal">
   <div class="notice-modal">
-    <h3>전사게시판 글쓰기</h3>
+    <h3 id="noticeWriteTitle">전사게시판 글쓰기</h3>
     <select id="noticeCategory">
       <option value="일반">일반</option>
       <option value="공지">공지</option>
@@ -4117,6 +4117,8 @@ function csDateInputValue(val) {
     </div>
 
     <div class="notice-modal-footer">
+      <button class="notice-btn-cancel" id="noticeEditBtn" style="display:none;" onclick="startEditNotice()">수정</button>
+      <button class="notice-btn-cancel" id="noticeDeleteBtn" style="display:none;color:#e74c3c;border-color:#e74c3c;" onclick="deleteNoticeConfirm()">삭제</button>
       <button class="notice-btn-cancel" onclick="document.getElementById('noticeDetailModal').classList.remove('open');document.body.style.removeProperty('overflow');">닫기</button>
     </div>
   </div>
@@ -4127,6 +4129,8 @@ function csDateInputValue(val) {
   let notices = [];
   let replies = [];   // 전체 댓글 (noticeId로 필터링해서 사용)
   let currentDetailNoticeId = null; // 현재 상세보기 중인 게시글 id (댓글 등록 시 사용)
+  let _currentDetailIdx = null; // 현재 상세보기 중인 게시글의 notices 배열 인덱스 (수정 시 사용)
+  let _editingNoticeId = null; // 수정 모드일 때 대상 글 id (null이면 새 글 작성)
   let _savedRange = null; // 리치에디터에서 사진첨부 버튼 클릭 직전의 커서 위치 저장용
 
   function currentAuthor() {
@@ -4170,14 +4174,26 @@ function csDateInputValue(val) {
     }).join('');
   }
 
+  // 현재 사용자가 이 글을 수정/삭제할 수 있는지 (작성자 본인 또는 관리자)
+  function _canManageNotice(n) {
+    const me = currentAuthor();
+    const isAdmin = !!(window._currentUser && window._currentUser.role === 'admin');
+    return isAdmin || (n && String(n.author||'') === me);
+  }
+
   window.showNoticeDetail = function(idx) {
     const n = notices[idx];
     if (!n) return;
     currentDetailNoticeId = n.id;
+    _currentDetailIdx = idx;
     document.getElementById('noticeDetailTitle').textContent = n.title||'';
     document.getElementById('noticeDetailMeta').textContent = `${n.category||'일반'} · ${n.author||''} · ${(n.date||'').slice(0,10)}`;
     // content는 리치에디터에서 저장된 HTML(이미지 포함) — innerHTML로 그대로 표시
     document.getElementById('noticeDetailContent').innerHTML = n.content||'';
+    // 권한에 따라 수정/삭제 버튼 표시
+    const canManage = _canManageNotice(n);
+    document.getElementById('noticeEditBtn').style.display   = canManage ? '' : 'none';
+    document.getElementById('noticeDeleteBtn').style.display = canManage ? '' : 'none';
     renderNoticeReplies(n.id);
     document.getElementById('noticeDetailModal').classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -4221,12 +4237,59 @@ function csDateInputValue(val) {
   };
 
   window.openNoticeWrite = function() {
+    _editingNoticeId = null; // 새 글 모드
+    document.getElementById('noticeWriteTitle').textContent = '전사게시판 글쓰기';
     document.getElementById('noticeWriteModal').classList.add('open');
     document.body.style.overflow='hidden';
     document.getElementById('noticeContent').innerHTML = '';
     document.getElementById('noticeTitle').value = '';
+    document.getElementById('noticeCategory').value = '일반';
   };
-  window.closeNoticeWrite = function() { document.getElementById('noticeWriteModal').classList.remove('open'); document.body.style.removeProperty('overflow'); };
+  window.closeNoticeWrite = function() {
+    _editingNoticeId = null;
+    document.getElementById('noticeWriteTitle').textContent = '전사게시판 글쓰기';
+    document.getElementById('noticeWriteModal').classList.remove('open');
+    document.body.style.removeProperty('overflow');
+  };
+
+  // 상세 모달의 "수정" 버튼 → 글쓰기 모달을 수정 모드로 열어 기존 값 채우기
+  window.startEditNotice = function() {
+    const n = notices[_currentDetailIdx];
+    if (!n) return;
+    if (!_canManageNotice(n)) { alert('본인이 작성한 글만 수정할 수 있습니다.'); return; }
+    _editingNoticeId = n.id;
+    // 상세 모달 닫고 글쓰기 모달 열기
+    document.getElementById('noticeDetailModal').classList.remove('open');
+    document.getElementById('noticeWriteTitle').textContent = '전사게시판 글 수정';
+    document.getElementById('noticeWriteModal').classList.add('open');
+    document.body.style.overflow='hidden';
+    document.getElementById('noticeTitle').value = n.title || '';
+    document.getElementById('noticeContent').innerHTML = n.content || '';
+    document.getElementById('noticeCategory').value = n.category || '일반';
+    document.getElementById('noticeSaveMsg').textContent = '';
+  };
+
+  // 상세 모달의 "삭제" 버튼
+  window.deleteNoticeConfirm = async function() {
+    const n = notices[_currentDetailIdx];
+    if (!n) return;
+    if (!_canManageNotice(n)) { alert('본인이 작성한 글만 삭제할 수 있습니다.'); return; }
+    if (!confirm('이 글을 삭제하시겠습니까? (댓글도 함께 삭제됩니다)')) return;
+    const isAdmin = !!(window._currentUser && window._currentUser.role === 'admin');
+    try {
+      const res = await fetch(`${RESERVE_URL}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+        body: JSON.stringify({ action:'deleteNotice', id: n.id, requester: currentAuthor(), isAdmin })
+      });
+      const data = await res.json();
+      if (data.status !== 'ok') { alert(data.message || '삭제 실패'); return; }
+      document.getElementById('noticeDetailModal').classList.remove('open');
+      document.body.style.removeProperty('overflow');
+      loadNotices();
+    } catch(e) { alert('오류: ' + e.message); }
+  };
 
   // ── 사진첨부: 파일선택 → base64 변환 → 서버(구글드라이브)로 업로드 → 커서 위치에 <img> 삽입 ──
   window.handleNoticeImageSelect = async function(evt) {
@@ -4308,20 +4371,26 @@ function csDateInputValue(val) {
     const category = document.getElementById('noticeCategory').value;
     if (!title) { alert('제목을 입력하세요.'); return; }
     const author = currentAuthor();
-    document.getElementById('noticeSaveMsg').textContent = '등록 중...';
+    const isEditing = _editingNoticeId != null;
+    document.getElementById('noticeSaveMsg').textContent = isEditing ? '수정 중...' : '등록 중...';
     try {
       // base64 이미지가 본문에 포함될 수 있어 URL 길이 제한을 넘으므로 POST(body)로 전송
+      const isAdmin = !!(window._currentUser && window._currentUser.role === 'admin');
+      const payload = isEditing
+        ? { action:'updateNotice', id:_editingNoticeId, title, content, category, requester:author, isAdmin }
+        : { action:'saveNotice', title, content, category, author };
       const res = await fetch(`${RESERVE_URL}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         redirect: 'follow',
-        body: JSON.stringify({ action:'saveNotice', title, content, category, author })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.status !== 'ok') { document.getElementById('noticeSaveMsg').textContent = '' + (data.message||'실패'); return; }
-      document.getElementById('noticeSaveMsg').textContent = '등록 완료!';
+      document.getElementById('noticeSaveMsg').textContent = isEditing ? '수정 완료!' : '등록 완료!';
       document.getElementById('noticeTitle').value = '';
       document.getElementById('noticeContent').innerHTML = '';
+      _editingNoticeId = null;
       loadNotices();
       setTimeout(() => { closeNoticeWrite(); document.getElementById('noticeSaveMsg').textContent=''; }, 800);
     } catch(e) { document.getElementById('noticeSaveMsg').textContent = '오류: ' + e.message; }
