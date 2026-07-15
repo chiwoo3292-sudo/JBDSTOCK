@@ -4051,21 +4051,23 @@ function csDateInputValue(val) {
   .notice-badge { display:inline-block; background:#e74c3c; color:#fff; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:700; margin-right:4px; }
   .notice-empty { padding:60px; text-align:center; color:#aaa; font-size:13px; }
 
-  /* 모바일: 표 유지하되 칸 폭 재배분 — 제목에 공간 몰아주고 나머지 축소 */
+  /* 모바일 카드 목록 (기본 숨김, 모바일에서만 표시) */
+  .notice-card-list { display:none; }
+  .notice-card {
+    padding:14px 4px; border-bottom:1px solid #eee; cursor:pointer;
+  }
+  .notice-card:active { background:#f9f8f5; }
+  .notice-card-title {
+    font-size:14.5px; font-weight:700; color:#222; line-height:1.4;
+    word-break:keep-all; margin-bottom:5px;
+  }
+  .notice-card-meta { font-size:11.5px; color:#999; }
+  .notice-card-meta .notice-badge { margin-right:5px; }
+
+  /* 모바일: 표 숨기고 카드 표시 */
   @media (max-width:768px) {
-    table.notice-table { font-size:12px; table-layout:fixed; }
-    table.notice-table th, table.notice-table td { padding:9px 5px; }
-    /* 번호 */
-    table.notice-table th:nth-child(1), table.notice-table td:nth-child(1) { width:30px; text-align:center; }
-    /* 구분 */
-    table.notice-table th:nth-child(2), table.notice-table td:nth-child(2) { width:38px; text-align:center; }
-    /* 제목 — 나머지 전부 */
-    table.notice-table th:nth-child(3), table.notice-table td:nth-child(3) { width:auto; word-break:keep-all; }
-    /* 작성자 */
-    table.notice-table th:nth-child(4), table.notice-table td:nth-child(4) { width:52px; text-align:center; font-size:11px; }
-    /* 작성일 — 연-월-일 줄바꿈 허용해 좁게 */
-    table.notice-table th:nth-child(5), table.notice-table td:nth-child(5) { width:64px; text-align:center; font-size:10.5px; color:#999; line-height:1.35; }
-    .notice-badge { display:inline; padding:1px 4px; font-size:10px; margin-right:3px; }
+    table.notice-table { display:none; }
+    .notice-card-list { display:block; border-top:2px solid #333; }
     .notice-header h2 { font-size:15px; }
   }
 
@@ -4107,6 +4109,8 @@ function csDateInputValue(val) {
       <tr><td colspan="5" class="notice-empty">불러오는 중...</td></tr>
     </tbody>
   </table>
+  <!-- 모바일 전용 카드 목록 (768px 이하에서만 표시) -->
+  <div id="noticeCardList" class="notice-card-list"></div>
 </div>
 
 <!-- 글쓰기 모달 -->
@@ -4313,8 +4317,15 @@ function csDateInputValue(val) {
 
   function renderNotices() {
     const tbody = document.getElementById('noticeTableBody');
-    if (!notices.length) { tbody.innerHTML = '<tr><td colspan="5" class="notice-empty">등록된 공지가 없습니다.</td></tr>'; return; }
-    tbody.innerHTML = notices.slice().reverse().map((n, i) => {
+    const cardList = document.getElementById('noticeCardList');
+    if (!notices.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="notice-empty">등록된 공지가 없습니다.</td></tr>';
+      if (cardList) cardList.innerHTML = '<div class="notice-empty">등록된 공지가 없습니다.</div>';
+      return;
+    }
+    const ordered = notices.slice().reverse();
+    // 데스크톱: 표
+    tbody.innerHTML = ordered.map((n, i) => {
       const badge = n.category === '공지' || n.category === '중요'
         ? `<span class="notice-badge">${n.category}</span>` : '';
       const replyCount = replies.filter(r => String(r.noticeId) === String(n.id)).length;
@@ -4327,6 +4338,19 @@ function csDateInputValue(val) {
         <td style="text-align:center;">${(n.date||'').slice(0,10)}</td>
       </tr>`;
     }).join('');
+    // 모바일: 카드
+    if (cardList) {
+      cardList.innerHTML = ordered.map((n, i) => {
+        const badge = n.category === '공지' || n.category === '중요'
+          ? `<span class="notice-badge">${n.category}</span>` : '';
+        const replyCount = replies.filter(r => String(r.noticeId) === String(n.id)).length;
+        const replyTag = replyCount > 0 ? ` <span style="color:#A2693E;font-weight:700;">[${replyCount}]</span>` : '';
+        return `<div class="notice-card" onclick="showNoticeDetail(${notices.length-1-i})">
+          <div class="notice-card-title">${badge}${n.title||''}${replyTag}</div>
+          <div class="notice-card-meta">${n.category||'일반'} · ${n.author||''} · ${(n.date||'').slice(0,10)}</div>
+        </div>`;
+      }).join('');
+    }
   }
 
   // 현재 사용자가 이 글을 수정/삭제할 수 있는지 (작성자 본인 또는 관리자)
