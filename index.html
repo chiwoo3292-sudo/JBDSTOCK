@@ -9741,7 +9741,7 @@ function renderInvoice() {
             if (titleEl) titleEl.childNodes[0].textContent = 'AS견적서';
             subtitleEl.textContent = '';
         } else if (isFinal) {
-            if (titleEl) titleEl.childNodes[0].textContent = 'FINAL INVOICE';
+            if (titleEl) titleEl.childNodes[0].textContent = 'STATEMENT';
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         } else if (isDraft) {
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
@@ -9773,13 +9773,17 @@ function renderInvoice() {
                 const titleW = measureNode(titleEl.childNodes[0]); // 타이틀 텍스트만
                 const brandNaturalW = measureEl(brandEl);          // 브랜드 자연 폭(자간0)
                 const brandText = brandEl.textContent || '';
-                const nChars = Math.max(brandText.length, 1);
+                const gaps = Math.max(brandText.length - 1, 1);    // 글자 사이 간격 수
                 if (titleW > 0 && brandNaturalW > 0) {
-                    // letter-spacing은 마지막 글자 뒤에도 적용되므로 (글자수)로 나눈다.
-                    const ls = (titleW - brandNaturalW) / nChars;
+                    const ls = (titleW - brandNaturalW) / gaps;
                     brandEl.style.letterSpacing = ls + 'px';
-                    // 마지막 글자 뒤에 붙는 자간만큼 왼쪽으로 당겨 타이틀과 좌우 폭을 정확히 맞춤
-                    brandEl.style.marginRight = (-ls) + 'px';
+                    brandEl.style.marginRight = '0px';
+                    // 브라우저별 letter-spacing 적용 차이(마지막 글자 뒤 여백)를 재측정해 정확히 보정
+                    requestAnimationFrame(() => {
+                        const actualW = measureEl(brandEl);
+                        const diff = actualW - titleW; // 양수면 초과, 음수면 부족
+                        brandEl.style.marginRight = (-diff) + 'px';
+                    });
                 }
             });
         }
