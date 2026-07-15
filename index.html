@@ -9773,10 +9773,13 @@ function renderInvoice() {
                 const titleW = measureNode(titleEl.childNodes[0]); // 타이틀 텍스트만
                 const brandNaturalW = measureEl(brandEl);          // 브랜드 자연 폭(자간0)
                 const brandText = brandEl.textContent || '';
-                const gaps = Math.max(brandText.length - 1, 1);
+                const nChars = Math.max(brandText.length, 1);
                 if (titleW > 0 && brandNaturalW > 0) {
-                    const ls = (titleW - brandNaturalW) / gaps;
+                    // letter-spacing은 마지막 글자 뒤에도 적용되므로 (글자수)로 나눈다.
+                    const ls = (titleW - brandNaturalW) / nChars;
                     brandEl.style.letterSpacing = ls + 'px';
+                    // 마지막 글자 뒤에 붙는 자간만큼 왼쪽으로 당겨 타이틀과 좌우 폭을 정확히 맞춤
+                    brandEl.style.marginRight = (-ls) + 'px';
                 }
             });
         }
