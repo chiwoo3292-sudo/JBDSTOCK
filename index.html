@@ -9741,7 +9741,7 @@ function renderInvoice() {
         } else if (isFinal) {
             // FINAL INVOICE (정산서) 모드
             if (titleEl) titleEl.childNodes[0].textContent = 'FINAL INVOICE';
-            if (brandEl) brandEl.style.letterSpacing = '4px';
+            if (brandEl) brandEl.style.letterSpacing = '14px';
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         } else if (isDraft) {
             // ESTIMATE 모드
