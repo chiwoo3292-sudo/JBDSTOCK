@@ -1314,7 +1314,7 @@
       </div>
     </div>
 
-    <div style="display:flex; gap:16px; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; background:#f9f9f9; border:1px solid #eee; border-radius:12px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin:0 0 12px; padding:12px 14px; background:#f9f9f9; border:1px solid #eee; border-radius:12px;">
       <label class="check-chip">
         <input type="checkbox" id="invSplitCostCheck" />
         재료비 / 인건비+부자재비 분리
@@ -1328,7 +1328,7 @@
         인건비+부자재비 합산 표시
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invBoxCalcCheck" style="margin-left: 22px;" onchange="renderInvoice()" />
+        <input type="checkbox" id="invBoxCalcCheck" onchange="renderInvoice()" />
         박스기준 헤베계산
       </label>
       <label class="check-chip">
@@ -1336,33 +1336,17 @@
         가견적서
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invAdjustCheck" checked style="margin-left: 14.5px;" onchange="renderInvoice()" />
-        단수정리
+        <input type="checkbox" id="invAsCheck" onchange="renderInvoice()" />
+        AS견적서 작성
       </label>
       <label class="check-chip">
-        <input type="checkbox" id="invAsCheck" style="margin-left: 14.5px;" onchange="renderInvoice()" />
-        AS견적서 작성
+        <input type="checkbox" id="invAdjustCheck" checked onchange="renderInvoice()" />
+        단수정리
       </label>
       <label class="check-chip">
         <input type="checkbox" id="invFinalCheck" onchange="renderInvoice()" />
         정산서
       </label>
-    </div>
-
-    <!-- 계약금 / 중도금 입력 (공과잡비처럼 항상 표시, 값 있으면 견적서에서 차감) -->
-    <div class="inv-field">
-      <div class="inv-label">계약금</div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="invDepositDate" placeholder="예: 26.07.01" style="flex:1;" oninput="renderInvoice()">
-        <input type="text" id="invDepositAmount" inputmode="numeric" placeholder="예: 5,000,000" style="flex:1;" oninput="renderInvoice()">
-      </div>
-    </div>
-    <div class="inv-field">
-      <div class="inv-label">중도금</div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="invInterimDate" placeholder="예: 26.07.01" style="flex:1;" oninput="renderInvoice()">
-        <input type="text" id="invInterimAmount" inputmode="numeric" placeholder="예: 5,000,000" style="flex:1;" oninput="renderInvoice()">
-      </div>
     </div>
 
     <!-- REMARKS 직접입력 (체크 시 표시) — 리치에디터: 드래그 후 빨강 버튼으로 강조 -->
@@ -1388,6 +1372,22 @@
       <input type="text" id="invMisc" inputmode="numeric" placeholder="예: 700,000원">
     </div>
 
+    <!-- 계약금 / 중도금 입력 (공과잡비처럼 항상 표시, 값 있으면 견적서에서 차감) -->
+    <div class="inv-field">
+      <div class="inv-label">계약금</div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="invDepositDate" placeholder="예: 26.07.01" style="flex:1;" oninput="renderInvoice()">
+        <input type="text" id="invDepositAmount" inputmode="numeric" placeholder="예: 5,000,000" style="flex:1;" oninput="renderInvoice()">
+      </div>
+    </div>
+    <div class="inv-field">
+      <div class="inv-label">중도금</div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="invInterimDate" placeholder="예: 26.07.01" style="flex:1;" oninput="renderInvoice()">
+        <input type="text" id="invInterimAmount" inputmode="numeric" placeholder="예: 5,000,000" style="flex:1;" oninput="renderInvoice()">
+      </div>
+    </div>
+
     <div class="inv-actions">
       <button type="button" id="invPreviewBtn">미리보기 갱신</button>
       <button type="button" id="invPrintBtn" class="secondary"><span class="btn-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg></span><span class="btn-text"> 인쇄</span></button>
@@ -1408,6 +1408,7 @@
 
         <div class="inv-meta-grid">
           <div>
+            <div class="inv-meta-row" id="pvLeftSpacer" style="display:none;"><div class="inv-meta-key" style="background:transparent;"></div><div class="inv-meta-val"></div></div>
             <div class="inv-meta-row"><div class="inv-meta-key">BILL&nbsp;&nbsp;&nbsp;&nbsp; TO</div><div class="inv-meta-val" id="pvBillTo">—</div></div>
             <div class="inv-meta-row"><div class="inv-meta-key">시공 예정일</div><div class="inv-meta-val" id="pvWorkDate">—</div></div>
             <div class="inv-meta-row"><div class="inv-meta-key">현&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;장</div><div class="inv-meta-val" id="pvSite">—</div></div>
@@ -9723,9 +9724,12 @@ function renderInvoice() {
     });
     const pvWorkDateKey = document.querySelector('#pvWorkDate')?.closest('.inv-meta-row')?.querySelector('.inv-meta-key');
     if (pvWorkDateKey) pvWorkDateKey.textContent = isAs ? 'AS 예 정 일' : '시공 예정일';
-    // 정산서(FINAL INVOICE)이면 시공예정일 행 숨김
+    // 정산서(FINAL INVOICE)이면: 시공예정일 행 숨기고 왼쪽 맨 위 빈 행을 보여서
+    //   BILL TO가 시공예정일 자리(둘째 줄)로 내려오고, 오른쪽 담당자/DATE 라인과 맞춰진다.
     const pvWorkDateRow = document.querySelector('#pvWorkDate')?.closest('.inv-meta-row');
-    if (pvWorkDateRow) pvWorkDateRow.style.visibility = isFinal ? 'hidden' : 'visible';
+    if (pvWorkDateRow) pvWorkDateRow.style.display = isFinal ? 'none' : '';
+    const pvLeftSpacer = document.getElementById('pvLeftSpacer');
+    if (pvLeftSpacer) pvLeftSpacer.style.display = isFinal ? '' : 'none';
 
     // INVOICE / ESTIMATE / AS견적서 타이틀 + inv-brand letter-spacing 동적 조정
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
@@ -9734,25 +9738,31 @@ function renderInvoice() {
     if (subtitleEl) {
         const isDraft = document.getElementById('invDraftCheck')?.checked;
         if (isAs) {
-            // AS견적서 모드
             if (titleEl) titleEl.childNodes[0].textContent = 'AS견적서';
-            if (brandEl) brandEl.style.letterSpacing = '10.2px';
             subtitleEl.textContent = '';
         } else if (isFinal) {
-            // FINAL INVOICE (정산서) 모드
             if (titleEl) titleEl.childNodes[0].textContent = 'FINAL INVOICE';
-            if (brandEl) brandEl.style.letterSpacing = '14px';
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         } else if (isDraft) {
-            // ESTIMATE 모드
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
-            if (brandEl) brandEl.style.letterSpacing = '16px';
             subtitleEl.textContent = isMaterialMode ? '(자재만)' : '';
         } else {
-            // INVOICE 모드 복원
             if (titleEl) titleEl.childNodes[0].textContent = 'INVOICE';
-            if (brandEl) brandEl.style.letterSpacing = '12.2px';
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
+        }
+        // ── 브랜드(JIBOKDEUKMARU) 자간을 하단 타이틀 실제 너비에 맞춤 ──
+        //   어떤 타이틀이 오든 브랜드가 타이틀과 같은 폭이 되도록 letter-spacing을 계산한다.
+        if (brandEl && titleEl) {
+            brandEl.style.letterSpacing = '0px'; // 초기화 후 자연 폭 측정
+            requestAnimationFrame(() => {
+                const titleW = titleEl.getBoundingClientRect().width;
+                const brandText = brandEl.textContent || '';
+                const gaps = Math.max(brandText.length - 1, 1); // 글자 사이 간격 수
+                const brandNaturalW = brandEl.getBoundingClientRect().width;
+                const extra = titleW - brandNaturalW; // 채워야 할 여백
+                const ls = extra / gaps;
+                brandEl.style.letterSpacing = ls + 'px';
+            });
         }
     }
 
