@@ -9751,17 +9751,33 @@ function renderInvoice() {
             subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         }
         // ── 브랜드(JIBOKDEUKMARU) 자간을 하단 타이틀 실제 너비에 맞춤 ──
-        //   어떤 타이틀이 오든 브랜드가 타이틀과 같은 폭이 되도록 letter-spacing을 계산한다.
+        //   블록 요소는 getBoundingClientRect가 컨테이너 폭을 반환하므로,
+        //   Range로 텍스트 자체의 실제 렌더 폭을 측정해서 자간을 계산한다.
         if (brandEl && titleEl) {
             brandEl.style.letterSpacing = '0px'; // 초기화 후 자연 폭 측정
             requestAnimationFrame(() => {
-                const titleW = titleEl.getBoundingClientRect().width;
+                // 요소 전체 내용의 렌더 폭
+                const measureEl = (el) => {
+                    if (!el.firstChild) return 0;
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    return range.getBoundingClientRect().width;
+                };
+                // 특정 텍스트 노드만의 렌더 폭 (타이틀의 subtitle span 제외용)
+                const measureNode = (node) => {
+                    if (!node) return 0;
+                    const range = document.createRange();
+                    range.selectNode(node);
+                    return range.getBoundingClientRect().width;
+                };
+                const titleW = measureNode(titleEl.childNodes[0]); // 타이틀 텍스트만
+                const brandNaturalW = measureEl(brandEl);          // 브랜드 자연 폭(자간0)
                 const brandText = brandEl.textContent || '';
-                const gaps = Math.max(brandText.length - 1, 1); // 글자 사이 간격 수
-                const brandNaturalW = brandEl.getBoundingClientRect().width;
-                const extra = titleW - brandNaturalW; // 채워야 할 여백
-                const ls = extra / gaps;
-                brandEl.style.letterSpacing = ls + 'px';
+                const gaps = Math.max(brandText.length - 1, 1);
+                if (titleW > 0 && brandNaturalW > 0) {
+                    const ls = (titleW - brandNaturalW) / gaps;
+                    brandEl.style.letterSpacing = ls + 'px';
+                }
             });
         }
     }
