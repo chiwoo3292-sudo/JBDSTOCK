@@ -1343,6 +1343,26 @@
         <input type="checkbox" id="invAsCheck" style="margin-left: 14.5px;" onchange="renderInvoice()" />
         AS견적서 작성
       </label>
+      <label class="check-chip">
+        <input type="checkbox" id="invFinalCheck" style="margin-left: 14.5px;" onchange="renderInvoice()" />
+        정산서
+      </label>
+    </div>
+
+    <!-- 계약금 / 중도금 입력 (공과잡비처럼 항상 표시, 값 있으면 견적서에서 차감) -->
+    <div class="inv-field">
+      <div class="inv-label">계약금</div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="invDepositDate" placeholder="예: 26.07.01" style="flex:1;" oninput="renderInvoice()">
+        <input type="text" id="invDepositAmount" inputmode="numeric" placeholder="예: 5,000,000" style="flex:1;" oninput="renderInvoice()">
+      </div>
+    </div>
+    <div class="inv-field">
+      <div class="inv-label">중도금</div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="invInterimDate" placeholder="예: 26.07.01" style="flex:1;" oninput="renderInvoice()">
+        <input type="text" id="invInterimAmount" inputmode="numeric" placeholder="예: 5,000,000" style="flex:1;" oninput="renderInvoice()">
+      </div>
     </div>
 
     <!-- REMARKS 직접입력 (체크 시 표시) — 리치에디터: 드래그 후 빨강 버튼으로 강조 -->
@@ -9643,9 +9663,18 @@ function renderInvoice() {
     // SUB TOTAL
     const vat = Math.round(subTotal * 0.1);
     const grandRaw = subTotal + vat;
+
+    // 계약금 / 중도금 (입력값이 있으면 차감) — 숫자만 추출
+    const parseAmt = (s) => { const n = parseInt(String(s||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? 0 : n; };
+    const depositAmt = parseAmt(document.getElementById('invDepositAmount')?.value);
+    const interimAmt = parseAmt(document.getElementById('invInterimAmount')?.value);
+    const depositDate = (document.getElementById('invDepositDate')?.value || '').trim();
+    const interimDate = (document.getElementById('invInterimDate')?.value || '').trim();
+
+    const grandAfterDeduct = grandRaw - depositAmt - interimAmt;
     const useAdjust = document.getElementById('invAdjustCheck')?.checked !== false;
-    const grand = useAdjust ? Math.floor(grandRaw / 10000) * 10000 : grandRaw;
-    const adjust = grand - grandRaw;
+    const grand = useAdjust ? Math.floor(grandAfterDeduct / 10000) * 10000 : grandAfterDeduct;
+    const adjust = grand - grandAfterDeduct;
 
     const makeTotal = (label, val, cls='normal') => {
         const tr = document.createElement('tr');
@@ -9660,6 +9689,9 @@ function renderInvoice() {
 
     makeTotal('SUB TOTAL', subTotal, 'subtotal');
     makeTotal('Tax Vat 10%', vat);
+    // 계약금/중도금 차감 (금액 입력된 경우만) — 날짜가 있으면 라벨 괄호에 표시
+    if (depositAmt > 0) makeTotal(depositDate ? `계약금 (${depositDate})` : '계약금', -depositAmt);
+    if (interimAmt > 0) makeTotal(interimDate ? `중도금 (${interimDate})` : '중도금', -interimAmt);
     if (useAdjust && adjust !== 0) makeTotal('단수정리', adjust);
     makeTotal('GRAND TOTAL', grand, 'grand');
 
@@ -9679,8 +9711,9 @@ function renderInvoice() {
         .filter(Boolean);
     const isMaterialMode = allParties.length > 0 && allParties.some(v => v.endsWith('_material'));
 
-    // ── AS견적서 체크 여부 ──
+    // ── AS견적서 / 정산서 체크 여부 ──
     const isAs = !!document.getElementById('invAsCheck')?.checked;
+    const isFinal = !!document.getElementById('invFinalCheck')?.checked;
 
     // 시공 예정일 라벨 동적 변경
     document.querySelectorAll('.inv-label').forEach(el => {
@@ -9690,6 +9723,9 @@ function renderInvoice() {
     });
     const pvWorkDateKey = document.querySelector('#pvWorkDate')?.closest('.inv-meta-row')?.querySelector('.inv-meta-key');
     if (pvWorkDateKey) pvWorkDateKey.textContent = isAs ? 'AS 예 정 일' : '시공 예정일';
+    // 정산서(FINAL INVOICE)이면 시공예정일 행 숨김
+    const pvWorkDateRow = document.querySelector('#pvWorkDate')?.closest('.inv-meta-row');
+    if (pvWorkDateRow) pvWorkDateRow.style.visibility = isFinal ? 'hidden' : 'visible';
 
     // INVOICE / ESTIMATE / AS견적서 타이틀 + inv-brand letter-spacing 동적 조정
     const subtitleEl = document.getElementById('pvInvoiceSubtitle');
@@ -9702,6 +9738,11 @@ function renderInvoice() {
             if (titleEl) titleEl.childNodes[0].textContent = 'AS견적서';
             if (brandEl) brandEl.style.letterSpacing = '10.2px';
             subtitleEl.textContent = '';
+        } else if (isFinal) {
+            // FINAL INVOICE (정산서) 모드
+            if (titleEl) titleEl.childNodes[0].textContent = 'FINAL INVOICE';
+            if (brandEl) brandEl.style.letterSpacing = '4px';
+            subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
         } else if (isDraft) {
             // ESTIMATE 모드
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
