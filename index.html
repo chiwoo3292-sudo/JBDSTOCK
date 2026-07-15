@@ -2677,30 +2677,32 @@
           <option value="신규">신규</option>
           <option value="재방문">재방문</option>
         </select>
-        <div id="cfRevisitSearchBox" style="display:none;margin-top:8px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:12px;">
-          <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
-          <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <input type="search" id="cfRevisitInput" name="revisit_lookup_noauto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="성함, 연락처, 업체명, 주소 등 검색" onkeydown="if(event.key==='Enter') window.searchRevisitOverlay();" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box;">
-            <button type="button" onclick="window.searchRevisitOverlay()" style="padding:8px 14px;background:#A2693E;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;">검색</button>
-          </div>
-          <div id="cfRevisitResults">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden;">
-              <thead>
-                <tr style="background:#f5ede0;color:#A2693E;font-weight:700;">
-                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">상태</th>
-                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">성함</th>
-                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">업체명</th>
-                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">일정</th>
-                  <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5D9C6;">연락처</th>
-                </tr>
-              </thead>
-              <tbody id="cfRevisitResultsBody">
-                <tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
         <input type="hidden" id="cfPastHistory">
+      </div>
+    </div>
+
+    <!-- 기존 방문 이력 검색 (전체 폭 사용 — 검색결과가 좁게 줄바뀜 되지 않도록) -->
+    <div id="cfRevisitSearchBox" style="display:none;margin:0 0 16px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:14px 16px;">
+      <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="search" id="cfRevisitInput" name="revisit_lookup_noauto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="성함, 연락처, 업체명, 주소 등 검색" onkeydown="if(event.key==='Enter') window.searchRevisitOverlay();" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box;">
+        <button type="button" onclick="window.searchRevisitOverlay()" style="padding:8px 20px;background:#A2693E;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;">검색</button>
+      </div>
+      <div id="cfRevisitResults">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;border-radius:6px;overflow:hidden;table-layout:fixed;">
+          <thead>
+            <tr style="background:#f5ede0;color:#A2693E;font-weight:700;">
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:90px;">상태</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:110px;">성함</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;">업체명</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:110px;">일정</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:130px;">연락처</th>
+            </tr>
+          </thead>
+          <tbody id="cfRevisitResultsBody">
+            <tr><td colspan="5" style="padding:10px 8px;text-align:center;color:#aaa;">검색어를 입력하세요</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -3780,7 +3782,13 @@ function csDateInputValue(val) {
     if (r.reqCard)   lines.push('[명함] ' + r.reqCard);
     if (r.reqQuote === 'Y') lines.push('[견적서 요청]');
     if (r.memo)      lines.push('[전달사항] ' + r.memo);
-    return lines.join('\n');
+    let summary = lines.join('\n');
+    // ★ 이력 체이닝: 이 방문 문서가 이미 갖고 있던 과거 이력(pastHistory)을 뒤에 이어붙인다.
+    //   예) 3차에서 2차를 선택하면 → 2차 요약 + (2차에 저장돼 있던 1차 이력)까지 누적된다.
+    if (r.pastHistory && String(r.pastHistory).trim()) {
+      summary += '\n\n──────────────\n' + String(r.pastHistory).trim();
+    }
+    return summary;
   }
 
   window.applyRevisitOverlay = function(idx) {
@@ -4241,9 +4249,20 @@ function csDateInputValue(val) {
     el.innerHTML = list.map((c) => {
       const who = (c.name||'-') + (c.company ? ` · ${c.company}` : '');
       const when = (c.date||'').slice(5) + (c.time ? ` ${String(c.time).split('~')[0]}` : '');
-      return _homeItem(_noticeEscHtml(who), when, '', `setTab('consultTab')`);
+      const docId = c._docId || '';
+      return _homeItem(_noticeEscHtml(who), when, '', `openConsultFromHome('${docId}')`);
     }).join('');
   }
+
+  // 홈에서 쇼룸상담 클릭 → 쇼룸상담 탭으로 이동 후 해당 상담 상세 열기
+  window.openConsultFromHome = function(docId) {
+    setTab('consultTab');
+    setTimeout(() => {
+      const ref = window._allConsultsRef || [];
+      const idx = ref.findIndex(r => (r._docId || '') === docId);
+      if (idx >= 0 && typeof openConsultNewTab === 'function') openConsultNewTab(idx);
+    }, 200);
+  };
 
   function _renderHomeReservations() {
     const el = document.getElementById('homeReservationList'); if (!el) return;
