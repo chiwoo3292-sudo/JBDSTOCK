@@ -4051,6 +4051,24 @@ function csDateInputValue(val) {
   .notice-badge { display:inline-block; background:#e74c3c; color:#fff; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:700; margin-right:4px; }
   .notice-empty { padding:60px; text-align:center; color:#aaa; font-size:13px; }
 
+  /* 모바일: 표 유지하되 칸 폭 재배분 — 제목에 공간 몰아주고 나머지 축소 */
+  @media (max-width:768px) {
+    table.notice-table { font-size:12px; table-layout:fixed; }
+    table.notice-table th, table.notice-table td { padding:9px 5px; }
+    /* 번호 */
+    table.notice-table th:nth-child(1), table.notice-table td:nth-child(1) { width:30px; text-align:center; }
+    /* 구분 */
+    table.notice-table th:nth-child(2), table.notice-table td:nth-child(2) { width:38px; text-align:center; }
+    /* 제목 — 나머지 전부 */
+    table.notice-table th:nth-child(3), table.notice-table td:nth-child(3) { width:auto; word-break:keep-all; }
+    /* 작성자 */
+    table.notice-table th:nth-child(4), table.notice-table td:nth-child(4) { width:52px; text-align:center; font-size:11px; }
+    /* 작성일 — 연-월-일 줄바꿈 허용해 좁게 */
+    table.notice-table th:nth-child(5), table.notice-table td:nth-child(5) { width:64px; text-align:center; font-size:10.5px; color:#999; line-height:1.35; }
+    .notice-badge { display:inline; padding:1px 4px; font-size:10px; margin-right:3px; }
+    .notice-header h2 { font-size:15px; }
+  }
+
   /* 글쓰기/상세 모달 */
   .notice-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:800; align-items:center; justify-content:center; }
   .notice-modal-overlay.open { display:flex; }
