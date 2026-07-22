@@ -2069,6 +2069,8 @@
       const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
       if (idx !== -1) allReservations[idx].status = newStatus;
       renderRsvList();
+      // ★ 대기 건수 재계산 → N배지 즉시 갱신 (확정 후 다른 탭 이동 시 배지 남는 문제 방지)
+      if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
 
       // 문자 발송
       if (typeof sendSMS === 'function' && selectedRsv.phone) {
@@ -2156,6 +2158,8 @@
     selectedRsv = null;
     document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
     renderRsvList();
+    // ★ 대기 건수 재계산 → N배지 즉시 갱신
+    if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
     alert(`일괄 확정 완료: 성공 ${successCount}건${failCount ? `, 실패 ${failCount}건` : ''}`);
   };
 
@@ -3519,13 +3523,37 @@
       html += `<button style="${p===currentPage?activeBtnStyle:btnStyle}" onclick="gotoPage(${p})">${p}</button>`;
     }
 
-    html += `<button style="${btnStyle}" onclick="gotoPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+    // ★ recent(최근100건) 모드에서는 마지막 페이지여도 '다음'을 활성화한다.
+    //   (누르면 gotoPage에서 전체 데이터를 로드해 이어서 페이징)
+    const canGoNext = (currentPage !== totalPages) || (_consultsMode === 'recent');
+    html += `<button style="${btnStyle}" onclick="gotoPage(${currentPage+1})" ${canGoNext?'':'disabled'}>›</button>`;
     html += `<button style="${btnStyle}" onclick="gotoPage(${totalPages})" ${currentPage===totalPages?'disabled':''}>»</button>`;
-    html += `<span style="font-size:11px;color:#999;margin-left:6px;">${totalCount}건 / ${totalPages}페이지</span>`;
+    const moreHint = (_consultsMode === 'recent') ? ' (최근 100건)' : '';
+    html += `<span style="font-size:11px;color:#999;margin-left:6px;">${totalCount}건 / ${totalPages}페이지${moreHint}</span>`;
     el.innerHTML = html;
   }
 
-  window.gotoPage = function(p) {
+  window.gotoPage = async function(p) {
+    // ★ recent(최근100건) 모드에서 마지막 페이지를 넘어가면 전체 데이터를 로드해 이어서 페이징한다.
+    //   ensureFullConsults는 내부 캐시가 있어 세션당 1회만 Firestore 전체 읽기가 발생한다.
+    if (_consultsMode === 'recent') {
+      const pageSizeEl = document.getElementById('csPageSize');
+      const pageSize = parseInt((pageSizeEl && pageSizeEl.value) || '20', 10);
+      const curTotalPages = Math.ceil((allConsults || []).length / pageSize);
+      if (p > curTotalPages) {
+        const bodyEl = document.getElementById('csTableBody');
+        if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 상담내역 불러오는 중...</td></tr>';
+        try {
+          const full = await ensureFullConsults();
+          if (full && full.length) {
+            allConsults = full;
+            _consultsMode = 'full';
+            window._allConsultsRef = allConsults;
+            if (typeof _syncConsultRefs === 'function') _syncConsultRefs();
+          }
+        } catch(e) {}
+      }
+    }
     currentPage = p;
     renderConsultList();
   };
@@ -7490,10 +7518,10 @@ function renderLeftTable() {
   });
   table.appendChild(frag);
 }
-function buildRightHeader() { const row=$('rightHeaderRow'); if(!row) return; const cols=[]; cols.push('<th style="width:14%;">품번</th>'); cols.push('<th style="width:26%;">스펙</th>'); if (state.audience === 'both') { cols.push('<th style="width:13%;">소비자가(평)</th>'); cols.push('<th style="width:13%;">업체가(평)</th>'); } else { cols.push('<th style="width:16%;">가격(평)</th>'); } if (state.box) cols.push('<th style="width:18%;">박스당 단가</th>'); if (state.sqm) cols.push('<th style="width:14%;">m² 단가</th>'); row.innerHTML=cols.join(''); }
+function buildRightHeader() { const row=$('rightHeaderRow'); if(!row) return; const cols=[]; cols.push('<th style="width:14%;">품번</th>'); cols.push('<th style="width:26%;">스펙</th>'); const unitLabel = state.sqm ? '(평/m²)' : '(평)'; if (state.audience === 'both') { cols.push(`<th style="width:15%;">소비자가${unitLabel}</th>`); cols.push(`<th style="width:15%;">업체가${unitLabel}</th>`); } else { cols.push(`<th style="width:18%;">가격${unitLabel}</th>`); } if (state.box) cols.push('<th style="width:18%;">박스당 단가</th>'); row.innerHTML=cols.join(''); }
 function boxMeta(partyProduct, party) { const amount = fmt(getUnitValue(partyProduct, party, 'box')); return `<div>${amount}</div><div class="muted meta-box">${partyProduct.sheets_per_box}장 / ${partyProduct.box_m2}㎡</div>`; }
-function renderRightTable() { const table=$('rightTable'); if(!table) return; table.innerHTML=''; const frag=document.createDocumentFragment(); const showCompany = state.audience === 'both'; state.selected.forEach(code=>{ const p=products.find(x=>x.code===code); if(!p) return; const tr=document.createElement('tr'); const cells=[]; cells.push(`<td>${p.code}</td>`); cells.push(`<td class="spec-right">${p.spec}</td>`); if (showCompany) { cells.push(`<td>${fmt(getUnitValue(p,'consumer','py'))}</td>`); cells.push(`<td>${fmt(getUnitValue(p,'vendor','py'))}</td>`); } else { cells.push(`<td>${fmt(getUnitValue(p,'consumer','py'))}</td>`); } if (state.box) { cells.push(`<td>${boxMeta(p, state.audience === 'consumer' ? 'consumer' : 'vendor')}</td>`); } if (state.sqm) { cells.push(`<td style="white-space:nowrap; font-size:12px;">${fmt(getUnitValue(p, state.audience === 'consumer' ? 'consumer' : 'vendor', 'sqm'))}</td>`); } tr.innerHTML=cells.join(''); tr.addEventListener('dblclick',()=>removeCode(p.code)); frag.appendChild(tr); }); table.appendChild(frag); }
-function buildGuideText() { const lines=['안녕하세요.','단가 안내드립니다.','']; state.selected.forEach(code=>{ const p=products.find(x=>x.code===code); if(!p) return; lines.push(`품번 : ${p.code}`); lines.push(`스펙 : ${p.spec}`); if (state.audience === 'both') { lines.push(`소비자가 : ${fmt(getUnitValue(p,'consumer','py'))}`); lines.push(`업체가 : ${fmt(getUnitValue(p,'vendor','py'))}`); } else { lines.push(`가격 : ${fmt(getUnitValue(p,'consumer','py'))}`); } if (state.box) { lines.push(`박스당 단가 : ${fmt(getUnitValue(p, state.audience === 'consumer' ? 'consumer' : 'vendor', 'box'))} (${p.sheets_per_box}장 / ${p.box_m2}㎡)`); } if (state.sqm) { lines.push(`m² 단가 : ${fmt(getUnitValue(p, state.audience === 'consumer' ? 'consumer' : 'vendor', 'sqm'))}`); } lines.push(''); }); lines.push(`■ ${modeText()}`); if (state.priceMode === 'material') { lines.push('■ 운임비 별도'); } else { lines.push('■ 공과잡비 별도 (운임비, 양중비 등)'); } lines.push('■ 평당 단순 단가이며, 실제 견적과 차이가 있을 수 있습니다.'); return lines.join('\n'); }
+function renderRightTable() { const table=$('rightTable'); if(!table) return; table.innerHTML=''; const frag=document.createDocumentFragment(); const showCompany = state.audience === 'both'; const priceCell = (p, aud) => { const py = fmt(getUnitValue(p, aud, 'py')); if (!state.sqm) return py; const sqm = fmt(getUnitValue(p, aud, 'sqm')); return `<span style="white-space:nowrap;">${py}/${sqm}</span>`; }; state.selected.forEach(code=>{ const p=products.find(x=>x.code===code); if(!p) return; const tr=document.createElement('tr'); const cells=[]; cells.push(`<td>${p.code}</td>`); cells.push(`<td class="spec-right">${p.spec}</td>`); if (showCompany) { cells.push(`<td>${priceCell(p,'consumer')}</td>`); cells.push(`<td>${priceCell(p,'vendor')}</td>`); } else { cells.push(`<td>${priceCell(p, 'consumer')}</td>`); } if (state.box) { cells.push(`<td>${boxMeta(p, state.audience === 'consumer' ? 'consumer' : 'vendor')}</td>`); } tr.innerHTML=cells.join(''); tr.addEventListener('dblclick',()=>removeCode(p.code)); frag.appendChild(tr); }); table.appendChild(frag); }
+function buildGuideText() { const lines=['안녕하세요.','단가 안내드립니다.','']; const unitLabel = state.sqm ? '(평/m²)' : ''; const priceStr = (p, aud) => { const py = fmt(getUnitValue(p, aud, 'py')); if (!state.sqm) return py; return `${py}/${fmt(getUnitValue(p, aud, 'sqm'))}`; }; state.selected.forEach(code=>{ const p=products.find(x=>x.code===code); if(!p) return; lines.push(`품번 : ${p.code}`); lines.push(`스펙 : ${p.spec}`); if (state.audience === 'both') { lines.push(`소비자가${unitLabel} : ${priceStr(p,'consumer')}`); lines.push(`업체가${unitLabel} : ${priceStr(p,'vendor')}`); } else { lines.push(`가격${unitLabel} : ${priceStr(p,'consumer')}`); } if (state.box) { lines.push(`박스당 단가 : ${fmt(getUnitValue(p, state.audience === 'consumer' ? 'consumer' : 'vendor', 'box'))} (${p.sheets_per_box}장 / ${p.box_m2}㎡)`); } lines.push(''); }); lines.push(`■ ${modeText()}`); if (state.priceMode === 'material') { lines.push('■ 운임비 별도'); } else { lines.push('■ 공과잡비 별도 (운임비, 양중비 등)'); } lines.push('■ 평당 단순 단가이며, 실제 견적과 차이가 있을 수 있습니다.'); return lines.join('\n'); }
 function renderMeta() { updateQuoteDate(); $('noticeLinePrimary').textContent = modeText(); $('noticeLineSecondary').textContent = state.priceMode === 'material' ? '운임비 별도' : '공과잡비 별도 (운임비, 양중비 등)'; $('countText').textContent = `선택 ${state.selected.length} / ${state.maxSelected}`; $('audienceSelect').value = state.audience; $('priceModeSelect').value = state.priceMode; $('boxCheck').checked = !!state.box; $('sqmCheck').checked = !!state.sqm; const ta=$('copyText'); if(ta) ta.value = buildGuideText(); }
 function renderAll() { renderLeftTable(); buildRightHeader(); renderRightTable(); renderMeta(); }
 function addCode(code) { if(!code || state.selected.includes(code)) return; if(state.selected.length >= state.maxSelected) return showToast(`선택은 최대 ${state.maxSelected}개까지만 가능합니다.`); state.selected.push(code); renderAll(); }
