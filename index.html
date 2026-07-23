@@ -1881,9 +1881,9 @@
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const selectedVal = document.getElementById('slotDate').value || '';
     let html = `<div class="slot-cal-header">
-      <button type="button" onclick="_slotCalDate.setMonth(_slotCalDate.getMonth()-1);renderSlotCalendarPublic();">‹</button>
+      <button type="button" onclick="moveSlotCalMonth(-1)">‹</button>
       <span>${y}년 ${m+1}월</span>
-      <button type="button" onclick="_slotCalDate.setMonth(_slotCalDate.getMonth()+1);renderSlotCalendarPublic();">›</button>
+      <button type="button" onclick="moveSlotCalMonth(1)">›</button>
     </div><div class="slot-cal-grid">`;
     ['일','월','화','수','목','금','토'].forEach(d => html += `<span class="slot-cal-dow">${d}</span>`);
     for (let i = 0; i < firstDay; i++) html += `<span></span>`;
@@ -1896,6 +1896,13 @@
     popup.innerHTML = html;
   }
   window.renderSlotCalendarPublic = renderSlotCalendar;
+  // 달 이동 전용 (화살표 버튼에서 호출). 항상 1일 기준으로 옮겨
+  // 31일에서 30일뿐인 달로 넘어갈 때 달이 건너뛰는 현상을 막는다.
+  window.moveSlotCalMonth = function(delta) {
+    const y = _slotCalDate.getFullYear(), m = _slotCalDate.getMonth();
+    _slotCalDate = new Date(y, m + delta, 1);
+    renderSlotCalendar();
+  };
   window.pickSlotDate = function(dateStr) {
     document.getElementById('slotDate').value = dateStr;
     document.getElementById('slotCalendarPopup').style.display = 'none';
