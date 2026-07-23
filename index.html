@@ -7,8 +7,10 @@
 
 <script type="module">
   // ══════════════════════════════════════════════════════════════
-  //  Firebase 초기화 (Firestore 이전 1단계: 문자템플릿·월별휴무안내·
+  //  Firebase 초기화 (Firestore 이전 1단계: 문자템플릿·
   //  문자발송내역·예약접수·예약관리)
+  //  ※ 월별휴무안내는 예외 — 예약페이지(RESERVE)가 구글시트를 직접 읽어가므로
+  //    ERP의 저장/불러오기도 구글시트('월별휴무안내' 시트)를 사용한다.
   //  로그인 UI/절차는 기존 앱스스크립트 방식 그대로 유지하고,
   //  로그인 성공 시점(unlock 함수)에서 조용히 Firebase 익명 인증을 함께 실행해
   //  Firestore 보안 규칙이 "인증된 사용자만 허용"을 걸 수 있도록 한다.
@@ -7090,10 +7092,12 @@ function csDateInputValue(val) {
       if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
       const savedEl = document.getElementById('monthlyNoticeSaved');
       try {
-        await window.fbEnsureAuth();
-        const ref = window.FB.doc(window.FB.db, 'settings', 'monthlyNotice');
-        // _monthlyData 객체를 문서 필드로 그대로 저장 (merge로 다른 월 데이터 보존)
-        await window.FB.setDoc(ref, _monthlyData, { merge: true });
+        // ★ 월별 휴무안내만 구글시트를 사용한다 (예약페이지가 구글시트를 읽어가므로).
+        //   나머지 데이터는 기존대로 Firestore 유지.
+        const url = `${window.RESERVE_URL}?action=saveMonthlyNotice&notice=${encodeURIComponent(JSON.stringify(_monthlyData))}`;
+        const res = await window.fetchWithRetry(url, undefined, 1, 30000);
+        const data = await res.json();
+        if (!data || data.status !== 'ok') throw new Error((data && data.message) || '저장 실패');
         if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => savedEl.style.display = 'none', 2500); }
         renderNoticePreview();
       } catch(e) { alert('오류: ' + e.message); }
@@ -7115,14 +7119,21 @@ function csDateInputValue(val) {
 
     async function loadMonthlyNoticeEditor() {
       try {
-        await window.fbEnsureAuth();
-        const ref = window.FB.doc(window.FB.db, 'settings', 'monthlyNotice');
-        const snap = await window.FB.getDoc(ref);
-        _monthlyData = snap.exists() ? (snap.data() || {}) : {};
+        // ★ 월별 휴무안내만 구글시트에서 읽는다 (예약페이지와 동일 출처).
+        const url = `${window.RESERVE_URL}?action=getMonthlyNotice`;
+        const res = await window.fetchWithRetry(url, undefined, 1, 30000);
+        const data = await res.json();
+        if (!data || data.status !== 'ok') throw new Error((data && data.message) || '조회 실패');
+        _monthlyData = data.notices || {};
         const ed = document.getElementById('monthlyNoticeEditor');
         const key = `${_noticeYear}_${_selectedMonth}`;
         if (ed) ed.value = _monthlyData[key] || '';
-      } catch(e) {}
+      } catch(e) {
+        // 조용히 사라지지 않도록 흔적을 남긴다 (편집기 화면에만 표시)
+        console.warn('[월별휴무안내] 불러오기 실패:', e && e.message);
+        const ed = document.getElementById('monthlyNoticeEditor');
+        if (ed && !ed.value) ed.placeholder = '휴무안내를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.';
+      }
       updateMonthBtns();
       // 데이터 로드 완료 후 미리보기 강제 렌더링
       const key = `${_noticeYear}_${_selectedMonth}`;
