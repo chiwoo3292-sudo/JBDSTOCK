@@ -3390,7 +3390,7 @@
       allConsults = await _searchConsultsByPrefix(q);
       _consultsMode = 'searchResult';
       _syncConsultRefs();
-    } else if (_consultsMode !== 'recent') {
+    } else if (_consultsMode !== 'recent' && _consultsMode !== 'full') {
       allConsults = _consultsCache || [];
       _consultsMode = 'recent';
       _syncConsultRefs();
@@ -3438,7 +3438,10 @@
       }
       if (va < vb) return csSort.dir === 'asc' ? -1 : 1;
       if (va > vb) return csSort.dir === 'asc' ? 1 : -1;
-      return 0;
+      // 값이 같을 때: 최근100건/전체 경계에서 겹침·누락이 없도록 안정적 보조 기준 적용
+      const ca = Number(a.createdAtMs || 0), cb = Number(b.createdAtMs || 0);
+      if (ca !== cb) return cb - ca; // 최신순 고정
+      return String(a._docId || '').localeCompare(String(b._docId || ''));
     });
 
     const pageSize = parseInt(document.getElementById('csPageSize').value || '20', 10);
@@ -3543,15 +3546,22 @@
       if (p > curTotalPages) {
         const bodyEl = document.getElementById('csTableBody');
         if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 상담내역 불러오는 중...</td></tr>';
+        let full = [];
         try {
-          const full = await ensureFullConsults();
-          if (full && full.length) {
-            allConsults = full;
-            _consultsMode = 'full';
-            window._allConsultsRef = allConsults;
-            if (typeof _syncConsultRefs === 'function') _syncConsultRefs();
-          }
-        } catch(e) {}
+          full = await ensureFullConsults();
+        } catch(e) { full = []; }
+        if (full && full.length) {
+          allConsults = full;
+          _consultsMode = 'full';
+          window._allConsultsRef = allConsults;
+          if (typeof _syncConsultRefs === 'function') _syncConsultRefs();
+        } else {
+          // 전체 불러오기 실패/빈손: 무반응 방지 — 안내 후 현재 페이지 유지
+          if (bodyEl) bodyEl.innerHTML = '<tr class="dw-empty-row"><td colspan="8">전체 상담내역을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</td></tr>';
+          alert('전체 상담내역을 불러오지 못했습니다.\n네트워크 상태를 확인한 뒤 다시 시도해주세요.');
+          renderConsultList();
+          return;
+        }
       }
     }
     currentPage = p;
