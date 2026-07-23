@@ -1881,9 +1881,9 @@
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const selectedVal = document.getElementById('slotDate').value || '';
     let html = `<div class="slot-cal-header">
-      <button type="button" onclick="moveSlotCalMonth(-1)">‹</button>
+      <button type="button" onclick="event.stopPropagation();moveSlotCalMonth(-1)">‹</button>
       <span>${y}년 ${m+1}월</span>
-      <button type="button" onclick="moveSlotCalMonth(1)">›</button>
+      <button type="button" onclick="event.stopPropagation();moveSlotCalMonth(1)">›</button>
     </div><div class="slot-cal-grid">`;
     ['일','월','화','수','목','금','토'].forEach(d => html += `<span class="slot-cal-dow">${d}</span>`);
     for (let i = 0; i < firstDay; i++) html += `<span></span>`;
@@ -1911,9 +1911,14 @@
   document.addEventListener('click', function(e) {
     const popup = document.getElementById('slotCalendarPopup');
     const dateInput = document.getElementById('slotDate');
-    if (popup && popup.style.display === 'block' && !popup.contains(e.target) && e.target !== dateInput) {
-      popup.style.display = 'none';
-    }
+    if (!popup || popup.style.display !== 'block') return;
+    if (e.target === dateInput) return;
+    // 달력을 다시 그리면 방금 누른 버튼이 화면에서 사라져 popup.contains가 false가 된다.
+    // 이 경우를 '바깥 클릭'으로 오판해 달력이 닫히므로, 화면에서 이미 떨어져 나간
+    // 요소(=방금 다시 그려진 달력의 일부)는 바깥으로 보지 않는다.
+    if (!document.contains(e.target)) return;
+    if (popup.contains(e.target)) return;
+    popup.style.display = 'none';
   });
 
   // ── 예약 목록 불러오기 (Firestore) ──
