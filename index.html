@@ -1684,6 +1684,9 @@
   .rsv-btn-cancel  { background:#fff; color:#842029; border:1px solid #dc3545; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; width:100%; }
   .rsv-btn-confirm:hover { background:#155c35; }
   .rsv-btn-cancel:hover  { background:#f8d7da; }
+  /* 예약삭제(문자발송X) — 한 줄 전체 차지, 회색으로 구분 */
+  .rsv-btn-delete { grid-column:1 / -1; background:#fff; color:#555; border:1px solid #adb5bd; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; width:100%; }
+  .rsv-btn-delete:hover { background:#e9ecef; color:#212529; }
   .rsv-empty { text-align:center; color:#aaa; font-size:13px; padding:40px 0; }
 
   /* 슬롯관리 */
@@ -2065,12 +2068,35 @@
         `).join('')}
       </div>
       <div class="rsv-action-row">
-        <button class="rsv-btn-confirm" onclick="updateStatus('예약')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>예약 확정</button>
-        <button class="rsv-btn-cancel"  onclick="updateStatus('취소')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M18 6 6 18M6 6l12 12"/></svg>예약 취소</button>
+        <button class="rsv-btn-confirm" onclick="updateStatus('예약')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>예약확정(문자발송)</button>
+        <button class="rsv-btn-cancel"  onclick="updateStatus('취소')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M18 6 6 18M6 6l12 12"/></svg>예약취소(문자발송)</button>
+        <button class="rsv-btn-delete"  onclick="deleteReservation()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/></svg>예약삭제(문자발송X)</button>
       </div>
       <div id="rsvActionMsg" style="font-size:12px;color:#555;text-align:center;"></div>
     `;
   }
+
+  // ── 예약 삭제 (문자발송 없음. 예약 문서를 완전히 삭제) ──
+  window.deleteReservation = async function() {
+    if (!selectedRsv) return;
+    if (!confirm(`[${selectedRsv.name}] 예약을 완전히 삭제하시겠습니까?\n(문자는 발송되지 않으며, 삭제된 예약은 복구할 수 없습니다.)`)) return;
+    document.getElementById('rsvActionMsg').textContent = '삭제 중...';
+    try {
+      await window.fbEnsureAuth();
+      const ref = window.FB.doc(window.FB.db, 'reservations', selectedRsv.receiptNo);
+      await window.FB.deleteDoc(ref);
+      // 목록에서 제거
+      const idx = allReservations.findIndex(r => r.receiptNo === selectedRsv.receiptNo);
+      if (idx !== -1) allReservations.splice(idx, 1);
+      renderRsvList();
+      if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
+      selectedRsv = null;
+      document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
+      document.getElementById('rsvActionMsg').textContent = '';
+    } catch(e) {
+      document.getElementById('rsvActionMsg').textContent = '오류: ' + e.message;
+    }
+  };
 
   // ── 상태 변경 (Firestore) ──
   window.updateStatus = async function(newStatus) {
@@ -7704,6 +7730,9 @@ function setTab(tabId, fromPopstate) {
   if (tabId === 'emailTab' && typeof loadEmailTab === 'function') {
     loadEmailTab();
   }
+  if (tabId === 'orgTab') {
+    console.log('[조직도] 탭 진입. loadOrgTab 타입:', typeof loadOrgTab);
+  }
   if (tabId === 'orgTab' && typeof loadOrgTab === 'function') {
     loadOrgTab();
     const handle = document.getElementById('orgEmpHandle');
@@ -11209,6 +11238,7 @@ if ('serviceWorker' in navigator) {
 // ================================================================
 //  조직도 탭 JS
 // ================================================================
+console.log('[조직도] 스크립트 블록 진입');
 (function() {
   const DEPTS = ['영업','회계','R&D','물류'];
   let _orgEmps = [];
@@ -11235,7 +11265,9 @@ if ('serviceWorker' in navigator) {
   };
 
   window.loadOrgTab = async function() {
+    console.log('[조직도] loadOrgTab 호출됨');
     const wrap = document.getElementById('orgChartWrap');
+    console.log('[조직도] orgChartWrap 존재:', !!wrap);
     // 실패해도 사원목록 손잡이는 먼저 켜둔다 (조직도와 무관하게 쓸 수 있도록)
     const handle = document.getElementById('orgEmpHandle');
     if (handle) handle.style.display = 'flex';
