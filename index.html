@@ -2472,6 +2472,52 @@
 
   /* 테이블 (엑셀 스타일 리사이즈) */
   .dw-table-scroll { overflow-x:auto; }
+
+  /* ── 리스트/캘린더 뷰 전환 버튼 ── */
+  .cs-viewtoggle { display:inline-flex; border:1.5px solid #D8C7AE; border-radius:8px; overflow:hidden; margin-left:8px; }
+  .cs-viewtoggle-btn { background:#fff; border:none; padding:7px 16px; font-size:12.5px; font-weight:700; color:#8a6a48; cursor:pointer; transition:background .12s,color .12s; }
+  .cs-viewtoggle-btn + .cs-viewtoggle-btn { border-left:1.5px solid #D8C7AE; }
+  .cs-viewtoggle-btn.active { background:#A2693E; color:#fff; }
+  .cs-viewtoggle-btn:not(.active):hover { background:#F3EADB; }
+
+  /* ── 캘린더 뷰 ── */
+  #csCalendarView { user-select:none; }
+  .cscal-header { display:flex; align-items:center; justify-content:space-between; padding:14px 2px 12px; flex-wrap:wrap; gap:8px; }
+  .cscal-nav { display:flex; align-items:center; gap:10px; }
+  .cscal-navbtn { width:34px; height:34px; border:1px solid #E5D9C6; background:#fff; border-radius:8px; font-size:20px; line-height:1; color:#8a6a48; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cscal-navbtn:hover { background:#F3EADB; border-color:#A2693E; }
+  .cscal-title { font-size:20px; font-weight:800; color:#333; min-width:118px; text-align:center; letter-spacing:.5px; }
+  .cscal-today { border:1px solid #E5D9C6; background:#fff; border-radius:8px; padding:7px 14px; font-size:12.5px; font-weight:700; color:#8a6a48; cursor:pointer; margin-left:2px; }
+  .cscal-today:hover { background:#F3EADB; border-color:#A2693E; }
+  .cscal-hint { font-size:11.5px; color:#aaa; }
+  .cscal-grid-head { display:grid; grid-template-columns:repeat(7,1fr); border-top:2px solid #D8C7AE; }
+  .cscal-dow { text-align:center; padding:10px 0; font-size:13px; font-weight:800; color:#666; }
+  .cscal-dow.sun { color:#d6493f; }
+  .cscal-dow.sat { color:#2c5fc4; }
+  .cscal-grid { display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:minmax(118px,auto); border-left:1px solid #ECE3D3; }
+  .cscal-cell { border-right:1px solid #ECE3D3; border-bottom:1px solid #ECE3D3; padding:5px 5px 7px; min-height:118px; overflow:hidden; position:relative; background:#fff; }
+  .cscal-cell.other { background:#faf8f4; }
+  .cscal-daynum { font-size:12.5px; font-weight:700; color:#555; margin-bottom:4px; display:inline-block; }
+  .cscal-cell.other .cscal-daynum { color:#c4bcae; }
+  .cscal-cell.sun .cscal-daynum { color:#d6493f; }
+  .cscal-cell.today .cscal-daynum { background:#A2693E; color:#fff; border-radius:50%; width:22px; height:22px; line-height:22px; text-align:center; }
+  .cscal-ev { display:block; width:100%; background:#F1EADF; border-radius:5px; padding:2px 6px; margin-bottom:3px; font-size:11px; color:#5b4a35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; box-sizing:border-box; text-align:left; border:none; }
+  .cscal-ev:hover { background:#E4D6BF; }
+  .cscal-ev .t { color:#A2693E; font-weight:700; margin-right:4px; }
+  .cscal-more { display:inline-block; font-size:11px; color:#999; font-weight:700; cursor:pointer; padding:1px 4px; margin-top:1px; }
+  .cscal-more:hover { color:#A2693E; text-decoration:underline; }
+  .cscal-loading, .cscal-empty { grid-column:1 / -1; text-align:center; padding:50px 0; color:#aaa; font-size:13px; }
+
+  /* 날짜 팝오버 */
+  .cscal-popover { position:fixed; z-index:100000; width:230px; max-height:360px; background:#fff; border:1px solid #E5D9C6; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; overflow:hidden; }
+  .cscal-pop-head { display:flex; align-items:center; justify-content:space-between; padding:12px 14px 10px; font-size:15px; font-weight:800; color:#333; border-bottom:1px solid #f0ece3; }
+  .cscal-pop-close { background:none; border:none; font-size:20px; color:#aaa; cursor:pointer; line-height:1; padding:0 2px; }
+  .cscal-pop-close:hover { color:#666; }
+  .cscal-pop-body { overflow-y:auto; padding:8px; }
+  .cscal-pop-item { display:block; width:100%; background:#F1EADF; border:none; border-radius:6px; padding:7px 10px; margin-bottom:5px; font-size:12px; color:#5b4a35; cursor:pointer; text-align:left; box-sizing:border-box; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cscal-pop-item:hover { background:#E4D6BF; }
+  .cscal-pop-item .t { color:#A2693E; font-weight:700; margin-right:5px; }
+
   table.dw-table { border-collapse:collapse; font-size:12.5px; table-layout:fixed; min-width:100%; }
   table.dw-table thead th { position:relative; padding:8px 8px; text-align:center; font-weight:800; color:#fff; background:#A2693E; border:1.5px solid #8a5730; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
   table.dw-table tbody td { padding:6.5px 8px; text-align:center; border:1.5px solid #C9B695; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -2664,6 +2710,10 @@
       <span class="icon" onclick="searchConsultAndRefresh()" style="cursor:pointer;pointer-events:auto;padding:6px;margin:-6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
     </div>
     <button class="dw-cond-btn" id="csCondBtn" onclick="toggleCondPanel()">+ 조건추가</button>
+    <div class="cs-viewtoggle" role="group" aria-label="보기 전환">
+      <button type="button" id="csViewListBtn" class="cs-viewtoggle-btn active" onclick="setConsultView('list')">리스트</button>
+      <button type="button" id="csViewCalBtn" class="cs-viewtoggle-btn" onclick="setConsultView('calendar')">캘린더</button>
+    </div>
   </div>
 
   <!-- 조건 패널 -->
@@ -2712,6 +2762,7 @@
     </select>
   </div>
 
+  <div id="csListView">
   <div class="dw-table-scroll">
     <table class="dw-table" id="csTable">
       <thead>
@@ -2734,8 +2785,40 @@
 
   <!-- 페이지네이션 -->
   <div id="csPagination" style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;"></div>
+  </div><!-- /#csListView -->
 
-</div>
+  <!-- ============================================================ -->
+  <!-- 캘린더 뷰 (월간) — 기본 숨김, 전환 버튼으로 표시 -->
+  <!-- ============================================================ -->
+  <div id="csCalendarView" style="display:none;">
+    <div class="cscal-header">
+      <div class="cscal-nav">
+        <button type="button" class="cscal-navbtn" onclick="csCalMove(-1)" aria-label="이전 달">‹</button>
+        <span class="cscal-title" id="cscalTitle">—</span>
+        <button type="button" class="cscal-navbtn" onclick="csCalMove(1)" aria-label="다음 달">›</button>
+        <button type="button" class="cscal-today" onclick="csCalToday()">오늘</button>
+      </div>
+      <div class="cscal-hint">예약·상담완료 등 진행된 상담만 표시 (취소 제외)</div>
+    </div>
+    <div class="cscal-grid-head">
+      <span class="cscal-dow sun">일</span><span class="cscal-dow">월</span><span class="cscal-dow">화</span>
+      <span class="cscal-dow">수</span><span class="cscal-dow">목</span><span class="cscal-dow">금</span><span class="cscal-dow sat">토</span>
+    </div>
+    <div class="cscal-grid" id="cscalGrid">
+      <div class="cscal-loading">캘린더를 불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- 특정 날짜 전체 목록 팝오버 -->
+  <div id="cscalPopover" class="cscal-popover" style="display:none;">
+    <div class="cscal-pop-head">
+      <span id="cscalPopDate">—</span>
+      <button type="button" class="cscal-pop-close" onclick="csCalClosePopover()" aria-label="닫기">×</button>
+    </div>
+    <div class="cscal-pop-body" id="cscalPopBody"></div>
+  </div>
+
+</div><!-- /.dw-wrap -->
 
 <!-- ============================================================ -->
 <!-- 등록/상세 폼 (전체화면) -->
@@ -4185,6 +4268,208 @@ function csDateInputValue(val) {
       document.getElementById('cfMsg').textContent = '오류: ' + e.message;
     }
   };
+
+  // ============================================================
+  //  쇼룸상담 캘린더 뷰 (월간)
+  //  - 리스트/캘린더 전환, 보는 월만 그때그때 조회(취소 제외, 진행된 건만)
+  //  - 칸/팝오버 항목 클릭 → 기존 상세 폼(openConsultDetail) 재사용
+  // ============================================================
+  let _csView = 'list';
+  let _csCalYear, _csCalMonth;          // 현재 보고 있는 연/월(0-based month)
+  const _csCalCache = {};               // 'YYYY-M' → 그 달 상담 배열 (재조회 방지)
+  const CS_CAL_MAX = 6;                 // 한 칸에 표시할 최대 건수(넘으면 +N)
+
+  // 취소로 볼 상태들 (표시 제외)
+  function _csIsCancelled(r) {
+    const s = String(getDisplayStatus(r) || '').replace(/\s/g,'');
+    return s === '취소' || s === '예약취소' || s === '상담취소' || s === '노쇼' || s === '미방문';
+  }
+
+  // 상담의 정확한 시각(ms) — time이 "13:30~14:00" 형식이면 시작시간만 사용해야
+  // 같은 날 시간순 정렬이 올바르게 된다(_consultDateToMs는 5자리 HH:MM만 반영하므로).
+  function _csRowMs(r) {
+    const start = r.time ? String(r.time).split('~')[0].trim() : '';
+    return window._consultDateToMs(r.date, start);
+  }
+
+  window.setConsultView = function(view) {
+    _csView = view;
+    const listEl = document.getElementById('csListView');
+    const calEl  = document.getElementById('csCalendarView');
+    const lb = document.getElementById('csViewListBtn');
+    const cb = document.getElementById('csViewCalBtn');
+    if (view === 'calendar') {
+      listEl.style.display = 'none';
+      calEl.style.display = 'block';
+      lb.classList.remove('active'); cb.classList.add('active');
+      if (_csCalYear == null) { const t = new Date(); _csCalYear = t.getFullYear(); _csCalMonth = t.getMonth(); }
+      renderCsCalendar();
+    } else {
+      calEl.style.display = 'none';
+      listEl.style.display = 'block';
+      cb.classList.remove('active'); lb.classList.add('active');
+      csCalClosePopover();
+    }
+  };
+
+  window.csCalMove = function(delta) {
+    csCalClosePopover();
+    _csCalMonth += delta;
+    if (_csCalMonth < 0) { _csCalMonth = 11; _csCalYear--; }
+    else if (_csCalMonth > 11) { _csCalMonth = 0; _csCalYear++; }
+    renderCsCalendar();
+  };
+  window.csCalToday = function() {
+    csCalClosePopover();
+    const t = new Date(); _csCalYear = t.getFullYear(); _csCalMonth = t.getMonth();
+    renderCsCalendar();
+  };
+
+  // 특정 월 상담 조회 (createdAtMs 범위 쿼리 → 캐시)
+  async function _fetchMonthConsults(year, month) {
+    const key = `${year}-${month}`;
+    if (_csCalCache[key]) return _csCalCache[key];
+    const startMs = new Date(year, month, 1, 0, 0, 0).getTime();
+    const endMs   = new Date(year, month + 1, 1, 0, 0, 0).getTime() - 1;
+    await window.fbEnsureAuth();
+    const col = window.FB.collection(window.FB.db, 'consults');
+    const qy = window.FB.query(col,
+      window.FB.orderBy('createdAtMs', 'asc'),
+      window.FB.where('createdAtMs', '>=', startMs),
+      window.FB.where('createdAtMs', '<=', endMs)
+    );
+    const snap = await window.FB.getDocs(qy);
+    const rows = snap.docs.map(d => ({ ...d.data(), _docId: d.id }))
+      .filter(r => !_csIsCancelled(r));   // 취소 제외
+    _csCalCache[key] = rows;
+    return rows;
+  }
+
+  async function renderCsCalendar() {
+    const grid = document.getElementById('cscalGrid');
+    document.getElementById('cscalTitle').textContent = `${_csCalYear}.${String(_csCalMonth+1).padStart(2,'0')}`;
+    grid.innerHTML = '<div class="cscal-loading">캘린더를 불러오는 중...</div>';
+
+    let rows;
+    try {
+      rows = await _fetchMonthConsults(_csCalYear, _csCalMonth);
+    } catch(e) {
+      grid.innerHTML = `<div class="cscal-empty">불러오지 못했습니다: ${e && e.message || ''}</div>`;
+      return;
+    }
+    // 다른 달로 이동해버렸으면(빠른 연타) 이 결과는 버림
+    if (document.getElementById('cscalTitle').textContent !== `${_csCalYear}.${String(_csCalMonth+1).padStart(2,'0')}`) return;
+
+    const map = await loadAllStaffMap();
+
+    // 날짜(1~말일)별로 묶기
+    const byDay = {};
+    rows.forEach(r => {
+      const ms = _csRowMs(r);
+      if (!ms) return;
+      const d = new Date(ms);
+      if (d.getFullYear() !== _csCalYear || d.getMonth() !== _csCalMonth) return;
+      const day = d.getDate();
+      (byDay[day] = byDay[day] || []).push({ r, ms });
+    });
+    Object.values(byDay).forEach(arr => arr.sort((a,b) => a.ms - b.ms)); // 시간순
+
+    // 격자 구성 (앞 빈칸 + 말일 + 뒤 빈칸, 7의 배수)
+    const firstDow = new Date(_csCalYear, _csCalMonth, 1).getDay();
+    const daysInMonth = new Date(_csCalYear, _csCalMonth+1, 0).getDate();
+    const prevDays = new Date(_csCalYear, _csCalMonth, 0).getDate();
+    const today = new Date();
+    const isThisMonthToday = today.getFullYear() === _csCalYear && today.getMonth() === _csCalMonth;
+
+    const cells = [];
+    for (let i = 0; i < firstDow; i++) cells.push({ other:true, day: prevDays - firstDow + 1 + i });
+    for (let d = 1; d <= daysInMonth; d++) cells.push({ other:false, day:d });
+    while (cells.length % 7 !== 0) cells.push({ other:true, day: cells.length - (firstDow + daysInMonth) + 1 });
+
+    const evLabel = (r) => {
+      const nm = attachTitle(r.name || '', map) || (r.name || '(무명)');
+      const tm = r.time ? String(r.time).split('~')[0].trim() : '';
+      return { nm, tm };
+    };
+
+    grid.innerHTML = cells.map((c, idx) => {
+      const dow = idx % 7;
+      const cls = ['cscal-cell'];
+      if (c.other) cls.push('other');
+      if (dow === 0) cls.push('sun');
+      if (!c.other && isThisMonthToday && c.day === today.getDate()) cls.push('today');
+      let inner = `<span class="cscal-daynum">${c.day}</span>`;
+      if (!c.other && byDay[c.day]) {
+        const items = byDay[c.day];
+        const shown = items.slice(0, CS_CAL_MAX);
+        inner += shown.map(({r}) => {
+          const { nm, tm } = evLabel(r);
+          return `<button type="button" class="cscal-ev" onclick="csCalOpenDetail('${r._docId}')">`
+               + (tm ? `<span class="t">${tm}</span>` : '') + `${_esc(nm)}</button>`;
+        }).join('');
+        if (items.length > CS_CAL_MAX) {
+          inner += `<span class="cscal-more" onclick="csCalShowDay(${c.day}, event)">+${items.length - CS_CAL_MAX}</span>`;
+        }
+      }
+      return `<div class="${cls.join(' ')}">${inner}</div>`;
+    }).join('');
+  }
+
+  // 로컬 이스케이프 (attachTitle 결과 등)
+  function _esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  // 캘린더 항목 클릭 → 기존 상세 폼 재사용
+  //   openConsultDetail은 allConsults[idx]를 보므로, 해당 문서를 임시 편입 후 그 인덱스로 연다.
+  window.csCalOpenDetail = function(docId) {
+    let all = null;
+    for (const arr of Object.values(_csCalCache)) {
+      const hit = arr.find(x => x._docId === docId);
+      if (hit) { all = hit; break; }
+    }
+    if (!all) return;
+    let idx = allConsults.findIndex(x => x._docId === docId);
+    if (idx === -1) { allConsults.push(all); idx = allConsults.length - 1; _syncConsultRefs(); }
+    openConsultDetail(idx);
+  };
+
+  // +N 클릭 → 그 날 전체 팝오버
+  window.csCalShowDay = function(day, ev) {
+    if (ev) ev.stopPropagation();
+    const key = `${_csCalYear}-${_csCalMonth}`;
+    const rows = (_csCalCache[key] || [])
+      .map(r => ({ r, ms: _csRowMs(r) }))
+      .filter(x => { const d = new Date(x.ms); return x.ms && d.getDate() === day && d.getMonth() === _csCalMonth; })
+      .sort((a,b) => a.ms - b.ms);
+    const pop = document.getElementById('cscalPopover');
+    document.getElementById('cscalPopDate').textContent = `${_csCalMonth+1}월 ${day}일 (${rows.length}건)`;
+    loadAllStaffMap().then(map => {
+      document.getElementById('cscalPopBody').innerHTML = rows.map(({r}) => {
+        const nm = attachTitle(r.name || '', map) || (r.name || '(무명)');
+        const tm = r.time ? String(r.time).split('~')[0].trim() : '';
+        return `<button type="button" class="cscal-pop-item" onclick="csCalClosePopover();csCalOpenDetail('${r._docId}')">`
+             + (tm ? `<span class="t">${tm}</span>` : '') + `${_esc(nm)}</button>`;
+      }).join('') || '<div style="padding:14px;color:#aaa;font-size:12px;text-align:center;">표시할 상담이 없습니다.</div>';
+    });
+    // 위치: 클릭 지점 근처
+    pop.style.display = 'flex';
+    const x = ev ? ev.clientX : window.innerWidth/2;
+    const y = ev ? ev.clientY : window.innerHeight/2;
+    const pw = 230, ph = Math.min(360, rows.length*38 + 60);
+    pop.style.left = Math.min(x, window.innerWidth - pw - 12) + 'px';
+    pop.style.top  = Math.min(y, window.innerHeight - ph - 12) + 'px';
+  };
+  window.csCalClosePopover = function() {
+    const pop = document.getElementById('cscalPopover');
+    if (pop) pop.style.display = 'none';
+  };
+  // 바깥 클릭 시 팝오버 닫기
+  document.addEventListener('click', function(e) {
+    const pop = document.getElementById('cscalPopover');
+    if (!pop || pop.style.display === 'none') return;
+    if (pop.contains(e.target)) return;
+    if (e.target.classList && e.target.classList.contains('cscal-more')) return;
+    pop.style.display = 'none';
+  });
 })();
 </script>
 </section>
