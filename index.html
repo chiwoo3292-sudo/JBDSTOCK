@@ -6976,7 +6976,27 @@ function csDateInputValue(val) {
 
   // ── 쇼룸상담 Firestore 초기 마이그레이션 ──
   //   구글시트 [쇼룸상담] 전체를 1회 조회(getConsultsFull)한 뒤 Firestore로 batch 업로드.
-  //   문서 ID를 시트 행번호(row_N) 기준으로 고정해 재실행해도 중복 생성되지 않는다(멱등성).
+  //   ★ 문서 ID를 '날짜+이름+번호+시간' 조합으로 고정 → 같은 상담은 항상 같은 ID가 되어
+  //     몇 번을 올리든 덮어써질 뿐 중복 생성되지 않는다(멱등성).
+  //     (기존엔 행번호 기반이라, batch 실패 후 건별 재시도에서 랜덤 ID로 빠져 2개씩 쌓이는 문제가 있었음)
+
+  // Firestore 문서 ID로 쓸 수 있게 안전화 (슬래시·공백·따옴표 등 금지문자 제거)
+  function _consultDocId(r) {
+    const norm = v => String(v == null ? '' : v)
+      .replace(/[^0-9A-Za-z가-힣]/g, '');   // 문서ID 금지문자 제거, 한글·영숫자만 남김
+    const date  = norm(r.date);
+    const name  = norm(r.name);
+    const phone = String(r.phone||'').replace(/[^0-9]/g,''); // 번호는 숫자만
+    const time  = norm(r.time);
+    const base = `c_${date}_${name}_${phone}_${time}`;
+    // 안전장치: 4개 값이 모두 비어 조합이 무의미하면(빈 상담) 행번호로 폴백
+    if (!date && !name && !phone && !time) {
+      return r._rowIndex != null ? ('row_' + r._rowIndex) : null;
+    }
+    // Firestore 문서 ID 최대 1500바이트 — 한글 고려해 안전하게 자름
+    return base.slice(0, 400);
+  }
+
   // 상담 1건을 Firestore 문서로 변환 (파생 필드 포함) — 마이그레이션에서 재사용
   function _buildConsultRecord(r) {
     const rec = { ...r };
@@ -7037,7 +7057,8 @@ function csDateInputValue(val) {
           try {
             const batch = window.FB.writeBatch(window.FB.db);
             slice.forEach(r => {
-              const id = 'row_' + (r._rowIndex != null ? r._rowIndex : ('noidx_' + offset + '_' + i));
+              // 조합 고정 ID (없으면 행번호 폴백)
+              const id = _consultDocId(r) || ('row_' + (r._rowIndex != null ? r._rowIndex : ('noidx_' + offset + '_' + i)));
               const ref = window.FB.doc(window.FB.db, 'consults', id);
               batch.set(ref, _buildConsultRecord(r));
             });
@@ -7047,7 +7068,8 @@ function csDateInputValue(val) {
             // batch 전체 실패 — 건별로 재시도해서 문제되는 것만 골라낸다
             for (const r of slice) {
               try {
-                const id = 'row_' + (r._rowIndex != null ? r._rowIndex : Math.random().toString(36).slice(2));
+                // ★ 랜덤 ID 금지 — 조합 고정 ID 사용(이게 2개씩 쌓이던 원인이었음)
+                const id = _consultDocId(r) || ('row_' + (r._rowIndex != null ? r._rowIndex : ('rowless_' + successCount)));
                 const ref = window.FB.doc(window.FB.db, 'consults', id);
                 await window.FB.setDoc(ref, _buildConsultRecord(r));
                 successCount++;
@@ -10883,7 +10905,15 @@ if ('serviceWorker' in navigator) {
           r.phoneDigits = String(r.phone||'').replace(/[^0-9]/g,'');
           r.createdAtMs = window._consultDateToMs(r.date, r.time) || Date.now();
           r.updatedAtMs = Date.now();
-          batch.set(window.FB.doc(col), r);
+          // ★ 날짜+이름+번호+시간 조합 고정 ID — 같은 상담은 항상 같은 문서로 덮어써져 중복 안 생김.
+          //   (기존엔 doc(col)로 매번 새 ID라, 같은 CSV를 다시 올리면 그대로 중복됐음)
+          const _norm = v => String(v==null?'':v).replace(/[^0-9A-Za-z가-힣]/g,'');
+          const _pd = String(r.phone||'').replace(/[^0-9]/g,'');
+          const _id = (`${_norm(r.date)}${_norm(r.name)}${_pd}${_norm(r.time)}`)
+            ? (`c_${_norm(r.date)}_${_norm(r.name)}_${_pd}_${_norm(r.time)}`).slice(0,400)
+            : null;
+          const ref = _id ? window.FB.doc(col, _id) : window.FB.doc(col);
+          batch.set(ref, r);
         });
         await batch.commit();
         imported += chunk.length;
