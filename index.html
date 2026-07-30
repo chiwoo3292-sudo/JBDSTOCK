@@ -11372,6 +11372,7 @@ if ('serviceWorker' in navigator) {
   let _leaveSchedMon  = new Date().getMonth();
   let _selectedDates  = []; // 'YYYY-MM-DD' 배열
   let _leaveType  = '연차';
+  let _halfDayPeriod = '오전'; // 반차일 때 오전/오후 (기본 오전)
   let _isDragging = false;
   let _dragStart  = null;
   let _allLeaves  = []; // 전체 휴가 내역 캐시
@@ -11413,6 +11414,7 @@ if ('serviceWorker' in navigator) {
     const panel = document.getElementById('leavePanel');
     panel.style.display = 'flex';
     document.getElementById('userDropdown').classList.remove('open');
+    if (typeof setLeaveType === 'function') setLeaveType('연차'); // 초기값: 연차, 반차UI 숨김
     renderLeaveCal();
     loadLeaveData();
   };
@@ -11522,6 +11524,21 @@ if ('serviceWorker' in navigator) {
       if (t === type) { btn.style.background='#A2693E'; btn.style.color='#fff'; btn.style.borderColor='#A2693E'; }
       else { btn.style.background='#fff'; btn.style.color='#888'; btn.style.borderColor='#ddd'; }
     });
+    // 반차일 때만 오전/오후 세부 선택 표시
+    const half = document.getElementById('halfDayOptions');
+    if (half) half.style.display = (type === '반차') ? 'flex' : 'none';
+    updateSelectedInfo();
+  };
+
+  window.setHalfDay = function(period) {
+    _halfDayPeriod = period;
+    ['오전','오후'].forEach(p => {
+      const btn = document.getElementById('halfBtn_' + p);
+      if (!btn) return;
+      const color = (p === '오전') ? '#3B82C4' : '#E67E22';
+      if (p === period) { btn.style.background=color; btn.style.color='#fff'; btn.style.borderColor=color; }
+      else { btn.style.background='#fff'; btn.style.color='#888'; btn.style.borderColor='#ddd'; }
+    });
     updateSelectedInfo();
   };
 
@@ -11573,11 +11590,13 @@ if ('serviceWorker' in navigator) {
           return;
         }
       }
+      // 반차는 오전/오후를 붙여 저장 (연차는 그대로 '연차')
+      const saveLeaveType = (_leaveType === '반차') ? (_halfDayPeriod + '반차') : _leaveType;
       const params = new URLSearchParams({
         action: 'applyLeave',
         id: user.id, name: user.name, dept: user.dept || '',
         startDate: sorted[0], endDate: sorted[sorted.length-1],
-        days, leaveType: _leaveType, reason,
+        days, leaveType: saveLeaveType, reason,
         approverIds,
         isHead: user.isHead ? 'true' : 'false'
       });
@@ -11712,25 +11731,33 @@ if ('serviceWorker' in navigator) {
     const days = ['일','월','화','수','목','금','토'];
     const firstDay = new Date(_leaveSchedYear, _leaveSchedMon, 1).getDay();
     const lastDate  = new Date(_leaveSchedYear, _leaveSchedMon + 1, 0).getDate();
-    // 이 달의 휴가 날짜 수집
+    // 이 달의 휴가 날짜 수집 (이름 + 종류)
     const leaveDates = {};
     _allLeaves.filter(r => r.status !== '반려').forEach(r => {
       const s = new Date(r.startDate), e = new Date(r.endDate);
       for (let d = new Date(s); d <= e; d.setDate(d.getDate()+1)) {
         const key = d.toISOString().slice(0,10);
         if (!leaveDates[key]) leaveDates[key] = [];
-        leaveDates[key].push(r.name);
+        leaveDates[key].push({ name: r.name, type: r.leaveType || '연차' });
       }
     });
+    // 휴가 종류별 색상 (연차=갈색, 오전반차=파랑, 오후반차=주황, 구분없는 반차=회녹)
+    const typeColor = t => {
+      const s = String(t || '');
+      if (s.indexOf('오전') !== -1) return '#3B82C4';
+      if (s.indexOf('오후') !== -1) return '#E67E22';
+      if (s.indexOf('반차') !== -1) return '#7B9E5B'; // 오전/오후 미지정 옛 반차
+      return '#A2693E'; // 연차
+    };
     let html = days.map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:#aaa;padding:4px 0;">${d}</div>`).join('');
     for (let i = 0; i < firstDay; i++) html += '<div></div>';
     for (let d = 1; d <= lastDate; d++) {
       const dateStr = _leaveSchedYear + '-' + String(_leaveSchedMon+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      const names = leaveDates[dateStr] || [];
+      const items = leaveDates[dateStr] || [];
       html += `<div style="text-align:center;padding:4px 2px;border-radius:6px;font-size:12px;min-height:32px;
-        background:${names.length?'#F7F1E7':'transparent'};border:1px solid ${names.length?'#E5D9C6':'transparent'};">
+        background:${items.length?'#F7F1E7':'transparent'};border:1px solid ${items.length?'#E5D9C6':'transparent'};">
         <div style="font-weight:600;color:#333;">${d}</div>
-        ${names.map(n=>`<div style="font-size:9px;color:#A2693E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n}</div>`).join('')}
+        ${items.map(it=>`<div style="font-size:9px;background:${typeColor(it.type)};color:#fff;border-radius:4px;padding:1px 3px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.name}</div>`).join('')}
       </div>`;
     }
     grid.innerHTML = html;
@@ -12824,9 +12851,14 @@ if ('serviceWorker' in navigator) {
     <!-- 선택된 날짜 -->
     <div id="leaveSelectedInfo" style="font-size:12px;color:#555;margin-bottom:12px;min-height:18px;"></div>
     <!-- 종류 선택 -->
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
       <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #A2693E;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">연차</button>
       <button id="leaveTypeBtn_반차" onclick="setLeaveType('반차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:13px;font-weight:700;cursor:pointer;">반차</button>
+    </div>
+    <!-- 반차 세부(오전/오후) — 반차 선택 시에만 표시 -->
+    <div id="halfDayOptions" style="display:none;gap:8px;margin-bottom:14px;">
+      <button id="halfBtn_오전" onclick="setHalfDay('오전')" style="flex:1;padding:8px 0;border-radius:8px;border:2px solid #3B82C4;background:#3B82C4;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">오전반차</button>
+      <button id="halfBtn_오후" onclick="setHalfDay('오후')" style="flex:1;padding:8px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:12.5px;font-weight:700;cursor:pointer;">오후반차</button>
     </div>
     <!-- 사유 -->
     <textarea id="leaveReason" placeholder="사유 (선택)" style="width:100%;min-height:70px;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;margin-bottom:14px;"></textarea>
