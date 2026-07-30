@@ -4656,6 +4656,8 @@ function csDateInputValue(val) {
 
   // ── 홈 대시보드: 4개 영역 최근 목록 요약 ──
   window.loadHomeDashboard = async function() {
+    // 게스트는 대시보드 카드 자체가 숨겨져 있으므로 데이터 조회를 건너뛴다.
+    if (window._isGuest) return;
     _renderHomeNotices();   // 게시판 (notices 캐시 우선, 없으면 로드)
     _renderHomeConsults();  // 쇼룸상담
     _renderHomeReservations(); // 예약관리
@@ -5279,7 +5281,7 @@ function csDateInputValue(val) {
     .home-dash-badge { font-size:10px; font-weight:800; padding:1px 6px; border-radius:5px; background:#F3EADB; color:#A2693E; flex-shrink:0; }
     .home-dash-empty { font-size:12px; color:#bbb; padding:16px 0; text-align:center; }
   </style>
-  <div class="home-dash-grid">
+  <div class="home-dash-grid" id="homeDashGrid">
 
     <!-- 전사게시판 -->
     <div class="home-dash-card">
@@ -6188,7 +6190,7 @@ function csDateInputValue(val) {
             if (myBtn) myBtn.style.display = '';
             // 직원 전용 내정보 항목들 표시 (게스트→직원 전환 대비 초기화)
             ['myiGuestNotice'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard'].forEach(id => {
+            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard','homeDashGrid'].forEach(id => {
               const el = document.getElementById(id);
               if (el) el.style.display = '';
             });
@@ -6215,7 +6217,7 @@ function csDateInputValue(val) {
             const myInfoItem = document.getElementById('userDropdownMyInfo');
             // ★ 게스트도 "내 정보"(화면 표시 설정)에는 접근 가능하게 열어줌 — 개인정보는 없으니 관련 카드만 숨김
             if (myInfoItem) myInfoItem.style.display = 'flex';
-            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard'].forEach(id => {
+            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard','homeDashGrid'].forEach(id => {
               const el = document.getElementById(id);
               if (el) el.style.display = 'none';
             });
