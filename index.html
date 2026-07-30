@@ -737,7 +737,6 @@
       <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
       <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn">이메일</button>
-      <button type="button" class="tab-btn" data-tab="orgTab" id="orgTabBtn" style="display:none;">조직도</button>
     </div>
     <!-- 홈 버튼 (사용자 아이콘 좌측) -->
     <div id="headerHomeBtn" onclick="setTab('myInfoTab')" style="display:none;cursor:pointer;margin-right:2px;color:#A2693E;" title="홈">
@@ -3152,6 +3151,8 @@
       rows.forEach(r => {
         if (r.name) _allStaffMapCache[r.name.trim()] = (r.title || '').trim();
       });
+      // 임윤호 대표이사CEO는 상담자 표시가 너무 길어, 쇼룸상담에서는 '대표'로 축약
+      if (_allStaffMapCache['임윤호']) _allStaffMapCache['임윤호'] = '대표';
     } catch(e) {
       _allStaffMapCache = {};
     }
@@ -3162,8 +3163,10 @@
   function attachTitle(nameStr, map) {
     if (!nameStr || !map) return nameStr || '';
     return nameStr.split(',').map(part => {
-      const n = part.trim();
+      let n = part.trim();
       if (!n) return '';
+      // 임윤호는 직급 표기가 길어 항상 '임윤호 대표'로 통일 (이미 긴 직급이 붙어 저장된 경우도 축약)
+      if (n === '임윤호' || n.startsWith('임윤호 ') || n.startsWith('임윤호대표')) return '임윤호 대표';
       const title = map[n];
       if (title && !n.endsWith(title)) return `${n} ${title}`;
       const matchKey = Object.keys(map).find(k => n.startsWith(k) || k === n.split(' ')[0]);
@@ -6171,6 +6174,7 @@ function csDateInputValue(val) {
         if (_homeBtn) _homeBtn.style.display = 'flex';
 
         if (loginType === 'user' && userData) {
+            window._isGuest = false;
             const nm = (userData.name || '').trim();
             if (userInitial) userInitial.textContent = nm ? nm.charAt(0) : '?';
             if (badge) badge.classList.remove('guest');
@@ -6201,12 +6205,9 @@ function csDateInputValue(val) {
             window._currentUser = userData;
             // 사용자별 화면 표시 설정(촘촘하게/기본/넓게) 동기화
             if (typeof initUiDensity === 'function') initUiDensity();
-            const orgBtn = document.getElementById('orgTabBtn');
-            if (orgBtn && userData.role === 'admin') {
-              orgBtn.style.display = '';
-            }
             setTimeout(() => { initAfterLogin(userData); }, 1000);
         } else {
+            window._isGuest = true;
             if (userInitial) userInitial.textContent = 'G';
             if (badge) badge.classList.add('guest');
             if (userText) userText.textContent = '게스트';
@@ -6226,8 +6227,10 @@ function csDateInputValue(val) {
               try {
                 if (typeof window.getGuestTabs === 'function') guestTabs = await window.getGuestTabs();
               } catch(e) {}
+              // 게스트는 개인 화면표시설정(applyVisibleTabs)을 적용하지 않는다.
+              //   그걸 부르면 저장값 없을 때 전체 탭이 다시 켜져 게스트 제한이 풀린다.
+              window._guestAllowedTabs = String(guestTabs).split(',').map(s=>s.trim()).filter(Boolean);
               applyTabPermissions(guestTabs, 'guest');
-              if (typeof window.applyVisibleTabs === 'function') window.applyVisibleTabs();
             })();
         }
 
@@ -6312,20 +6315,16 @@ function csDateInputValue(val) {
         // ★ 이전 세션(게스트 등)에서 숨겨졌던 탭이 남아있지 않도록 먼저 전부 노출로 리셋
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
-            if (tab === 'myInfoTab' || tab === 'adminTab' || tab === 'orgTab') return;
+            if (tab === 'myInfoTab' || tab === 'adminTab') return;
             btn.style.display = '';
         });
-
-        // orgTab은 무조건 admin만
-        const orgBtn = document.getElementById('orgTabBtn');
-        if (orgBtn && role !== 'admin') orgBtn.style.display = 'none';
 
         if (role === 'admin') return;
         if (allowedTabs === 'ALL' || allowedTabs === undefined || allowedTabs === null) return;
         const allowed = String(allowedTabs).split(',').map(s => s.trim()).filter(Boolean);
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
-            if (tab === 'myInfoTab' || tab === 'adminTab' || tab === 'orgTab') return;
+            if (tab === 'myInfoTab' || tab === 'adminTab') return;
             // emailTab은 직원에게는 항상 표시하지만, 게스트에게는 설정에 따름
             if (tab === 'emailTab' && role !== 'guest') return;
             if (!allowed.includes(tab)) btn.style.display = 'none';
@@ -8199,19 +8198,6 @@ function setTab(tabId, fromPopstate) {
   if (tabId === 'emailTab' && typeof loadEmailTab === 'function') {
     loadEmailTab();
   }
-  if (tabId === 'orgTab') {
-    console.log('[조직도] 탭 진입. loadOrgTab 타입:', typeof loadOrgTab);
-  }
-  if (tabId === 'orgTab' && typeof loadOrgTab === 'function') {
-    loadOrgTab();
-    const handle = document.getElementById('orgEmpHandle');
-    if (handle) handle.style.display = 'flex';
-  } else {
-    // 다른 탭 진입 시 핸들/패널 숨김
-    const handle = document.getElementById('orgEmpHandle');
-    if (handle) handle.style.display = 'none';
-    closeOrgEmpPanel && closeOrgEmpPanel();
-  }
   if (tabId === 'approvalTab') {
     loadApprovalList();
   }
@@ -8240,7 +8226,7 @@ const TAB_LABELS = {
   pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
-  memoTab:'메모장', noticeTab:'전사게시판', adminTab:'관리자', smsTab:'문자발송', emailTab:'이메일', orgTab:'조직도'
+  memoTab:'메모장', noticeTab:'전사게시판', adminTab:'관리자', smsTab:'문자발송', emailTab:'이메일'
 };
 
 // ── 내 홈 화면 설정 ──
@@ -8286,6 +8272,10 @@ const VISIBLE_TABS_KEY = 'baram_visible_tabs';
 //   지역 함수로 두면 그쪽에서 "정의되지 않음"으로 보여, 로그인 직후 개인 탭 설정이
 //   반영되지 않고 체크박스를 다시 눌러야만 적용되는 문제가 있었다.
 window.getVisibleTabs = function() {
+  // 게스트는 개인 저장값 대신 관리자가 허용한 게스트 메뉴만 노출
+  if (window._isGuest && Array.isArray(window._guestAllowedTabs)) {
+    return window._guestAllowedTabs.slice();
+  }
   const saved = localStorage.getItem(VISIBLE_TABS_KEY);
   if (saved) return JSON.parse(saved);
   return Object.keys(TAB_LABELS);
@@ -8333,8 +8323,8 @@ function renderHamburgerItems() {
   }
 
   // 권한 탭: 버튼이 존재하고 display가 ''(표시중)인 것만 포함
-  // display:none이어도 권한 탭(approvalTab,orgTab,smsTab)은 별도 처리
-  const PERM_TABS = ['adminTab', 'approvalTab', 'orgTab', 'smsTab', 'myInfoTab'];
+  // display:none이어도 권한 탭(approvalTab,smsTab)은 별도 처리
+  const PERM_TABS = ['adminTab', 'approvalTab', 'smsTab', 'myInfoTab'];
 
   function isTabVisible(id) {
     const tabBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
@@ -11713,67 +11703,11 @@ if ('serviceWorker' in navigator) {
 })();
 
 // ================================================================
-//  조직도 탭 JS
+//  연차 현황 / 결재 처리 JS
 // ================================================================
-console.log('[조직도] 스크립트 블록 진입');
 (function() {
-  const DEPTS = ['영업','회계','R&D','물류'];
   let _orgEmps = [];
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-  window.toggleOrgEmpPanel = function() {
-    const panel   = document.getElementById('orgEmpPanel');
-    const overlay = document.getElementById('orgEmpOverlay');
-    const handle  = document.getElementById('orgEmpHandle');
-    if (!panel) return;
-    const isOpen = panel.style.display === 'block';
-    panel.style.display   = isOpen ? 'none' : 'block';
-    overlay.style.display = isOpen ? 'none' : 'block';
-    if (handle) handle.style.display = isOpen ? 'flex' : 'none';
-  };
-
-  window.closeOrgEmpPanel = function() {
-    const panel   = document.getElementById('orgEmpPanel');
-    const overlay = document.getElementById('orgEmpOverlay');
-    const handle  = document.getElementById('orgEmpHandle');
-    if (panel)   panel.style.display   = 'none';
-    if (overlay) overlay.style.display = 'none';
-    if (handle)  handle.style.display  = 'flex';
-  };
-
-  window.loadOrgTab = async function() {
-    console.log('[조직도] loadOrgTab 호출됨');
-    const wrap = document.getElementById('orgChartWrap');
-    console.log('[조직도] orgChartWrap 존재:', !!wrap);
-    // 실패해도 사원목록 손잡이는 먼저 켜둔다 (조직도와 무관하게 쓸 수 있도록)
-    const handle = document.getElementById('orgEmpHandle');
-    if (handle) handle.style.display = 'flex';
-    if (wrap) wrap.innerHTML = '<div style="padding:40px 0;color:#A98C6B;font-size:13px;">조직도를 불러오는 중...</div>';
-    try {
-      // nocache: 저장해 둔 직원목록이 깨져 있어도 새로 받아오도록 한다
-      const res  = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees&nocache=1`);
-      const data = await res.json();
-      if (!data || data.status !== 'ok') {
-        throw new Error((data && data.message) || '직원 정보를 가져오지 못했습니다.');
-      }
-      const emps = Array.isArray(data.rows) ? data.rows : [];
-      _orgEmps = emps;
-      renderOrgEmpList(emps);
-      renderOrgChart(emps);
-    } catch(e) {
-      console.error('[조직도] 불러오기 실패:', e);
-      if (wrap) {
-        wrap.innerHTML = `<div style="padding:40px 16px;color:#A98C6B;font-size:13px;line-height:1.7;">
-          조직도를 불러오지 못했습니다.<br>
-          <span style="color:#c0392b;font-size:12px;">${esc(e && e.message || '알 수 없는 오류')}</span><br>
-          <button type="button" onclick="loadOrgTab()"
-            style="margin-top:14px;padding:8px 20px;border:1px solid #A2693E;background:#fff;color:#A2693E;border-radius:999px;font-weight:700;cursor:pointer;">
-            다시 시도
-          </button>
-        </div>`;
-      }
-    }
-  };
 
   window.loadAdminLeaveTable = async function() {
     try {
@@ -11785,105 +11719,6 @@ console.log('[조직도] 스크립트 블록 진입');
       renderOrgLeaveTable(emps);
     } catch(e) {}
   };
-
-  function renderOrgEmpList(emps) {
-    const list = document.getElementById('orgEmpList');
-    if (!list) return;
-    if (!Array.isArray(emps)) emps = [];
-    const DEPT_ORDER = ['회계', 'R&D', '영업', '물류'];
-    const head = emps.find(e => e.isHead);
-
-    let html = '';
-
-    // 대표
-    if (head) {
-      html += `<div style="background:#A2693E;color:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
-        <div style="font-size:11px;opacity:.7;margin-bottom:2px;">대표</div>
-        <div style="font-size:13px;font-weight:800;">${head.name}</div>
-      </div>`;
-    }
-
-    // 부서별
-    DEPT_ORDER.forEach((dept, deptIdx) => {
-      const members = emps.filter(e => e.dept === dept && !e.isHead);
-      if (members.length === 0) return;
-      const manager = members.find(e => e.isManager);
-      const staff   = members.filter(e => !e.isManager);
-      const deptId  = 'orgDept_' + deptIdx;
-
-      html += `
-        <!-- 부서 헤더 -->
-        <div onclick="toggleOrgDept('${deptId}')"
-          style="display:flex;align-items:center;justify-content:space-between;
-            background:#F7F1E7;border:1px solid #E5D9C6;border-radius:8px;
-            padding:9px 12px;cursor:pointer;margin-bottom:4px;user-select:none;">
-          <span style="font-size:13px;font-weight:800;color:#A2693E;">${dept}</span>
-          <span id="${deptId}_arrow" style="display:inline-flex;color:#A2693E;transition:transform .2s;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-        </div>
-        <!-- 부서 사원 목록 -->
-        <div id="${deptId}" style="display:none;flex-direction:column;gap:4px;margin-bottom:8px;padding-left:8px;">
-          ${manager ? `
-          <div style="background:#fff;border:1px solid #E5D9C6;border-radius:7px;padding:8px 12px;">
-            <div style="font-size:10px;color:#A2693E;font-weight:700;margin-bottom:2px;">부서장</div>
-            <div style="font-size:13px;font-weight:700;color:#222;">${manager.name}</div>
-            <div style="font-size:11px;color:#aaa;">${manager.title||''}</div>
-          </div>` : ''}
-          ${staff.map(s => `
-          <div style="background:#fff;border:1px solid #eee;border-radius:7px;padding:8px 12px;">
-            <div style="font-size:13px;font-weight:600;color:#444;">${s.name}</div>
-            <div style="font-size:11px;color:#aaa;">${s.title||''}</div>
-          </div>`).join('')}
-        </div>`;
-    });
-
-    list.innerHTML = html;
-  }
-
-  window.toggleOrgDept = function(deptId) {
-    const el    = document.getElementById(deptId);
-    const arrow = document.getElementById(deptId + '_arrow');
-    if (!el) return;
-    const isOpen = el.style.display === 'flex';
-    el.style.display    = isOpen ? 'none' : 'flex';
-    el.style.flexDirection = 'column';
-    if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
-  };
-
-  function renderOrgChart(emps) {
-    const wrap = document.getElementById('orgChartWrap');
-    if (!wrap) return;
-    if (!Array.isArray(emps)) emps = [];
-    const TITLE_ORDER = ['대표이사','CEO','부회장','회장','사장','부사장','전무','상무','이사','본부장','실장','부장','차장','과장','팀장','대리','주임','사원','인턴'];
-    const getRank = t => { const i = TITLE_ORDER.findIndex(o => String(t||'').includes(o)); return i === -1 ? 99 : i; };
-    const getJoinMs = e => e.joinDate ? new Date(e.joinDate).getTime() : Infinity;
-    const sortMembers = arr => [...arr].sort((a, b) => {
-      const rd = getRank(a.title) - getRank(b.title);
-      return rd !== 0 ? rd : getJoinMs(a) - getJoinMs(b);
-    });
-
-    const head = emps.find(e => e.isHead);
-
-    const deptCols = DEPTS.map(dept => {
-      const sorted = sortMembers(emps.filter(e => e.dept === dept && !e.isHead));
-      const cards = sorted.length ? sorted.map(m => {
-        const isMgr = m.isManager;
-        return `<div class="org-card ${isMgr?'mgr':'staff'}">
-          ${isMgr ? '<span class="tag">부서장</span>' : ''}
-          <div class="nm">${esc(m.name)}</div>
-          ${m.title ? `<div class="ti">${esc(m.title)}</div>` : ''}
-        </div>`;
-      }).join('') : `<div class="org-card staff"><div class="nm" style="color:#c4b9a8;font-weight:600;">인원 없음</div></div>`;
-      return `<li>
-        <div class="org-dept-head">${esc(dept)}</div>
-        <div class="org-members">${cards}</div>
-      </li>`;
-    }).join('');
-
-    wrap.innerHTML = `<div class="org-tree"><ul><li>
-      <div class="org-ceo"><span class="role">대표</span><span class="nm">${head ? esc(head.name) : '-'}</span></div>
-      <ul>${deptCols}</ul>
-    </li></ul></div>`;
-  }
 
   function renderOrgLeaveTable(emps) {
     const list = document.getElementById('orgLeaveList');
@@ -12896,87 +12731,6 @@ console.log('[조직도] 스크립트 블록 진입');
 })();
 </script>
 
-<section id="orgTab" class="tab-panel" style="display:none;">
-<style>
-  :root { --org-line:#D8C7AE; --org-brand:#A2693E; --org-cream:#F7F1E7; --org-border:#E5D9C6; }
-  #orgChartWrap .org-tree { display:inline-block; }
-  #orgChartWrap ul { display:flex; justify-content:center; list-style:none; margin:0; padding:26px 0 0; position:relative; }
-  #orgChartWrap > .org-tree > ul { padding-top:0; }
-  #orgChartWrap li { list-style:none; position:relative; padding:26px 16px 0; }
-  #orgChartWrap li::before, #orgChartWrap li::after { content:''; position:absolute; top:0; right:50%; border-top:2px solid var(--org-line); width:50%; height:26px; }
-  #orgChartWrap li::after { right:auto; left:50%; border-left:2px solid var(--org-line); }
-  #orgChartWrap li:only-child::before, #orgChartWrap li:only-child::after { display:none; }
-  #orgChartWrap li:only-child { padding-top:0; }
-  #orgChartWrap li:first-child::before, #orgChartWrap li:last-child::after { border:0 none; }
-  #orgChartWrap li:last-child::before { border-right:2px solid var(--org-line); border-radius:0 7px 0 0; }
-  #orgChartWrap li:first-child::after { border-radius:7px 0 0 0; }
-  #orgChartWrap ul ul::before { content:''; position:absolute; top:0; left:50%; border-left:2px solid var(--org-line); width:0; height:26px; }
-  .org-ceo { display:inline-flex; flex-direction:column; align-items:center; gap:3px; background:var(--org-brand); color:#fff; border-radius:14px; padding:13px 30px; box-shadow:0 8px 20px rgba(162,105,62,.30); }
-  .org-ceo .role { font-size:10.5px; letter-spacing:3px; opacity:.7; white-space:nowrap; }
-  .org-ceo .nm { font-size:17px; font-weight:800; letter-spacing:.5px; white-space:nowrap; }
-  .org-dept-head { display:inline-block; background:#fff; border:1.5px solid var(--org-brand); color:var(--org-brand); font-weight:800; font-size:13px; letter-spacing:.5px; border-radius:999px; padding:7px 22px; box-shadow:0 2px 8px rgba(162,105,62,.12); white-space:nowrap; }
-  .org-members { display:flex; flex-direction:column; align-items:center; gap:9px; margin-top:15px; position:relative; }
-  .org-members::before { content:''; position:absolute; top:-15px; left:50%; width:2px; height:15px; background:var(--org-line); transform:translateX(-1px); }
-  .org-card { position:relative; min-width:120px; background:#fff; border:1px solid var(--org-border); border-radius:12px; padding:9px 18px; text-align:center; box-shadow:0 1px 3px rgba(60,40,20,.05); }
-  .org-card:not(:last-child)::after { content:''; position:absolute; bottom:-9px; left:50%; width:2px; height:9px; background:var(--org-line); transform:translateX(-1px); }
-  .org-card.mgr { background:var(--org-cream); border-color:var(--org-brand); }
-  .org-card .tag { display:inline-block; font-size:9px; font-weight:800; letter-spacing:.5px; color:#fff; background:var(--org-brand); border-radius:999px; padding:1px 9px; margin-bottom:4px; white-space:nowrap; }
-  .org-card .nm { font-size:13.5px; font-weight:700; color:#2B2521; white-space:nowrap; }
-  .org-card .ti { font-size:10.5px; color:#A98C6B; margin-top:2px; }
-  .org-card.staff .nm { font-weight:600; color:#4a4036; }
-  #orgLeaveList .leave-card { background:#fff; border:1px solid var(--org-border); border-radius:14px; margin-bottom:10px; overflow:hidden; transition:box-shadow .15s, border-color .15s; }
-  #orgLeaveList .leave-card:hover { box-shadow:0 4px 16px rgba(60,40,20,.08); border-color:#D8C7AE; }
-  #orgLeaveList .leave-row { display:flex; align-items:center; gap:18px; padding:14px 18px; cursor:pointer; }
-  #orgLeaveList .leave-id { min-width:110px; }
-  #orgLeaveList .leave-id .nm { font-size:14px; font-weight:800; color:#2B2521; }
-  #orgLeaveList .leave-id .dp { font-size:11px; color:#A98C6B; margin-top:2px; }
-  #orgLeaveList .leave-bar-wrap { flex:1; min-width:130px; }
-  #orgLeaveList .leave-bar-top { display:flex; justify-content:space-between; font-size:11px; color:#999; margin-bottom:6px; }
-  #orgLeaveList .leave-track { height:8px; background:#EFE6D6; border-radius:999px; overflow:hidden; }
-  #orgLeaveList .leave-fill { height:100%; background:linear-gradient(90deg,#C68A52,#A2693E); border-radius:999px; transition:width .3s; }
-  #orgLeaveList .leave-remain { text-align:right; min-width:60px; }
-  #orgLeaveList .leave-remain .big { font-size:20px; font-weight:800; color:#1a7a45; line-height:1; }
-  #orgLeaveList .leave-remain .lbl { font-size:10px; color:#bbb; margin-top:3px; }
-  #orgLeaveList .leave-edit-btn { width:34px; height:34px; border-radius:9px; border:1px solid var(--org-border); background:#fff; display:flex; align-items:center; justify-content:center; color:#A2693E; flex-shrink:0; }
-  #orgLeaveList .leave-row:hover .leave-edit-btn { background:var(--org-cream); }
-  #orgLeaveList .leave-editor { display:none; padding:0 18px 16px; border-top:1px dashed var(--org-border); }
-  #orgLeaveList .leave-editor.open { display:block; }
-  @media (max-width:560px) {
-    #orgLeaveList .leave-row { flex-wrap:wrap; gap:10px 14px; }
-    #orgLeaveList .leave-bar-wrap { order:3; flex-basis:100%; }
-  }
-  @media (max-width:600px) {
-    #orgChartWrap .org-tree { zoom:0.5; }
-  }
-</style>
-
-  <!-- 엣지 핸들 탭 -->
-  <div id="orgEmpHandle" onclick="toggleOrgEmpPanel()"
-    style="display:none;position:fixed;top:calc(50% + 28px);left:0;transform:translateY(-50%);z-index:600;
-      background:#A2693E;color:#fff;border-radius:0 8px 8px 0;
-      writing-mode:vertical-rl;text-orientation:mixed;
-      padding:16px 8px;font-size:12px;font-weight:700;cursor:pointer;
-      box-shadow:2px 0 8px rgba(0,0,0,0.15);letter-spacing:2px;user-select:none;">
-    사원목록
-  </div>
-
-  <!-- 오버레이 -->
-  <div id="orgEmpOverlay" onclick="closeOrgEmpPanel()" style="display:none;position:fixed;top:56px;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);z-index:601;"></div>
-
-  <!-- 사원목록 슬라이드 패널 -->
-  <div id="orgEmpPanel" style="display:none;position:fixed;top:56px;left:0;width:260px;height:calc(100vh - 56px); height: calc(100dvh - 56px);background:#F7F1E7;z-index:602;box-shadow:4px 0 20px rgba(0,0,0,0.12);overflow-y:auto;padding:20px 16px;box-sizing:border-box;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:800;color:#A2693E;">사원 목록</div>
-      <button onclick="closeOrgEmpPanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
-    </div>
-    <div id="orgEmpList" style="display:flex;flex-direction:column;gap:6px;"></div>
-  </div>
-
-  <!-- 조직도 전체 배경 -->
-  <div style="padding:24px 16px;">
-    <div id="orgChartWrap" style="text-align:center;overflow-x:auto;padding-bottom:8px;"></div>
-  </div>
-</section>
 
 </div><!-- /.wrap -->
 </section><!-- /#mainSection -->
@@ -13059,11 +12813,6 @@ console.log('[조직도] 스크립트 블록 진입');
 
   <!-- 결재 대기 영역 제거 - 결재대기 탭으로 이전 -->
 </div>
-
-<!-- ================================================================ -->
-<!--  조직도 탭                                                         -->
-<!-- ================================================================ -->
-
 
 <script>
 // ── 등록/상담 모달 드래그 이동 (PC만) ──
