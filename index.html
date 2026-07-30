@@ -2473,11 +2473,13 @@
   .dw-table-scroll { overflow-x:auto; }
 
   /* ── 리스트/캘린더 뷰 전환 버튼 ── */
-  .cs-viewtoggle { display:inline-flex; border:1.5px solid #D8C7AE; border-radius:8px; overflow:hidden; margin-left:8px; }
-  .cs-viewtoggle-btn { background:#fff; border:none; padding:7px 16px; font-size:12.5px; font-weight:700; color:#8a6a48; cursor:pointer; transition:background .12s,color .12s; }
-  .cs-viewtoggle-btn + .cs-viewtoggle-btn { border-left:1.5px solid #D8C7AE; }
+  /* 뷰 전환: 뷰 라벨 + [리스트][캘린더], 툴바 우측 정렬 */
+  .cs-view-wrap { display:inline-flex; align-items:center; gap:8px; margin-left:auto; }
+  .cs-view-label { font-size:12.5px; font-weight:700; color:#a98c6b; }
+  .cs-viewtoggle { display:inline-flex; gap:4px; background:#F1EADF; border-radius:8px; padding:3px; }
+  .cs-viewtoggle-btn { background:transparent; border:none; padding:6px 16px; font-size:12.5px; font-weight:700; color:#8a6a48; cursor:pointer; border-radius:6px; transition:background .12s,color .12s; }
   .cs-viewtoggle-btn.active { background:#A2693E; color:#fff; }
-  .cs-viewtoggle-btn:not(.active):hover { background:#F3EADB; }
+  .cs-viewtoggle-btn:not(.active):hover { background:#E4D6BF; }
 
   /* ── 캘린더 뷰 ── */
   #csCalendarView { user-select:none; }
@@ -2708,9 +2710,11 @@
       <span class="icon" onclick="searchConsultAndRefresh()" style="cursor:pointer;pointer-events:auto;padding:6px;margin:-6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
     </div>
     <button class="dw-cond-btn" id="csCondBtn" onclick="toggleCondPanel()">+ 조건추가</button>
-    <div class="cs-viewtoggle" role="group" aria-label="보기 전환">
-      <button type="button" id="csViewListBtn" class="cs-viewtoggle-btn active" onclick="setConsultView('list')">리스트</button>
-      <button type="button" id="csViewCalBtn" class="cs-viewtoggle-btn" onclick="setConsultView('calendar')">캘린더</button>
+    <div class="cs-view-wrap">
+      <div class="cs-viewtoggle" role="group" aria-label="보기 전환">
+        <button type="button" id="csViewListBtn" class="cs-viewtoggle-btn active" onclick="setConsultView('list')">리스트뷰</button>
+        <button type="button" id="csViewCalBtn" class="cs-viewtoggle-btn" onclick="setConsultView('calendar')">캘린더뷰</button>
+      </div>
     </div>
   </div>
 
@@ -3370,6 +3374,37 @@
     window._allConsultsRef = allConsults;      // 목록 행 클릭(_origIdx) → 상세 열기용
   }
 
+  // 예약일 '다음날'이 지났는데 아직 '예약' 상태면 '미방문'으로 변경(+서버 저장).
+  //   예: 8/10 예약 → 8/11까지는 그대로, 8/12(오늘)부터 미방문 처리.
+  //   판정은 날짜(date) 기준. 상태가 정확히 '예약'인 건만 대상(빈값/기타는 건드리지 않음).
+  async function _autoMarkNoShow(list) {
+    if (!Array.isArray(list) || !list.length) return;
+    // 오늘 0시(로컬) 기준 밀리초
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const targets = list.filter(r => {
+      if ((r.status || '') !== '예약') return false;      // '예약' 상태만
+      if (!r.date) return false;
+      const d = String(r.date).replace(/[.\/]/g, '-').trim();
+      const dt = new Date(`${d}T00:00:00+09:00`);
+      if (isNaN(dt.getTime())) return false;
+      // 예약일 다음날 0시
+      const nextDayStart = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1).getTime();
+      // 오늘이 '다음날'보다 뒤 → 예약일 다음날이 이미 지남
+      return todayStart > nextDayStart;
+    });
+    if (!targets.length) return;
+    for (const r of targets) {
+      try {
+        const ref = window.FB.doc(window.FB.db, 'consults', r._docId);
+        await window.FB.updateDoc(ref, { status: '미방문' });
+        r.status = '미방문'; // 로컬 캐시도 즉시 반영
+      } catch(e) {
+        console.warn('[미방문 자동변경] 실패:', r._docId, e && e.message);
+      }
+    }
+  }
+
   // 실제 서버 요청: 최근 100건 (getConsults). 성공 시 캐시 갱신 + 렌더
   async function _fetchConsults() {
     if (_consultsLoading) return;
@@ -3385,6 +3420,8 @@
       const snap = await window.FB.getDocs(q);
       _consultsCache = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
       window._consultsCache = _consultsCache; // 홈 대시보드 등 다른 블록에서 참조용
+      // 예약일 다음날이 지났는데 아직 '예약' 상태인 건 → '미방문'으로 자동 변경 + 서버 저장
+      await _autoMarkNoShow(_consultsCache);
       if (_consultsMode === 'recent') {
         allConsults = _consultsCache;
         _syncConsultRefs();
