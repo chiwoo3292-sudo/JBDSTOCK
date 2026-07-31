@@ -4333,6 +4333,17 @@ function csDateInputValue(val) {
     return window._consultDateToMs(r.date, start);
   }
 
+  // 리스트뷰(dw-status-pill)와 동일한 상태별 색상 — 캘린더/팝오버 공용
+  function _csStatusStyle(r) {
+    const s = String(getDisplayStatus(r) || '').replace(/\s/g,'');
+    if (s === '예약')     return 'background:#fdf1d0;color:#a87900;';
+    if (s === '상담완료') return 'background:#eceff5;color:#5b6472;';
+    if (s === '샘플수령') return 'background:#d4edda;color:#1a7a45;';
+    if (s === '미방문')   return 'background:#fde8e8;color:#c0392b;';
+    if (s === '전화상담') return 'background:#e8f0fb;color:#2c5fc4;';
+    return 'background:#F1EADF;color:#5b4a35;';
+  }
+
   window.setConsultView = function(view) {
     _csView = view;
     const listEl = document.getElementById('csListView');
@@ -4427,6 +4438,7 @@ function csDateInputValue(val) {
     for (let d = 1; d <= daysInMonth; d++) cells.push({ other:false, day:d });
     while (cells.length % 7 !== 0) cells.push({ other:true, day: cells.length - (firstDow + daysInMonth) + 1 });
 
+    // 리스트뷰와 동일한 상태별 색상은 _csStatusStyle 공용 헬퍼 사용
     const evLabel = (r) => {
       const nm = attachTitle(r.name || '', map) || (r.name || '(무명)');
       const tm = r.time ? String(r.time).split('~')[0].trim() : '';
@@ -4445,8 +4457,8 @@ function csDateInputValue(val) {
         const shown = items.slice(0, CS_CAL_MAX);
         inner += shown.map(({r}) => {
           const { nm, tm } = evLabel(r);
-          return `<button type="button" class="cscal-ev" onclick="csCalOpenDetail('${r._docId}')">`
-               + (tm ? `<span class="t">${tm}</span>` : '') + `${_esc(nm)}</button>`;
+          return `<button type="button" class="cscal-ev" style="${_csStatusStyle(r)}" onclick="csCalOpenDetail('${r._docId}')">`
+               + (tm ? `<span class="t" style="color:inherit;opacity:.75;">${tm}</span>` : '') + `${_esc(nm)}</button>`;
         }).join('');
         if (items.length > CS_CAL_MAX) {
           inner += `<span class="cscal-more" onclick="csCalShowDay(${c.day}, event)">+${items.length - CS_CAL_MAX}</span>`;
@@ -4487,8 +4499,8 @@ function csDateInputValue(val) {
       document.getElementById('cscalPopBody').innerHTML = rows.map(({r}) => {
         const nm = attachTitle(r.name || '', map) || (r.name || '(무명)');
         const tm = r.time ? String(r.time).split('~')[0].trim() : '';
-        return `<button type="button" class="cscal-pop-item" onclick="csCalClosePopover();csCalOpenDetail('${r._docId}')">`
-             + (tm ? `<span class="t">${tm}</span>` : '') + `${_esc(nm)}</button>`;
+        return `<button type="button" class="cscal-pop-item" style="${_csStatusStyle(r)}" onclick="csCalClosePopover();csCalOpenDetail('${r._docId}')">`
+             + (tm ? `<span class="t" style="color:inherit;opacity:.75;">${tm}</span>` : '') + `${_esc(nm)}</button>`;
       }).join('') || '<div style="padding:14px;color:#aaa;font-size:12px;text-align:center;">표시할 상담이 없습니다.</div>';
     });
     // 위치: 클릭 지점 근처
@@ -5766,6 +5778,29 @@ function csDateInputValue(val) {
   </div>
 
   <!-- 연차 현황 (조직도에서 이동) -->
+  <style>
+  #orgLeaveList .leave-card { background:#fff; border:1px solid #E5D9C6; border-radius:14px; margin-bottom:10px; overflow:hidden; transition:box-shadow .15s, border-color .15s; }
+  #orgLeaveList .leave-card:hover { box-shadow:0 4px 16px rgba(60,40,20,.08); border-color:#D8C7AE; }
+  #orgLeaveList .leave-row { display:flex; align-items:center; gap:18px; padding:14px 18px; cursor:pointer; }
+  #orgLeaveList .leave-id { min-width:110px; }
+  #orgLeaveList .leave-id .nm { font-size:14px; font-weight:800; color:#2B2521; }
+  #orgLeaveList .leave-id .dp { font-size:11px; color:#A98C6B; margin-top:2px; }
+  #orgLeaveList .leave-bar-wrap { flex:1; min-width:130px; }
+  #orgLeaveList .leave-bar-top { display:flex; justify-content:space-between; font-size:11px; color:#999; margin-bottom:6px; }
+  #orgLeaveList .leave-track { height:8px; background:#EFE6D6; border-radius:999px; overflow:hidden; }
+  #orgLeaveList .leave-fill { height:100%; background:linear-gradient(90deg,#C68A52,#A2693E); border-radius:999px; transition:width .3s; }
+  #orgLeaveList .leave-remain { text-align:right; min-width:60px; }
+  #orgLeaveList .leave-remain .big { font-size:20px; font-weight:800; color:#1a7a45; line-height:1; }
+  #orgLeaveList .leave-remain .lbl { font-size:10px; color:#bbb; margin-top:3px; }
+  #orgLeaveList .leave-edit-btn { width:34px; height:34px; border-radius:9px; border:1px solid #E5D9C6; background:#fff; display:flex; align-items:center; justify-content:center; color:#A2693E; flex-shrink:0; }
+  #orgLeaveList .leave-row:hover .leave-edit-btn { background:#F7F1E7; }
+  #orgLeaveList .leave-editor { display:none; padding:0 18px 16px; border-top:1px dashed #E5D9C6; }
+  #orgLeaveList .leave-editor.open { display:block; }
+  @media (max-width:560px) {
+    #orgLeaveList .leave-row { flex-wrap:wrap; gap:10px 14px; }
+    #orgLeaveList .leave-bar-wrap { order:3; flex-basis:100%; }
+  }
+  </style>
   <div class="admin-card" style="margin-top:20px;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
       <div class="admin-section-title" style="margin:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>연차 현황</div>
