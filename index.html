@@ -734,13 +734,16 @@
       <button type="button" class="tab-btn" data-tab="floorplanTab">면적분석</button>
       <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
       <button type="button" class="tab-btn" data-tab="noticeTab">전사게시판</button>
-      <button type="button" class="tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none;">관리자</button>
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
       <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn">이메일</button>
     </div>
     <!-- 홈 버튼 (사용자 아이콘 좌측) -->
     <div id="headerHomeBtn" onclick="setTab('myInfoTab')" style="display:none;cursor:pointer;margin-right:2px;color:#A2693E;" title="홈">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <!-- 관리자 버튼 (왕관, admin만 표시) -->
+    <div id="adminTabBtn" onclick="setTab('adminTab')" style="display:none;align-items:center;cursor:pointer;margin-right:4px;color:#A2693E;" title="관리자">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M2 18h20l-2-9-4.5 4L12 6l-3.5 7L4 9l-2 9Z"/><path d="M2 18h20"/></svg>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
       <span id="userInitial">G</span>
@@ -6230,7 +6233,7 @@ function csDateInputValue(val) {
             });
             if (userData.role === 'admin') {
                 const adminBtn = document.getElementById('adminTabBtn');
-                if (adminBtn) adminBtn.style.display = '';
+                if (adminBtn) adminBtn.style.display = 'flex';
             }
             applyTabPermissions(userData.allowedTabs, userData.role);
             // ★ applyTabPermissions가 회사 권한에 따라 모든 탭을 일단 노출로 리셋한 뒤 적용하므로,
@@ -9237,11 +9240,8 @@ function initExcelUpload() {
                 return;
             }
 
-            statusEl.textContent = '구글시트에 전송 중...';
-
-            // 3. 전체 데이터 한 번에 전송
-            // 3. 전체 데이터 한 번에 전송
-            statusEl.textContent = '구글시트에 전송 중...';
+            // 전체 데이터 한 번에 전송
+            statusEl.textContent = '구글시트에 전송 중... (최대 2분 걸릴 수 있습니다)';
 
             const res = await fetchWithRetry(ERP_URL, {
                 method: 'POST',
@@ -9250,7 +9250,7 @@ function initExcelUpload() {
                     spreadsheetId: SHEET_CONFIG.ID_STOCK,
                     sheetDataMap: sheetDataMap
                 })
-            });
+            }, 0, 120000); // 대량 쓰기 작업: 타임아웃 120초, 재시도 0(중복 반영 방지)
             const result = await res.json();
 
             if (result.status === 'success') {
@@ -9291,6 +9291,10 @@ function initExcelUpload() {
             statusEl.style.color = '#d63031';
             uploadBtn.textContent = '구글시트에 반영';
             uploadBtn.disabled = false;
+            // 타임아웃이어도 실제로는 반영됐을 수 있으므로 확인 안내
+            if (String(err.message).indexOf('늦어지고') !== -1) {
+                alert('전송이 지연되어 실패로 표시됐지만, 실제로는 구글시트에 반영되었을 수 있습니다.\n잠시 후 새로고침해 재고가 반영됐는지 확인해 주세요.\n반영되지 않았다면 다시 시도해 주세요.');
+            }
         }
     });
 }
