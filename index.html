@@ -12547,7 +12547,7 @@ if ('serviceWorker' in navigator) {
 
 <script>
 (function(){
-  window.USE_GMAIL_API = false;
+  window.USE_GMAIL_API = true;
 
   // 모바일 감지 및 탭바/사이드바 처리
   function checkEmailMobile() {
@@ -12729,6 +12729,138 @@ if ('serviceWorker' in navigator) {
   }
 
   // ── 메일 목록 렌더링 ──
+  // ── Gmail API로 폴더 메일 조회 후 목록 렌더 ──
+  async function _fetchGmailAndRender(folder) {
+    const listEl = document.getElementById('emMailList');
+    const countEl = document.getElementById('emMailCount');
+    const user = window._currentUser;
+    const email = user && user.email ? user.email : '';
+    if (!email) {
+      listEl.innerHTML = '<div class="em-empty"><p>연동된 메일 주소가 없습니다.</p></div>';
+      return;
+    }
+    // 로딩 표시
+    listEl.innerHTML = '<div class="em-empty"><p>메일을 불러오는 중...</p></div>';
+    try {
+      const params = new URLSearchParams({ action: 'getGmailMessages', email, folder, max: '20' });
+      const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
+      const data = await res.json();
+      if (data.status !== 'ok') {
+        listEl.innerHTML = `<div class="em-empty"><p>메일을 불러오지 못했습니다.<br><span style="font-size:11px;color:#aaa;">${_emEsc(data.message||'')}</span></p></div>`;
+        if (countEl) countEl.textContent = '';
+        return;
+      }
+      const msgs = (data.messages || []).map(m => ({
+        gmailId: m.id, from: m.from, to: m.to, subject: m.subject,
+        sentAt: m.date ? new Date(m.date).toISOString() : '',
+        snippet: m.snippet, unread: m.unread
+      }));
+      _renderGmailList(msgs, folder);
+    } catch (e) {
+      listEl.innerHTML = `<div class="em-empty"><p>메일 조회 오류<br><span style="font-size:11px;color:#aaa;">${_emEsc(e.message||'')}</span></p></div>`;
+    }
+  }
+
+  function _emEsc(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  // Gmail 메일 목록 렌더 (fetch 결과 전용)
+  function _renderGmailList(items, folder) {
+    const listEl = document.getElementById('emMailList');
+    const countEl = document.getElementById('emMailCount');
+    _allEmailItems = items;
+    if (countEl) countEl.textContent = items.length ? `전체메일 ${items.length}` : '';
+    if (!items.length) {
+      const emptyMsgs = { inbox:'받은 메일이 없습니다.', spam:'스팸 메일이 없습니다.', trash:'휴지통이 비어있습니다.' };
+      listEl.innerHTML = `<div class="em-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        <p>${emptyMsgs[folder] || '메일이 없습니다.'}</p></div>`;
+      return;
+    }
+    const groups = {};
+    items.forEach((m, idx) => {
+      const d = m.sentAt ? new Date(m.sentAt) : null;
+      const label = d ? formatDateGroup(d) : '날짜 없음';
+      if (!groups[label]) groups[label] = [];
+      groups[label].push({ ...m, _idx: idx });
+    });
+    let html = '';
+    Object.keys(groups).forEach(label => {
+      html += `<div class="em-date-group">${label}</div>`;
+      groups[label].forEach(m => {
+        const timeStr = m.sentAt ? formatMailTime(new Date(m.sentAt)) : '-';
+        const sender = _emEsc(m.from || '(발신자 없음)');
+        const subjectDisplay = _emEsc(m.subject || '(제목없음)');
+        const weight = m.unread ? 'font-weight:800;' : '';
+        html += `<div class="em-mail-row" onclick="openGmailDetail(${m._idx})">
+          <input type="checkbox" class="em-mail-check" onclick="event.stopPropagation()">
+          <svg class="em-mail-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+          <span class="em-mail-sender" style="${weight}">${sender}</span>
+          <span class="em-mail-subject" style="${weight}">${subjectDisplay}</span>
+          <span class="em-mail-time">${timeStr}</span>
+        </div>`;
+      });
+    });
+    listEl.innerHTML = html;
+  }
+
+  // Gmail 메일 상세 열기
+  window.openGmailDetail = async function(idx) {
+    const m = _allEmailItems[idx];
+    if (!m || !m.gmailId) return;
+    const user = window._currentUser;
+    const email = user && user.email ? user.email : '';
+    const dp = document.getElementById('emDetailPanel');
+    if (dp) {
+      dp.style.display = 'block'; dp.classList.add('open');
+      dp.innerHTML = '<div style="padding:30px;text-align:center;color:#aaa;">본문을 불러오는 중...</div>';
+    }
+    try {
+      const params = new URLSearchParams({ action: 'getGmailMessage', email, id: m.gmailId });
+      const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
+      const data = await res.json();
+      if (data.status !== 'ok') {
+        if (dp) dp.innerHTML = `<div style="padding:30px;text-align:center;color:#c0392b;">본문 조회 실패: ${_emEsc(data.message||'')}</div>`;
+        return;
+      }
+      _renderGmailDetail(data.message);
+    } catch(e) {
+      if (dp) dp.innerHTML = `<div style="padding:30px;text-align:center;color:#c0392b;">오류: ${_emEsc(e.message||'')}</div>`;
+    }
+  };
+
+  function _renderGmailDetail(msg) {
+    const dp = document.getElementById('emDetailPanel');
+    if (!dp) return;
+    const bodyHtml = msg.isHtml
+      ? `<iframe id="emGmailFrame" style="width:100%;border:none;min-height:300px;" sandbox="allow-same-origin"></iframe>`
+      : `<div style="white-space:pre-wrap;font-size:14px;color:#222;line-height:1.7;">${_emEsc(msg.body)}</div>`;
+    dp.innerHTML = `
+      <div style="padding:20px 24px;border-bottom:1px solid #eee;">
+        <button onclick="backToEmailList()" style="background:none;border:none;color:#A2693E;font-size:13px;cursor:pointer;margin-bottom:12px;">← 목록으로</button>
+        <div style="font-size:18px;font-weight:800;color:#222;margin-bottom:12px;">${_emEsc(msg.subject)}</div>
+        <div style="font-size:12.5px;color:#555;line-height:1.8;">
+          <div><b>보낸사람:</b> ${_emEsc(msg.from)}</div>
+          <div><b>받는사람:</b> ${_emEsc(msg.to)}</div>
+          ${msg.cc ? `<div><b>참조:</b> ${_emEsc(msg.cc)}</div>` : ''}
+          <div style="color:#999;">${_emEsc(msg.date)}</div>
+        </div>
+      </div>
+      <div style="padding:20px 24px;">${bodyHtml}</div>`;
+    if (msg.isHtml) {
+      const frame = document.getElementById('emGmailFrame');
+      if (frame) {
+        frame.srcdoc = msg.body;
+        frame.onload = function(){ try { frame.style.height = (frame.contentDocument.body.scrollHeight + 30) + 'px'; } catch(e){} };
+      }
+    }
+  }
+
+  window.backToEmailList = function() {
+    const dp = document.getElementById('emDetailPanel');
+    if (dp) { dp.classList.remove('open'); dp.style.display = 'none'; }
+    document.getElementById('emListView').style.display = 'flex';
+  };
+
   function renderEmailList() {
     const listEl = document.getElementById('emMailList');
     const emptyMsg = document.getElementById('emEmptyMsg');
@@ -12744,7 +12876,11 @@ if ('serviceWorker' in navigator) {
     } else if (_currentFolder === 'draft') {
       try { items = JSON.parse(localStorage.getItem(draftKey) || '[]'); } catch(e) {}
     } else {
-      // 받은메일함/스팸/휴지통: Workspace 연동 전 빈 상태
+      // 받은메일함/스팸/휴지통: Gmail API 연동 시 실제 조회, 미연동 시 빈 상태
+      if (window.USE_GMAIL_API) {
+        _fetchGmailAndRender(_currentFolder);
+        return; // 비동기 조회 후 별도 렌더
+      }
       items = [];
     }
 
