@@ -2509,6 +2509,17 @@
   .cscal-ev .t { color:#A2693E; font-weight:700; margin-right:4px; }
   .cscal-more { display:inline-block; font-size:11px; color:#999; font-weight:700; cursor:pointer; padding:1px 4px; margin-top:1px; }
   .cscal-more:hover { color:#A2693E; text-decoration:underline; }
+  /* 모바일 점 표시 (기본 숨김, 모바일에서만 노출) */
+  .cscal-dots { display:none; }
+  .cscal-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin:0 1.5px; vertical-align:middle; }
+  .cscal-dot-more { font-size:9px; color:#999; font-weight:700; margin-left:2px; vertical-align:middle; }
+  @media (max-width:640px) {
+    .cscal-cell { min-height:52px; padding:4px 3px 6px; cursor:pointer; }
+    .cscal-cell .cscal-ev { display:none; }      /* 모바일: 이벤트 알약 숨김 */
+    .cscal-cell .cscal-more { display:none; }
+    .cscal-cell .cscal-dots { display:block; text-align:center; margin-top:3px; line-height:1; }
+    .cscal-daynum { font-size:12px; }
+  }
   .cscal-loading, .cscal-empty { grid-column:1 / -1; text-align:center; padding:50px 0; color:#aaa; font-size:13px; }
 
   /* 날짜 팝오버 */
@@ -4454,6 +4465,7 @@ function csDateInputValue(val) {
       let inner = `<span class="cscal-daynum">${c.day}</span>`;
       if (!c.other && byDay[c.day]) {
         const items = byDay[c.day];
+        // PC: 이벤트 나열 (기존)
         const shown = items.slice(0, CS_CAL_MAX);
         inner += shown.map(({r}) => {
           const { nm, tm } = evLabel(r);
@@ -4463,9 +4475,32 @@ function csDateInputValue(val) {
         if (items.length > CS_CAL_MAX) {
           inner += `<span class="cscal-more" onclick="csCalShowDay(${c.day}, event)">+${items.length - CS_CAL_MAX}</span>`;
         }
+        // 모바일: 점 표시 (상태색 반영, 최대 4개 + 초과 시 개수). CSS로 PC에선 숨김.
+        const MAX_DOTS = 4;
+        const dots = items.slice(0, MAX_DOTS).map(({r}) => {
+          const st = _csStatusStyle(r);
+          const bg = (st.match(/background:([^;]+);/) || [])[1] || '#A2693E';
+          return `<span class="cscal-dot" style="background:${bg};"></span>`;
+        }).join('');
+        const extra = items.length > MAX_DOTS ? `<span class="cscal-dot-more">+${items.length - MAX_DOTS}</span>` : '';
+        inner += `<span class="cscal-dots">${dots}${extra}</span>`;
       }
-      return `<div class="${cls.join(' ')}">${inner}</div>`;
+      // 모바일: 셀 전체 탭 시 그날 목록 (상담 있는 날만)
+      const tapAttr = (!c.other && byDay[c.day]) ? ` data-day="${c.day}"` : '';
+      return `<div class="${cls.join(' ')}"${tapAttr}>${inner}</div>`;
     }).join('');
+
+    // 모바일: 셀 탭 → 그날 목록 팝오버 (이벤트 위임)
+    grid.querySelectorAll('.cscal-cell[data-day]').forEach(cell => {
+      cell.addEventListener('click', function(ev) {
+        // 이벤트 알약(cscal-ev)이나 +N을 직접 누른 경우는 개별 동작에 맡김
+        if (ev.target.closest('.cscal-ev') || ev.target.closest('.cscal-more')) return;
+        // 모바일 폭에서만 셀 탭 동작
+        if (window.matchMedia('(max-width:640px)').matches) {
+          csCalShowDay(parseInt(cell.getAttribute('data-day'), 10), ev);
+        }
+      });
+    });
   }
 
   // 로컬 이스케이프 (attachTitle 결과 등)
@@ -12742,7 +12777,18 @@ if ('serviceWorker' in navigator) {
     // 로딩 표시
     listEl.innerHTML = '<div class="em-empty"><p>메일을 불러오는 중...</p></div>';
     try {
+      // 토큰 갱신에 쓸 clientId/secret을 함께 보내 서버가 없으면 저장하도록 함
+      //   (초기 인증이 옛 버전이라 서버에 clientId가 없을 때 만료가 반복되는 문제 방지)
+      let clientId = '', clientSecret = '';
+      try {
+        await window.fbEnsureAuth();
+        const cfg = await window.FB.getDoc(window.FB.doc(window.FB.db, 'settings', 'gmailOAuth'));
+        const s = cfg.exists() ? (cfg.data() || {}) : {};
+        clientId = s.clientId || ''; clientSecret = s.clientSecret || '';
+      } catch(e) {}
       const params = new URLSearchParams({ action: 'getGmailMessages', email, folder, max: '20' });
+      if (clientId) params.set('clientId', clientId);
+      if (clientSecret) params.set('clientSecret', clientSecret);
       const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
       const data = await res.json();
       if (data.status !== 'ok') {
