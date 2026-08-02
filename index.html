@@ -8569,7 +8569,32 @@ window.saveMyHomeTab = async function() {
     if (msg) msg.textContent = '오류: ' + e.message;
   }
 };
-const VISIBLE_TABS_KEY = 'baram_visible_tabs';
+const VISIBLE_TABS_KEY = 'baram_visible_tabs';       // (구) 보이는 탭 배열 — 마이그레이션용
+const TAB_VIS_MAP_KEY  = 'baram_tab_visibility';     // (신) 탭별 on/off 맵 {tabId:true/false}
+
+// 탭별 on/off 맵 읽기. 구 배열값이 있으면 1회 맵으로 변환.
+function _getTabVisMap() {
+  const rawMap = localStorage.getItem(TAB_VIS_MAP_KEY);
+  if (rawMap) { try { return JSON.parse(rawMap) || {}; } catch(e) { return {}; } }
+  // 마이그레이션: 구 배열(보이는 목록)이 있으면 → 그 목록에 있는 건 on, 나머지는 off
+  const rawOld = localStorage.getItem(VISIBLE_TABS_KEY);
+  if (rawOld) {
+    try {
+      const list = JSON.parse(rawOld) || [];
+      const map = {};
+      // 구 배열에 명시된 탭만 off/on 판단. 배열에 없던(당시 존재 안 한) 탭은 맵에 기록 안 함 → 기본 표시
+      Object.keys(TAB_LABELS).forEach(id => {
+        if (list.includes(id)) map[id] = true;
+        // 구 배열에 없는 탭: 사용자가 끈 건지 신규인지 알 수 없음.
+        //   단, 구 배열은 "보이는 목록"이므로 없으면 껐다고 봐야 하나,
+        //   신규 탭(smsTab 등) 자동표시 요구가 있으므로 '기록 안 함'(기본표시)로 둔다.
+      });
+      localStorage.setItem(TAB_VIS_MAP_KEY, JSON.stringify(map));
+      return map;
+    } catch(e) { return {}; }
+  }
+  return {}; // 아무 설정 없음 → 전부 기본 표시
+}
 
 // ★ window에 노출 — 로그인 처리(applyTabPermissions 호출부)가 다른 <script> 블록에 있어서
 //   지역 함수로 두면 그쪽에서 "정의되지 않음"으로 보여, 로그인 직후 개인 탭 설정이
@@ -8579,21 +8604,25 @@ window.getVisibleTabs = function() {
   if (window._isGuest && Array.isArray(window._guestAllowedTabs)) {
     return window._guestAllowedTabs.slice();
   }
-  const saved = localStorage.getItem(VISIBLE_TABS_KEY);
-  if (saved) {
-    const savedList = JSON.parse(saved);
-    // 저장 당시 없던 탭(예: 이후 추가된 문자발송)은 자동 포함해 누락 방지
-    const allKeys = Object.keys(TAB_LABELS);
-    const merged = savedList.slice();
-    allKeys.forEach(k => { if (!merged.includes(k)) merged.push(k); });
-    return merged;
-  }
-  return Object.keys(TAB_LABELS);
+  const map = _getTabVisMap();
+  // 맵에 false로 명시된 탭만 숨김. 맵에 없는 탭(설정한 적 없음/신규)은 기본 표시.
+  return Object.keys(TAB_LABELS).filter(id => map[id] !== false);
 };
 const getVisibleTabs = window.getVisibleTabs;
 
+// 개별 탭 on/off 저장 (맵 방식)
+window.setTabVisibility = function(tabId, visible) {
+  const map = _getTabVisMap();
+  map[tabId] = !!visible;
+  localStorage.setItem(TAB_VIS_MAP_KEY, JSON.stringify(map));
+};
+const setTabVisibility = window.setTabVisibility;
+
+// (호환용) 목록 통째 저장이 필요하면 맵으로 변환해 저장
 window.saveVisibleTabs = function(list) {
-  localStorage.setItem(VISIBLE_TABS_KEY, JSON.stringify(list));
+  const map = {};
+  Object.keys(TAB_LABELS).forEach(id => { map[id] = list.includes(id); });
+  localStorage.setItem(TAB_VIS_MAP_KEY, JSON.stringify(map));
 };
 const saveVisibleTabs = window.saveVisibleTabs;
 
@@ -8819,10 +8848,7 @@ function closeHamburger() {
 }
 
 window.toggleTabVisible = function(tabId, checked) {
-  let visible = getVisibleTabs();
-  if (checked && !visible.includes(tabId)) visible.push(tabId);
-  if (!checked) visible = visible.filter(t => t !== tabId);
-  saveVisibleTabs(visible);
+  setTabVisibility(tabId, checked);
   applyVisibleTabs();
 };
 
@@ -12345,7 +12371,7 @@ if ('serviceWorker' in navigator) {
   .em-compose-msg { font-size:12px; color:#A2693E; font-weight:600; }
 
   /* 메일 상세보기 패널 */
-  .em-detail-panel { display:none; flex-direction:column; flex:1; overflow:hidden; }
+  .em-detail-panel { display:none; flex-direction:column; flex:1; overflow-y:auto; overflow-x:hidden; }
   .em-detail-panel.open { display:flex; }
   .em-detail-header { padding:14px 16px; border-bottom:1px solid #F0E8DC; background:#FDFAF6; flex-shrink:0; }
   .em-detail-subject { font-size:16px; font-weight:800; color:#222; margin-bottom:10px; }
@@ -12935,8 +12961,10 @@ if ('serviceWorker' in navigator) {
     if (!m || !m.gmailId) return;
     const user = window._currentUser;
     const email = user && user.email ? user.email : '';
-    // 목록 숨기고 상세 패널 표시
+    // 목록·작성 패널 숨기고 상세 패널만 표시 (목록 자리를 본문이 온전히 차지)
     document.getElementById('emListView').style.display = 'none';
+    const cp = document.getElementById('emComposePanel');
+    if (cp) { cp.classList.remove('open'); cp.style.display = 'none'; }
     const dp = document.getElementById('emDetailPanel');
     if (dp) {
       dp.style.display = 'flex'; dp.classList.add('open');
@@ -12978,7 +13006,20 @@ if ('serviceWorker' in navigator) {
       const frame = document.getElementById('emGmailFrame');
       if (frame) {
         frame.srcdoc = msg.body;
-        frame.onload = function(){ try { frame.style.height = (frame.contentDocument.body.scrollHeight + 30) + 'px'; } catch(e){} };
+        frame.onload = function(){
+          try {
+            const h = frame.contentDocument.body.scrollHeight;
+            if (h && h > 50) frame.style.height = (h + 40) + 'px';
+            else frame.style.height = '600px';
+          } catch(e){ frame.style.height = '600px'; } // 접근 실패 시 기본 높이
+        };
+        // onload가 안 올 경우 대비 (일부 환경)
+        setTimeout(function(){
+          try {
+            const h = frame.contentDocument && frame.contentDocument.body ? frame.contentDocument.body.scrollHeight : 0;
+            if (h && h > 50 && (parseInt(frame.style.height) || 0) < h) frame.style.height = (h + 40) + 'px';
+          } catch(e){}
+        }, 600);
       }
     }
   }
