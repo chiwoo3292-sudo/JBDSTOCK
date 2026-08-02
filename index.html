@@ -8580,7 +8580,14 @@ window.getVisibleTabs = function() {
     return window._guestAllowedTabs.slice();
   }
   const saved = localStorage.getItem(VISIBLE_TABS_KEY);
-  if (saved) return JSON.parse(saved);
+  if (saved) {
+    const savedList = JSON.parse(saved);
+    // 저장 당시 없던 탭(예: 이후 추가된 문자발송)은 자동 포함해 누락 방지
+    const allKeys = Object.keys(TAB_LABELS);
+    const merged = savedList.slice();
+    allKeys.forEach(k => { if (!merged.includes(k)) merged.push(k); });
+    return merged;
+  }
   return Object.keys(TAB_LABELS);
 };
 const getVisibleTabs = window.getVisibleTabs;
