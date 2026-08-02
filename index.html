@@ -12473,7 +12473,7 @@ if ('serviceWorker' in navigator) {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" id="emSearchInput" placeholder="검색" oninput="filterEmailList()">
           </div>
-          <button class="em-toolbar-btn" onclick="loadEmailTab()">
+          <button class="em-toolbar-btn" onclick="gmailRefresh()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
             새로고침
           </button>
@@ -12701,6 +12701,11 @@ if ('serviceWorker' in navigator) {
 
   let _currentFolder = 'inbox';
   let _allEmailItems = [];
+  // Gmail 캐시: { '계정|폴더': { items, nextPageToken, at(ms) } }, 5분 유효
+  const _gmailCache = {};
+  const _GMAIL_CACHE_MS = 5 * 60 * 1000;
+  let _gmailNextToken = '';   // 현재 폴더의 다음 페이지 토큰
+  let _gmailLoadingMore = false;
   let _currentDraft = null;
 
   // ── 폴더 전환 ──
@@ -12765,7 +12770,32 @@ if ('serviceWorker' in navigator) {
 
   // ── 메일 목록 렌더링 ──
   // ── Gmail API로 폴더 메일 조회 후 목록 렌더 ──
-  async function _fetchGmailAndRender(folder) {
+  // 공통: 서버에서 메일 한 페이지 조회
+  async function _gmailFetchPage(email, folder, pageToken) {
+    let clientId = '', clientSecret = '';
+    try {
+      await window.fbEnsureAuth();
+      const cfg = await window.FB.getDoc(window.FB.doc(window.FB.db, 'settings', 'gmailOAuth'));
+      const s = cfg.exists() ? (cfg.data() || {}) : {};
+      clientId = s.clientId || ''; clientSecret = s.clientSecret || '';
+    } catch(e) {}
+    const params = new URLSearchParams({ action: 'getGmailMessages', email, folder, max: '20' });
+    if (pageToken) params.set('pageToken', pageToken);
+    if (clientId) params.set('clientId', clientId);
+    if (clientSecret) params.set('clientSecret', clientSecret);
+    const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
+    const data = await res.json();
+    if (data.status !== 'ok') throw new Error(data.message || '메일 조회 실패');
+    const msgs = (data.messages || []).map(m => ({
+      gmailId: m.id, from: m.from, to: m.to, subject: m.subject,
+      sentAt: m.date ? new Date(m.date).toISOString() : '',
+      snippet: m.snippet, unread: m.unread
+    }));
+    return { msgs, nextPageToken: data.nextPageToken || '' };
+  }
+
+  // 폴더 첫 로드 — 캐시 우선(5분), forceRefresh면 캐시 무시
+  async function _fetchGmailAndRender(folder, forceRefresh) {
     const listEl = document.getElementById('emMailList');
     const countEl = document.getElementById('emMailCount');
     const user = window._currentUser;
@@ -12774,38 +12804,75 @@ if ('serviceWorker' in navigator) {
       listEl.innerHTML = '<div class="em-empty"><p>연동된 메일 주소가 없습니다.</p></div>';
       return;
     }
-    // 로딩 표시
+    const cacheKey = email + '|' + folder;
+    const cached = _gmailCache[cacheKey];
+    // 캐시 유효하면 즉시 표시 (강제 새로고침 아닐 때)
+    if (!forceRefresh && cached && (Date.now() - cached.at) < _GMAIL_CACHE_MS) {
+      _allEmailItems = cached.items.slice();
+      _gmailNextToken = cached.nextPageToken || '';
+      _renderGmailList(_allEmailItems, folder);
+      _appendMoreButton();
+      return;
+    }
     listEl.innerHTML = '<div class="em-empty"><p>메일을 불러오는 중...</p></div>';
     try {
-      // 토큰 갱신에 쓸 clientId/secret을 함께 보내 서버가 없으면 저장하도록 함
-      //   (초기 인증이 옛 버전이라 서버에 clientId가 없을 때 만료가 반복되는 문제 방지)
-      let clientId = '', clientSecret = '';
-      try {
-        await window.fbEnsureAuth();
-        const cfg = await window.FB.getDoc(window.FB.doc(window.FB.db, 'settings', 'gmailOAuth'));
-        const s = cfg.exists() ? (cfg.data() || {}) : {};
-        clientId = s.clientId || ''; clientSecret = s.clientSecret || '';
-      } catch(e) {}
-      const params = new URLSearchParams({ action: 'getGmailMessages', email, folder, max: '20' });
-      if (clientId) params.set('clientId', clientId);
-      if (clientSecret) params.set('clientSecret', clientSecret);
-      const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
-      const data = await res.json();
-      if (data.status !== 'ok') {
-        listEl.innerHTML = `<div class="em-empty"><p>메일을 불러오지 못했습니다.<br><span style="font-size:11px;color:#aaa;">${_emEsc(data.message||'')}</span></p></div>`;
-        if (countEl) countEl.textContent = '';
-        return;
-      }
-      const msgs = (data.messages || []).map(m => ({
-        gmailId: m.id, from: m.from, to: m.to, subject: m.subject,
-        sentAt: m.date ? new Date(m.date).toISOString() : '',
-        snippet: m.snippet, unread: m.unread
-      }));
-      _renderGmailList(msgs, folder);
+      const { msgs, nextPageToken } = await _gmailFetchPage(email, folder, '');
+      _allEmailItems = msgs;
+      _gmailNextToken = nextPageToken;
+      _gmailCache[cacheKey] = { items: msgs.slice(), nextPageToken, at: Date.now() };
+      _renderGmailList(_allEmailItems, folder);
+      _appendMoreButton();
     } catch (e) {
       listEl.innerHTML = `<div class="em-empty"><p>메일 조회 오류<br><span style="font-size:11px;color:#aaa;">${_emEsc(e.message||'')}</span></p></div>`;
     }
   }
+
+  // 더 보기 — 다음 페이지를 기존 목록에 추가
+  window.gmailLoadMore = async function() {
+    if (_gmailLoadingMore || !_gmailNextToken) return;
+    _gmailLoadingMore = true;
+    const btn = document.getElementById('emLoadMoreBtn');
+    if (btn) { btn.textContent = '불러오는 중...'; btn.disabled = true; }
+    const user = window._currentUser;
+    const email = user && user.email ? user.email : '';
+    try {
+      const { msgs, nextPageToken } = await _gmailFetchPage(email, _currentFolder, _gmailNextToken);
+      _allEmailItems = _allEmailItems.concat(msgs);
+      _gmailNextToken = nextPageToken;
+      // 캐시 갱신 (쌓인 전체 + 토큰)
+      const cacheKey = email + '|' + _currentFolder;
+      _gmailCache[cacheKey] = { items: _allEmailItems.slice(), nextPageToken, at: Date.now() };
+      _renderGmailList(_allEmailItems, _currentFolder);
+      _appendMoreButton();
+    } catch (e) {
+      if (btn) { btn.textContent = '더 보기'; btn.disabled = false; }
+    } finally {
+      _gmailLoadingMore = false;
+    }
+  };
+
+  // 목록 하단에 "더 보기" 버튼 (다음 페이지 있을 때만)
+  function _appendMoreButton() {
+    const listEl = document.getElementById('emMailList');
+    if (!listEl) return;
+    const old = document.getElementById('emLoadMoreWrap');
+    if (old) old.remove();
+    if (!_gmailNextToken) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'emLoadMoreWrap';
+    wrap.style.cssText = 'text-align:center;padding:14px;';
+    wrap.innerHTML = `<button id="emLoadMoreBtn" onclick="gmailLoadMore()" style="background:#fff;border:1px solid #D8C7AE;border-radius:8px;padding:9px 24px;font-size:13px;color:#8a6a48;font-weight:700;cursor:pointer;">더 보기</button>`;
+    listEl.appendChild(wrap);
+  }
+
+  // 새로고침 — Gmail 폴더는 캐시 무시 재조회, 그 외(보낸/임시)는 목록 재렌더
+  window.gmailRefresh = function() {
+    if (window.USE_GMAIL_API && ['inbox','spam','trash'].includes(_currentFolder)) {
+      _fetchGmailAndRender(_currentFolder, true);
+    } else {
+      renderEmailList();
+    }
+  };
 
   function _emEsc(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
@@ -12837,7 +12904,7 @@ if ('serviceWorker' in navigator) {
         const sender = _emEsc(m.from || '(발신자 없음)');
         const subjectDisplay = _emEsc(m.subject || '(제목없음)');
         const weight = m.unread ? 'font-weight:800;' : '';
-        html += `<div class="em-mail-row" onclick="openGmailDetail(${m._idx})">
+        html += `<div class="em-mail-row" onclick="openGmailDetailById('${m.gmailId}')">
           <input type="checkbox" class="em-mail-check" onclick="event.stopPropagation()">
           <svg class="em-mail-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
           <span class="em-mail-sender" style="${weight}">${sender}</span>
@@ -12849,15 +12916,23 @@ if ('serviceWorker' in navigator) {
     listEl.innerHTML = html;
   }
 
+  // gmailId로 목록에서 메일 찾아 상세 열기 (날짜 그룹으로 순서 바뀌어도 정확)
+  window.openGmailDetailById = function(gmailId) {
+    const idx = _allEmailItems.findIndex(x => x.gmailId === gmailId);
+    if (idx >= 0) openGmailDetail(idx);
+  };
+
   // Gmail 메일 상세 열기
   window.openGmailDetail = async function(idx) {
     const m = _allEmailItems[idx];
     if (!m || !m.gmailId) return;
     const user = window._currentUser;
     const email = user && user.email ? user.email : '';
+    // 목록 숨기고 상세 패널 표시
+    document.getElementById('emListView').style.display = 'none';
     const dp = document.getElementById('emDetailPanel');
     if (dp) {
-      dp.style.display = 'block'; dp.classList.add('open');
+      dp.style.display = 'flex'; dp.classList.add('open');
       dp.innerHTML = '<div style="padding:30px;text-align:center;color:#aaa;">본문을 불러오는 중...</div>';
     }
     try {
@@ -12865,12 +12940,12 @@ if ('serviceWorker' in navigator) {
       const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
       const data = await res.json();
       if (data.status !== 'ok') {
-        if (dp) dp.innerHTML = `<div style="padding:30px;text-align:center;color:#c0392b;">본문 조회 실패: ${_emEsc(data.message||'')}</div>`;
+        if (dp) dp.innerHTML = `<div style="padding:30px;text-align:center;color:#c0392b;">본문 조회 실패: ${_emEsc(data.message||'')}<br><button onclick="backToEmailList()" style="margin-top:16px;background:none;border:1px solid #ddd;border-radius:8px;padding:8px 20px;cursor:pointer;">목록으로</button></div>`;
         return;
       }
       _renderGmailDetail(data.message);
     } catch(e) {
-      if (dp) dp.innerHTML = `<div style="padding:30px;text-align:center;color:#c0392b;">오류: ${_emEsc(e.message||'')}</div>`;
+      if (dp) dp.innerHTML = `<div style="padding:30px;text-align:center;color:#c0392b;">오류: ${_emEsc(e.message||'')}<br><button onclick="backToEmailList()" style="margin-top:16px;background:none;border:1px solid #ddd;border-radius:8px;padding:8px 20px;cursor:pointer;">목록으로</button></div>`;
     }
   };
 
