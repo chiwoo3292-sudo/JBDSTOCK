@@ -12590,6 +12590,7 @@ if ('serviceWorker' in navigator) {
       <div class="em-folder-item active" onclick="setEmailFolder('inbox', this)" data-folder="inbox">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
         <span>받은메일함</span>
+        <span id="emInboxUnread" style="display:none;margin-left:auto;background:var(--brand);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;min-width:18px;text-align:center;"></span>
       </div>
       <div class="em-folder-item" onclick="setEmailFolder('sent', this)" data-folder="sent">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -12938,6 +12939,25 @@ if ('serviceWorker' in navigator) {
 
   // ── 메일 목록 렌더링 ──
   // ── Gmail API로 폴더 메일 조회 후 목록 렌더 ──
+  // 받은편지함 안읽은 개수 갱신 (labels.get, 빠름)
+  window.refreshInboxUnread = async function() {
+    const badge = document.getElementById('emInboxUnread');
+    if (!badge) return;
+    const user = window._currentUser;
+    const email = user && user.email ? user.email : '';
+    if (!email) return;
+    try {
+      const res = await fetchWithRetry(`${window.ERP_URL}?action=getGmailUnread&email=${encodeURIComponent(email)}`, undefined, 0, 20000);
+      const data = await res.json();
+      if (data.status === 'ok' && data.unread > 0) {
+        badge.textContent = data.unread > 999 ? '999+' : data.unread;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    } catch(e) { /* 조용히 무시 */ }
+  };
+
   // 공통: 서버에서 메일 한 페이지 조회
   async function _gmailFetchPage(email, folder, pageToken) {
     let clientId = '', clientSecret = '';
@@ -12990,6 +13010,7 @@ if ('serviceWorker' in navigator) {
       _gmailCache[cacheKey] = { items: msgs.slice(), nextPageToken, at: Date.now() };
       _renderGmailList(_allEmailItems, folder);
       _appendMoreButton();
+      if (folder === 'inbox' && typeof refreshInboxUnread === 'function') refreshInboxUnread();
     } catch (e) {
       listEl.innerHTML = `<div class="em-empty"><p>메일 조회 오류<br><span style="font-size:11px;color:#aaa;">${_emEsc(e.message||'')}</span></p></div>`;
     }
@@ -13026,6 +13047,7 @@ if ('serviceWorker' in navigator) {
     const old = document.getElementById('emLoadMoreWrap');
     if (old) old.remove();
     if (!_gmailNextToken) return;
+    if (!_allEmailItems.length) return; // 빈 목록이면 '더 보기' 숨김 (메일없음과 동시표시 방지)
     const wrap = document.createElement('div');
     wrap.id = 'emLoadMoreWrap';
     wrap.style.cssText = 'text-align:center;padding:14px;';
@@ -13160,24 +13182,32 @@ if ('serviceWorker' in navigator) {
     if (op === 'trash' || op === 'spam') {
       // 현재 폴더에서 사라져야 하는 작업 → 목록에서 즉시 제거
       _allEmailItems = _allEmailItems.filter(m => !idSet.has(m.gmailId));
-      _renderGmailList(_allEmailItems, _currentFolder);
-      _appendMoreButton();
+      // 남은 게 적고 다음 페이지가 있으면, 빈 화면을 그리기 전에 먼저 채운 뒤 렌더
+      if (_allEmailItems.length < 10 && _gmailNextToken) {
+        // 로딩 표시만 잠깐
+        const listEl0 = document.getElementById('emMailList');
+        if (listEl0 && _allEmailItems.length === 0) listEl0.innerHTML = '<div class="em-empty"><p>불러오는 중...</p></div>';
+        await _gmailBackfill(email);
+      } else {
+        _renderGmailList(_allEmailItems, _currentFolder);
+        _appendMoreButton();
+      }
       const cntEl = document.getElementById('emMailCount');
       if (cntEl) cntEl.textContent = _allEmailItems.length ? `전체메일 ${_allEmailItems.length}` : '';
+      // 전체선택 초기화
+      const allChk = document.getElementById('emSelectAll'); if (allChk) allChk.checked = false;
+      _emUpdateBulkState();
     } else if (op === 'read' || op === 'unread') {
       // 읽음 상태만 변경 → 해당 항목 표시 갱신
       _allEmailItems.forEach(m => { if (idSet.has(m.gmailId)) m.unread = (op === 'unread'); });
       _renderGmailList(_allEmailItems, _currentFolder);
       _appendMoreButton();
+      const allChk = document.getElementById('emSelectAll'); if (allChk) allChk.checked = false;
+      _emUpdateBulkState();
     }
     // 캐시도 갱신된 목록으로 반영
     const cacheKey = email + '|' + _currentFolder;
     if (_gmailCache[cacheKey]) _gmailCache[cacheKey].items = _allEmailItems.slice();
-
-    // 목록에서 사라지는 작업(삭제·스팸)이고 남은 게 적으면 다음 페이지 자동 보충
-    if ((op === 'trash' || op === 'spam') && _allEmailItems.length < 10 && _gmailNextToken) {
-      _gmailBackfill(email);
-    }
 
     // ── 서버에는 백그라운드로 요청 (실패 시에만 알림+새로고침) ──
     try {
@@ -13188,6 +13218,9 @@ if ('serviceWorker' in navigator) {
         alert('작업 실패: ' + (data.message||'') + '\n목록을 새로고침합니다.');
         delete _gmailCache[cacheKey];
         _fetchGmailAndRender(_currentFolder, true);
+      } else {
+        // 읽음/삭제 등으로 안읽은 수가 바뀌었을 수 있으니 갱신
+        if (typeof refreshInboxUnread === 'function') refreshInboxUnread();
       }
     } catch(e) {
       alert('작업 오류: ' + e.message + '\n목록을 새로고침합니다.');
