@@ -5635,13 +5635,13 @@ function csDateInputValue(val) {
     </table>
   </div>
 
-  <!-- ── 문자 발송 테스트 (베타 검증용) ── -->
+  <!-- ── 예약확정 수동발송 ── -->
   <div class="sms-template-card" style="margin-top:16px;border:1.5px dashed var(--brand);background:#FCF9F4;">
     <div class="sms-template-title">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-      문자 발송 테스트 <span style="font-size:11px;background:var(--cream-2);color:var(--brand);border-radius:4px;padding:2px 8px;font-weight:700;">지정한 번호로 즉시 발송</span>
+      예약확정 수동발송 <span style="font-size:11px;background:var(--cream-2);color:var(--brand);border-radius:4px;padding:2px 8px;font-weight:700;">지정한 번호로 즉시 발송</span>
     </div>
-    <div class="sms-vars" style="margin-bottom:14px;">입력한 값이 각 템플릿의 변수(<span>{이름}</span><span>{일정}</span><span>{상담자}</span><span>{연락처}</span>)에 치환되어 발송됩니다. API 미연동 상태에서는 발송내역에 <b>API미연동</b>으로 기록됩니다.</div>
+    <div class="sms-vars" style="margin-bottom:14px;">입력한 값이 각 템플릿의 변수(<span>{이름}</span><span>{일정}</span><span>{연락처}</span>)에 치환되어 발송됩니다. API 미연동 상태에서는 발송내역에 <b>API미연동</b>으로 기록됩니다.</div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
       <div>
@@ -5654,14 +5654,9 @@ function csDateInputValue(val) {
         <input id="smsTestName" type="text" placeholder="홍길동" autocomplete="off"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
-      <div>
+      <div style="grid-column:1 / -1;">
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">일정</label>
         <input id="smsTestSchedule" type="text" placeholder="01-15 14:00 (단문 유지를 위해 연도 생략 권장)" autocomplete="off"
-          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
-      </div>
-      <div>
-        <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">상담자</label>
-        <input id="smsTestCounselor" type="text" placeholder="김상담" autocomplete="off"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
     </div>
@@ -7489,7 +7484,7 @@ function csDateInputValue(val) {
       const phone = (document.getElementById('smsTestPhone').value || '').trim();
       const name = (document.getElementById('smsTestName').value || '').trim();
       const schedule = (document.getElementById('smsTestSchedule').value || '').trim();
-      const counselor = (document.getElementById('smsTestCounselor').value || '').trim();
+      // 상담자 변수는 사용하지 않음
 
       if (!phone) {
         if (resultEl) { resultEl.style.color = '#c0392b'; resultEl.textContent = '연락처를 입력해주세요.'; }
@@ -7501,7 +7496,7 @@ function csDateInputValue(val) {
 
       window._smsTestSending = true;
       try {
-        const r = await sendSMS(phone, name, schedule, counselor, templateKey);
+        const r = await sendSMS(phone, name, schedule, '', templateKey);
         if (!resultEl) return;
         if (r.ok) {
           resultEl.style.color = '#1a7a45';
