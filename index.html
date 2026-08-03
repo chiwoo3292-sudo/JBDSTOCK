@@ -13109,23 +13109,45 @@ if ('serviceWorker' in navigator) {
     if (!ids.length) return;
     let realOp = op;
     if (op === 'spam' && _currentFolder === 'spam') realOp = 'unspam'; // 스팸함에선 해제
-    // 삭제는 확인
     if (op === 'trash') {
       if (!confirm(`${ids.length}개 메일을 휴지통으로 옮기시겠습니까?`)) return;
     }
     const user = window._currentUser;
     const email = user && user.email ? user.email : '';
+    const idSet = new Set(ids);
+
+    // ── 낙관적 갱신: 화면에서 먼저 반영 (서버 응답 기다리지 않음) ──
+    if (op === 'trash' || op === 'spam') {
+      // 현재 폴더에서 사라져야 하는 작업 → 목록에서 즉시 제거
+      _allEmailItems = _allEmailItems.filter(m => !idSet.has(m.gmailId));
+      _renderGmailList(_allEmailItems, _currentFolder);
+      _appendMoreButton();
+      const cntEl = document.getElementById('emMailCount');
+      if (cntEl) cntEl.textContent = _allEmailItems.length ? `전체메일 ${_allEmailItems.length}` : '';
+    } else if (op === 'read' || op === 'unread') {
+      // 읽음 상태만 변경 → 해당 항목 표시 갱신
+      _allEmailItems.forEach(m => { if (idSet.has(m.gmailId)) m.unread = (op === 'unread'); });
+      _renderGmailList(_allEmailItems, _currentFolder);
+      _appendMoreButton();
+    }
+    // 캐시도 갱신된 목록으로 반영
+    const cacheKey = email + '|' + _currentFolder;
+    if (_gmailCache[cacheKey]) _gmailCache[cacheKey].items = _allEmailItems.slice();
+
+    // ── 서버에는 백그라운드로 요청 (실패 시에만 알림+새로고침) ──
     try {
       const params = new URLSearchParams({ action: 'gmailBatchModify', email, op: realOp, ids: ids.join(',') });
       const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
       const data = await res.json();
-      if (data.status !== 'ok') { alert('작업 실패: ' + (data.message||'')); return; }
-      // 캐시 무효화 후 현재 폴더 새로고침
-      const cacheKey = email + '|' + _currentFolder;
+      if (data.status !== 'ok') {
+        alert('작업 실패: ' + (data.message||'') + '\n목록을 새로고침합니다.');
+        delete _gmailCache[cacheKey];
+        _fetchGmailAndRender(_currentFolder, true);
+      }
+    } catch(e) {
+      alert('작업 오류: ' + e.message + '\n목록을 새로고침합니다.');
       delete _gmailCache[cacheKey];
       _fetchGmailAndRender(_currentFolder, true);
-    } catch(e) {
-      alert('작업 오류: ' + e.message);
     }
   };
 
