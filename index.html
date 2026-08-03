@@ -76,7 +76,7 @@
         '<img src="https://raw.githubusercontent.com/chiwoo3292-sudo/JBDSTOCK/refs/heads/main/지복득마루메인로고.jpg" alt="지복득마루" style="width:120px;height:auto;margin-bottom:22px;">' +
         '<div style="font-family:\'Pretendard\',\'Noto Sans KR\',sans-serif;font-size:22px;font-weight:500;color:#2B2521;letter-spacing:0.32em;margin-left:0.32em;margin-bottom:14px;">지복득마루</div>' +
         '<div style="font-size:13.5px;color:#7a6f61;line-height:1.6;margin-bottom:28px;max-width:280px;">모바일에서는 더 넓고 편한 화면으로<br>보여드리기 위해 페이지를 이동합니다</div>' +
-        '<button id="wixExitBtn" style="background:#A2693E;color:#fff;border:none;padding:16px 36px;border-radius:12px;font-size:15px;font-weight:800;box-shadow:0 6px 18px rgba(162,105,62,0.35);cursor:pointer;font-family:inherit;">사내시스템에 접속합니다</button>';
+        '<button id="wixExitBtn" style="background:var(--brand);color:#fff;border:none;padding:16px 36px;border-radius:12px;font-size:15px;font-weight:800;box-shadow:0 6px 18px rgba(162,105,62,0.35);cursor:pointer;font-family:inherit;">사내시스템에 접속합니다</button>';
       overlay.querySelector('#wixExitBtn').onclick = function () {
         window.top.location.href = 'https://chiwoo3292-sudo.github.io/JBDSTOCK/';
       };
@@ -148,7 +148,39 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
-  :root { --ui-scale: 1; }
+  :root {
+    --ui-scale: 1;
+    /* ── 테마 변수 (기본: 브라운) ── 견적서/상태색/경고색은 이 변수를 쓰지 않아 영향 없음 */
+    --brand: #A2693E;         /* 메인 브랜드색 */
+    --brand-dark: #8a6a48;    /* 진한 브랜드색(텍스트 등) */
+    --brand-deep: #6f4a2c;    /* 더 진한 톤 */
+    --brand-light: #C68A52;   /* 밝은 브랜드색(그라데이션 등) */
+    --cream: #F7F1E7;         /* 연한 배경 */
+    --cream-2: #F1EADF;       /* 연한 배경2 */
+    --border: #E5D9C6;        /* 테두리 */
+    --border-2: #D8C7AE;      /* 테두리2 */
+    --muted: #A98C6B;         /* 흐린 텍스트 */
+    --brand-soft: #B79A78;    /* 아이콘 등 부드러운 브랜드색 */
+    --surface-tint: #FAF8F4;  /* 아주 연한 표면 */
+  }
+  /* 화이트 & 블랙 (모노톤) */
+  body[data-theme="mono"] {
+    --brand: #222222; --brand-dark: #111111; --brand-deep: #000000; --brand-light: #444444;
+    --cream: #F4F4F4; --cream-2: #ECECEC; --border: #DDDDDD; --border-2: #CCCCCC;
+    --muted: #888888; --brand-soft: #666666; --surface-tint: #FAFAFA;
+  }
+  /* 그레이 (부드러운 무채색) */
+  body[data-theme="gray"] {
+    --brand: #5B6472; --brand-dark: #454c57; --brand-deep: #333943; --brand-light: #7a8494;
+    --cream: #F2F3F5; --cream-2: #E9EBEF; --border: #DBDEE4; --border-2: #C7CBD3;
+    --muted: #8b93a1; --brand-soft: #9aa2b0; --surface-tint: #F8F9FA;
+  }
+  /* 네이비 (차분한 남색) */
+  body[data-theme="navy"] {
+    --brand: #2c4a6e; --brand-dark: #223a56; --brand-deep: #182a40; --brand-light: #3d6493;
+    --cream: #eef2f7; --cream-2: #e2e9f1; --border: #d0dae6; --border-2: #b5c4d6;
+    --muted: #7c8da6; --brand-soft: #8ea3bd; --surface-tint: #f6f8fb;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
   /* GmarketSans Bold(700) → font-weight:900으로 매핑하여 기존 CSS(font-weight:900) 그대로 사용 */
@@ -177,18 +209,18 @@
     display:flex; align-items:center; gap:8px; margin-bottom:6px;
     background:rgba(244,239,230,0.82); -webkit-backdrop-filter:saturate(1.4) blur(10px); backdrop-filter:saturate(1.4) blur(10px); padding:14px 12px; border-bottom:1px solid #E7DDCB;
   }
-  .hamburger-btn { min-width:36px; height:36px; border:1px solid #E5D9C6; border-radius:8px; background:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
+  .hamburger-btn { min-width:36px; height:36px; border:1px solid var(--border); border-radius:8px; background:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; flex-shrink:0; padding:0; }
   .hamburger-btn span { display:block; width:16px; height:2px; background:#978B7C; border-radius:2px; }
   .tabs { display:flex; gap:8px; align-items:center; overflow-x:auto; flex:1; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; user-select:none; }
   .tabs::-webkit-scrollbar { display:none; }
   .tabs.dragging { cursor:grabbing; }
   .tab-btn { min-height:36px; padding:0 15px; border:1px solid #E7DDCB; border-radius:999px; background:#FCFAF5; color:#8A7E6E; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:background .14s ease, color .14s ease, border-color .14s ease; }
   .tab-btn:hover { background:#F1E7D7; color:#6F6151; border-color:#DCCDB4; }
-  .tab-btn.active { background:#A2693E; color:#FCF7F0; border-color:#A2693E; font-weight:700; box-shadow:0 1px 2px rgba(120,70,30,0.22); }
+  .tab-btn.active { background:var(--brand); color:#FCF7F0; border-color:var(--brand); font-weight:700; box-shadow:0 1px 2px rgba(120,70,30,0.22); }
   .user-info-badge { 
     flex-shrink:0; display:flex; align-items:center; justify-content:center;
     width:36px; height:36px; border-radius:50%;
-    background:#A2693E; color:#fff;
+    background:var(--brand); color:#fff;
     font-size:15px; font-weight:800; cursor:pointer; 
     border:none; position:relative; margin-left:auto;
     transition:transform .12s ease, box-shadow .12s ease;
@@ -210,7 +242,7 @@
   .hamburger-menu-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; min-height:auto; padding:0; }
   .hamburger-menu-item { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f5f5f5; cursor:pointer; font-size:13.5px; font-weight:600; color:#333; }
   .hamburger-menu-item:hover { background:#f9f9f9; }
-  .hamburger-menu-item input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:#A2693E; }
+  .hamburger-menu-item input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:var(--brand); }
   .hamburger-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:99997; }
   .hamburger-overlay.open { display:block; }
 
@@ -227,7 +259,7 @@
   .title { margin:0 0 14px; font-size:17px; font-weight:700; font-family:'Pretendard','Noto Sans KR',sans-serif; color:#241F1B; letter-spacing:-.015em; }
   .topbar { display:grid; grid-template-columns:auto minmax(180px, 280px); justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
   .product-add { display:grid; grid-template-columns:minmax(220px, 240px) auto; gap:8px; align-items:center; }
-  select, input[type="text"], input[type="search"], input[type="number"], textarea { font-family:inherit; font-size:13px; border:1px solid #E5D9C6; border-radius:10px; background:#F7F1E7; }
+  select, input[type="text"], input[type="search"], input[type="number"], textarea { font-family:inherit; font-size:13px; border:1px solid var(--border); border-radius:10px; background:var(--cream); }
   select, input[type="text"], input[type="search"], input[type="number"] { height:38px; padding:0 12px; width:100%; }
   /* type=search 기본 지우기(X) 버튼·장식 제거 — 기존 텍스트 입력창과 동일한 외형 유지 */
   input[type="search"]::-webkit-search-decoration,
@@ -236,15 +268,15 @@
   input[type="search"]::-webkit-search-results-decoration { -webkit-appearance:none; appearance:none; display:none; }
   input[type="search"] { -webkit-appearance:none; appearance:none; }
   textarea { width:100%; min-height:380px; padding:12px; line-height:1.6; resize:vertical; }
-  button { min-height:35px; padding:0 15px; border:1px solid #A2693E; border-radius:10px; background:#A2693E; color:#FCF7F0; font-size:12px; font-weight:700; cursor:pointer; transition:background .14s ease, box-shadow .14s ease, transform .06s ease; box-shadow:0 1px 2px rgba(120,70,30,0.18); }
+  button { min-height:35px; padding:0 15px; border:1px solid var(--brand); border-radius:10px; background:var(--brand); color:#FCF7F0; font-size:12px; font-weight:700; cursor:pointer; transition:background .14s ease, box-shadow .14s ease, transform .06s ease; box-shadow:0 1px 2px rgba(120,70,30,0.18); }
   button:hover { background:#8C5530; box-shadow:0 2px 6px rgba(120,70,30,0.26); }
   button:active { transform:translateY(1px); }
-  button.secondary { background:#FFFDFA; color:#A2693E; border-color:#E5D9C6; box-shadow:none; }
+  button.secondary { background:#FFFDFA; color:var(--brand); border-color:var(--border); box-shadow:none; }
   button.secondary:hover { background:#F6EEE1; border-color:#DCCDB4; }
   .scroll { max-height:730px; overflow:auto; border:1px solid #eee; border-radius:14px; scrollbar-width:thin; }
   table { width:100%; border-collapse:collapse; }
   th, td { padding:11px 10px; border-bottom:1px solid #F0E8DA; text-align:left; vertical-align:top; font-size:13px; line-height:1.45; font-variant-numeric:tabular-nums; }
-  th { background:#F7F1E7; color:#978B7C; font-size:11.5px; font-weight:600; position:sticky; top:0; z-index:1; border-bottom:1.5px solid #E5D9C6; }
+  th { background:var(--cream); color:#978B7C; font-size:11.5px; font-weight:600; position:sticky; top:0; z-index:1; border-bottom:1.5px solid var(--border); }
   td.name, td.spec-left, td.spec-right { white-space:nowrap; }
   td.price { white-space:nowrap; }
   .muted { color:#777; font-size:12px; }
@@ -262,7 +294,7 @@
   .quick-copy-label { grid-column:1 / -1; color:#777; font-size:12px; margin-bottom:2px; }
   .quick-preview-trigger { position:relative; }
   .quick-preview-trigger .secondary { width:100%; transition:background .15s, color .15s, transform .15s; }
-  .quick-preview-trigger .secondary.copy-selected { background:#A2693E !important; color:#fff !important; border-color:#A2693E !important; transform:scale(0.96); }
+  .quick-preview-trigger .secondary.copy-selected { background:var(--brand) !important; color:#fff !important; border-color:var(--brand) !important; transform:scale(0.96); }
   .quick-preview { position:fixed; display:none; width:300px; max-height:260px; overflow:auto; padding:14px; border:1px solid #ddd; border-radius:12px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.18); font-size:12px; line-height:1.6; color:#333; white-space:pre-wrap; z-index:99990; }
   #quickPreviewBackdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:99989; }
   #quickPreviewBackdrop.show { display:block; }
@@ -300,7 +332,7 @@
 
 .stock-table-wrapper { overflow-x: auto; margin-top: 10px; border-radius: 12px; border: 1px solid #e0e0e0; }
 #stockTable { width: 100%; border-collapse: collapse; font-size: 14px; }
-#stockTable th { background-color: #F7F1E7; color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center; vertical-align: middle; position: sticky; top: 0; z-index: 10; }
+#stockTable th { background-color: var(--cream); color: #555; padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center; vertical-align: middle; position: sticky; top: 0; z-index: 10; }
 #stockTable td { padding: 11px 8px; border-bottom: 1px solid #eee; text-align: center; }
 
 /* 품번 열 좌측 고정 (모바일 가로스크롤 시 품번 고정) */
@@ -308,7 +340,7 @@
 #stockTable td:first-child {
   position: sticky !important;
   left: 0 !important;
-  background-color: #F7F1E7 !important;
+  background-color: var(--cream) !important;
   border-right: 2px solid #ccc !important;
   min-width: 70px !important;
 }
@@ -738,11 +770,11 @@
       <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn">이메일</button>
     </div>
     <!-- 홈 버튼 (사용자 아이콘 좌측) -->
-    <div id="headerHomeBtn" onclick="setTab('myInfoTab')" style="display:none;cursor:pointer;margin-right:2px;color:#A2693E;" title="홈">
+    <div id="headerHomeBtn" onclick="setTab('myInfoTab')" style="display:none;cursor:pointer;margin-right:2px;color:var(--brand);" title="홈">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     </div>
     <!-- 관리자 버튼 (왕관, admin만 표시) -->
-    <div id="adminTabBtn" onclick="setTab('adminTab')" style="display:none;align-items:center;cursor:pointer;margin-right:4px;color:#A2693E;" title="관리자">
+    <div id="adminTabBtn" onclick="setTab('adminTab')" style="display:none;align-items:center;cursor:pointer;margin-right:4px;color:var(--brand);" title="관리자">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M2 18h20l-2-9-4.5 4L12 6l-3.5 7L4 9l-2 9Z"/><path d="M2 18h20"/></svg>
     </div>
     <div class="user-info-badge" id="userInfoBadge" onclick="toggleUserDropdown(event)" style="display:none;" title="내 계정">
@@ -781,7 +813,7 @@
       <h3>전체 메뉴</h3>
       <div style="display:flex;align-items:center;gap:6px;">
         <button id="hamburgerHomeBtn" onclick="closeHamburger(); setTab('myInfoTab');" title="홈 (내정보)"
-          style="background:none;border:none;cursor:pointer;color:#A2693E;padding:6px;min-height:auto;display:flex;align-items:center;justify-content:center;border-radius:8px;">
+          style="background:none;border:none;cursor:pointer;color:var(--brand);padding:6px;min-height:auto;display:flex;align-items:center;justify-content:center;border-radius:8px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
@@ -1527,8 +1559,8 @@
 
     <!-- 결과 영역 -->
     <div id="fpResultWrap" style="display:none; margin-top:20px;">
-      <div style="background:#FAF4EC; border:1px solid #E5D9C6; border-radius:14px; padding:20px;">
-        <div style="font-size:13px; font-weight:700; color:#A2693E; margin-bottom:12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>분석 결과</div>
+      <div style="background:#FAF4EC; border:1px solid var(--border); border-radius:14px; padding:20px;">
+        <div style="font-size:13px; font-weight:700; color:var(--brand); margin-bottom:12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>분석 결과</div>
         <div id="fpResultText" style="font-size:14px; color:#333; line-height:1.8; white-space:pre-wrap;"></div>
       </div>
       <div style="margin-top:12px; font-size:11px; color:#aaa; text-align:center; line-height:1.6;">
@@ -1538,7 +1570,7 @@
 
     <!-- 로딩 -->
     <div id="fpLoading" style="display:none; text-align:center; padding:30px 0;">
-      <div style="font-size:24px; animation: spin 1s linear infinite; display:inline-block;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="2.5" stroke-linecap="round" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.2-8.5"></path></svg></div>
+      <div style="font-size:24px; animation: spin 1s linear infinite; display:inline-block;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.2-8.5"></path></svg></div>
       <div style="font-size:13px; color:#888; margin-top:10px;">평면도를 분석 중입니다...</div>
     </div>
   </div>
@@ -1565,14 +1597,14 @@
 
     <!-- OCR 로딩 -->
     <div id="cardLoading" style="display:none; text-align:center; padding:24px; color:#888; font-size:13px; background:#f9f9f9; border-radius:12px; margin-bottom:16px;">
-      <div style="font-size:28px; margin-bottom:8px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="2.5" stroke-linecap="round" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.2-8.5"></path></svg></div>
+      <div style="font-size:28px; margin-bottom:8px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.2-8.5"></path></svg></div>
       <div id="cardLoadingText">텍스트 추출 중...</div>
     </div>
 
     <!-- 데이터 입력 폼 -->
     <div id="cardFormWrap" style="display:none;">
-      <div style="background:#FAF4EC; border:1px solid #E5D9C6; border-radius:14px; padding:16px; margin-bottom:14px;">
-        <div style="font-size:12px; color:#A2693E; font-weight:700; margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>정보 확인 및 수정 (모든 항목 직접 입력 가능)</div>
+      <div style="background:#FAF4EC; border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px;">
+        <div style="font-size:12px; color:var(--brand); font-weight:700; margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>정보 확인 및 수정 (모든 항목 직접 입력 가능)</div>
 
         <div style="margin-bottom:12px;">
           <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:4px;">업체명</div>
@@ -1702,7 +1734,7 @@
   .slot-cal-dow { font-size:11px; color:#999; font-weight:700; padding:4px 0; }
   .slot-cal-day { font-size:12.5px; padding:6px 0; border-radius:8px; cursor:pointer; }
   .slot-cal-day:hover { background:#F3EADB; }
-  .slot-cal-day.selected { background:#A2693E; color:#fff; font-weight:800; }
+  .slot-cal-day.selected { background:var(--brand); color:#fff; font-weight:800; }
   .slot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
   .slot-cell { border:1px solid #ddd; border-radius:10px; padding:10px 8px; text-align:center; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; color:#1a7a45; background:#d1f0e0; border-color:#a8dfc0; }
   .slot-cell.closed { background:#fdecea; border-color:#f5b7b1; color:#c0392b; }
@@ -1721,7 +1753,7 @@
   <!-- 좌: 예약 목록 -->
   <div class="rsv-card">
     <div class="rsv-card-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>예약 대기 목록
-      <button id="rsvBulkConfirmBtn" onclick="bulkConfirmSelected()" style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:8px;background:#A2693E;color:#fff;border:none;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>일괄확정</button>
+      <button id="rsvBulkConfirmBtn" onclick="bulkConfirmSelected()" style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:8px;background:var(--brand);color:#fff;border:none;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>일괄확정</button>
       <button onclick="loadReservations()" style="margin-left:8px;padding:6px 12px;font-size:11px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>새로고침</button>
     </div>
 
@@ -2357,10 +2389,10 @@
 
     <!-- 헤더: 제목 + 저장 버튼 한 줄 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-size:14px;font-weight:800;color:#A2693E;">월별 팝업메세지 안내</div>
+      <div style="font-size:14px;font-weight:800;color:var(--brand);">월별 팝업메세지 안내</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="monthlyNoticeSaved" style="display:none;font-size:11px;color:#1a7a45;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a7a45" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="20 6 9 17 4 12"></polyline></svg>저장됨</span>
-        <button onclick="saveMonthlyNotice()" style="padding:6px 14px;background:#A2693E;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
+        <button onclick="saveMonthlyNotice()" style="padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
       </div>
     </div>
 
@@ -2400,8 +2432,8 @@
       placeholder=""></textarea>
 
     <!-- 미리보기 -->
-    <div id="noticePreviewBox" style="display:none;margin-top:14px;padding:14px 16px;background:#F7F1E7;border:1px solid #E5D9C6;border-radius:10px;">
-      <div style="font-size:11px;font-weight:700;color:#A2693E;margin-bottom:8px;letter-spacing:.3px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>미리보기</div>
+    <div id="noticePreviewBox" style="display:none;margin-top:14px;padding:14px 16px;background:var(--cream);border:1px solid var(--border);border-radius:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--brand);margin-bottom:8px;letter-spacing:.3px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>미리보기</div>
       <div id="noticePreviewContent" style="font-size:13px;color:#333;line-height:1.85;white-space:pre-wrap;"></div>
     </div>
   </div>
@@ -2413,8 +2445,8 @@
   color:#555;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
   flex-shrink:0;transition:all .12s;
 }
-.notice-m-btn:hover { background:#F3EADB; border-color:#E5D9C6; }
-.notice-m-btn.active { background:#A2693E; color:#fff; border-color:#A2693E; }
+.notice-m-btn:hover { background:#F3EADB; border-color:var(--border); }
+.notice-m-btn.active { background:var(--brand); color:#fff; border-color:var(--brand); }
 </style>
 
 </section>
@@ -2428,14 +2460,14 @@
 
   /* 헤더 */
   .dw-header { display:flex; align-items:center; gap:7px; margin-bottom:10px; }
-  .dw-header-icon { width:22px; height:22px; border-radius:5px; background:#A2693E; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; flex-shrink:0; }
+  .dw-header-icon { width:22px; height:22px; border-radius:5px; background:var(--brand); display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; flex-shrink:0; }
   .dw-header h2 { font-size:17px; font-weight:700; color:#222; text-decoration:underline; text-underline-offset:4px; }
   .dw-header-spacer { flex:1; }
   .dw-refresh-btn { padding:6px 13px; font-size:12px; font-weight:700; border-radius:6px; background:#111; color:#fff; border:none; cursor:pointer; }
 
   /* 서브탭 */
   .dw-subtab-row { display:flex; align-items:flex-end; gap:6px; border-bottom:1px solid #e3e3e3; margin-bottom:16px; padding-bottom:0; }
-  .dw-subtab-row .dw-subtab-active { font-size:13.5px; font-weight:700; color:#A2693E; padding-bottom:10px; border-bottom:2px solid #A2693E; margin-bottom:-1px; }
+  .dw-subtab-row .dw-subtab-active { font-size:13.5px; font-weight:700; color:var(--brand); padding-bottom:10px; border-bottom:2px solid var(--brand); margin-bottom:-1px; }
   .dw-subtab-row .dw-subtab-badge { font-size:10px; color:#999; background:#f1f1f3; border-radius:4px; padding:2px 6px; margin-bottom:9px; }
 
   /* 검색줄 */
@@ -2466,8 +2498,8 @@
 
   /* 툴바 */
   .dw-toolbar { display:flex; align-items:center; gap:16px; padding:6px 2px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; margin-bottom:0; }
-  .dw-toolbar-item { display:flex; align-items:center; gap:5px; font-size:12.5px; color:#444; font-weight:700; cursor:pointer; background:#fff; border:1.5px solid #D8C7AE; border-radius:8px; padding:7px 14px; transition:background .12s, border-color .12s; }
-  .dw-toolbar-item:hover { background:#F3EADB; border-color:#A2693E; }
+  .dw-toolbar-item { display:flex; align-items:center; gap:5px; font-size:12.5px; color:#444; font-weight:700; cursor:pointer; background:#fff; border:1.5px solid var(--border-2); border-radius:8px; padding:7px 14px; transition:background .12s, border-color .12s; }
+  .dw-toolbar-item:hover { background:#F3EADB; border-color:var(--brand); }
   .dw-toolbar-item .ic { font-size:13px; }
   .dw-toolbar-spacer { flex:1; }
   .dw-toolbar-select { border:1px solid #ddd; border-radius:5px; padding:4px 4px; font-size:12px; color:#555; width:50px; }
@@ -2479,36 +2511,36 @@
   /* 뷰 전환: 뷰 라벨 + [리스트][캘린더], 툴바 우측 정렬 */
   .cs-view-wrap { display:inline-flex; align-items:center; gap:8px; margin-left:auto; }
   .cs-view-label { font-size:12.5px; font-weight:700; color:#a98c6b; }
-  .cs-viewtoggle { display:inline-flex; gap:4px; background:#F1EADF; border-radius:8px; padding:3px; }
-  .cs-viewtoggle-btn { background:transparent; border:none; padding:6px 16px; font-size:12.5px; font-weight:700; color:#8a6a48; cursor:pointer; border-radius:6px; transition:background .12s,color .12s; }
-  .cs-viewtoggle-btn.active { background:#A2693E; color:#fff; }
+  .cs-viewtoggle { display:inline-flex; gap:4px; background:var(--cream-2); border-radius:8px; padding:3px; }
+  .cs-viewtoggle-btn { background:transparent; border:none; padding:6px 16px; font-size:12.5px; font-weight:700; color:var(--brand-dark); cursor:pointer; border-radius:6px; transition:background .12s,color .12s; }
+  .cs-viewtoggle-btn.active { background:var(--brand); color:#fff; }
   .cs-viewtoggle-btn:not(.active):hover { background:#E4D6BF; }
 
   /* ── 캘린더 뷰 ── */
   #csCalendarView { user-select:none; }
   .cscal-header { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:14px 2px 12px; gap:8px; }
   .cscal-nav { display:flex; align-items:center; justify-content:center; gap:10px; grid-column:2; }
-  .cscal-navbtn { width:34px; height:34px; border:1px solid #E5D9C6; background:#fff; border-radius:8px; font-size:20px; line-height:1; color:#8a6a48; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-  .cscal-navbtn:hover { background:#F3EADB; border-color:#A2693E; }
+  .cscal-navbtn { width:34px; height:34px; border:1px solid var(--border); background:#fff; border-radius:8px; font-size:20px; line-height:1; color:var(--brand-dark); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cscal-navbtn:hover { background:#F3EADB; border-color:var(--brand); }
   .cscal-hint { font-size:11.5px; color:#aaa; grid-column:3; text-align:right; }
   .cscal-title { font-size:20px; font-weight:800; color:#333; min-width:118px; text-align:center; letter-spacing:.5px; }
   .cscal-hint { font-size:11.5px; color:#aaa; }
-  .cscal-grid-head { display:grid; grid-template-columns:repeat(7,1fr); border-top:2px solid #D8C7AE; }
+  .cscal-grid-head { display:grid; grid-template-columns:repeat(7,1fr); border-top:2px solid var(--border-2); }
   .cscal-dow { text-align:center; padding:10px 0; font-size:13px; font-weight:800; color:#666; }
   .cscal-dow.sun { color:#d6493f; }
   .cscal-dow.sat { color:#2c5fc4; }
   .cscal-grid { display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:minmax(118px,auto); border-left:1px solid #ECE3D3; }
   .cscal-cell { border-right:1px solid #ECE3D3; border-bottom:1px solid #ECE3D3; padding:5px 5px 7px; min-height:118px; overflow:hidden; position:relative; background:#fff; }
-  .cscal-cell.other { background:#faf8f4; }
+  .cscal-cell.other { background:var(--surface-tint); }
   .cscal-daynum { font-size:12.5px; font-weight:700; color:#555; margin-bottom:4px; display:inline-block; }
   .cscal-cell.other .cscal-daynum { color:#c4bcae; }
   .cscal-cell.sun .cscal-daynum { color:#d6493f; }
-  .cscal-cell.today .cscal-daynum { background:#A2693E; color:#fff; border-radius:50%; width:22px; height:22px; line-height:22px; text-align:center; }
-  .cscal-ev { display:block; width:100%; background:#F1EADF; border-radius:5px; padding:2px 6px; margin-bottom:3px; font-size:11px; color:#5b4a35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; box-sizing:border-box; text-align:left; border:none; }
+  .cscal-cell.today .cscal-daynum { background:var(--brand); color:#fff; border-radius:50%; width:22px; height:22px; line-height:22px; text-align:center; }
+  .cscal-ev { display:block; width:100%; background:var(--cream-2); border-radius:5px; padding:2px 6px; margin-bottom:3px; font-size:11px; color:#5b4a35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; box-sizing:border-box; text-align:left; border:none; }
   .cscal-ev:hover { background:#E4D6BF; }
-  .cscal-ev .t { color:#A2693E; font-weight:700; margin-right:4px; }
+  .cscal-ev .t { color:var(--brand); font-weight:700; margin-right:4px; }
   .cscal-more { display:inline-block; font-size:11px; color:#999; font-weight:700; cursor:pointer; padding:1px 4px; margin-top:1px; }
-  .cscal-more:hover { color:#A2693E; text-decoration:underline; }
+  .cscal-more:hover { color:var(--brand); text-decoration:underline; }
   /* 모바일 점 표시 (기본 숨김, 모바일에서만 노출) */
   .cscal-dots { display:none; }
   .cscal-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin:0 1.5px; vertical-align:middle; }
@@ -2523,23 +2555,23 @@
   .cscal-loading, .cscal-empty { grid-column:1 / -1; text-align:center; padding:50px 0; color:#aaa; font-size:13px; }
 
   /* 날짜 팝오버 */
-  .cscal-popover { position:fixed; z-index:100000; width:230px; max-height:360px; background:#fff; border:1px solid #E5D9C6; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; overflow:hidden; }
+  .cscal-popover { position:fixed; z-index:100000; width:230px; max-height:360px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; overflow:hidden; }
   .cscal-pop-head { display:flex; align-items:center; justify-content:space-between; padding:12px 14px 10px; font-size:15px; font-weight:800; color:#333; border-bottom:1px solid #f0ece3; }
   .cscal-pop-close { background:none; border:none; font-size:20px; color:#aaa; cursor:pointer; line-height:1; padding:0 2px; }
   .cscal-pop-close:hover { color:#666; }
   .cscal-pop-body { overflow-y:auto; padding:8px; }
-  .cscal-pop-item { display:block; width:100%; background:#F1EADF; border:none; border-radius:6px; padding:7px 10px; margin-bottom:5px; font-size:12px; color:#5b4a35; cursor:pointer; text-align:left; box-sizing:border-box; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cscal-pop-item { display:block; width:100%; background:var(--cream-2); border:none; border-radius:6px; padding:7px 10px; margin-bottom:5px; font-size:12px; color:#5b4a35; cursor:pointer; text-align:left; box-sizing:border-box; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cscal-pop-item:hover { background:#E4D6BF; }
-  .cscal-pop-item .t { color:#A2693E; font-weight:700; margin-right:5px; }
+  .cscal-pop-item .t { color:var(--brand); font-weight:700; margin-right:5px; }
 
   table.dw-table { border-collapse:collapse; font-size:12.5px; table-layout:fixed; min-width:100%; }
-  table.dw-table thead th { position:relative; padding:8px 8px; text-align:center; font-weight:800; color:#fff; background:#A2693E; border:1.5px solid #8a5730; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
+  table.dw-table thead th { position:relative; padding:8px 8px; text-align:center; font-weight:800; color:#fff; background:var(--brand); border:1.5px solid #8a5730; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select:none; }
   table.dw-table tbody td { padding:6.5px 8px; text-align:center; border:1.5px solid #C9B695; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   table.dw-table tbody tr { cursor:pointer; }
   table.dw-table tbody tr:hover { background:#F3EADB; }
 
   .dw-col-resizer { position:absolute; right:-3px; top:0; width:6px; height:100%; cursor:col-resize; z-index:2; }
-  .dw-col-resizer:hover { background:#A2693E; opacity:0.4; }
+  .dw-col-resizer:hover { background:var(--brand); opacity:0.4; }
 
   /* 인라인 편집 */
   .cs-inline-input { border:none; background:transparent; font-size:13px; font-family:inherit; color:#333; width:100%; outline:none; cursor:text; }
@@ -2660,7 +2692,7 @@
   .dw-form-subtab { font-size:12px; color:#999; margin-bottom:22px; display:flex; gap:6px; align-items:center; }
   .dw-form-subtab .dw-subtab-badge { font-size:10px; color:#999; background:#f1f1f3; border-radius:4px; padding:2px 6px; }
 
-  .dw-section-h { font-size:14px; font-weight:700; color:#A2693E; margin:26px 0 14px; }
+  .dw-section-h { font-size:14px; font-weight:700; color:var(--brand); margin:26px 0 14px; }
   .dw-section-h:first-of-type { margin-top:0; }
 
   .dw-field-row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:24px; margin-bottom:18px; align-items:start; }
@@ -2674,7 +2706,7 @@
   .dw-field input[type=text], .dw-field input[type=date], .dw-field input[type=time], .dw-field input[type=number], .dw-field select, .dw-field textarea {
     width:100%; padding:9px 11px; border:1px solid #ddd; border-radius:6px; font-size:13px; font-family:inherit; color:#333; outline:none;
   }
-  .dw-field input:focus, .dw-field select:focus, .dw-field textarea:focus { border-color:#A2693E; }
+  .dw-field input:focus, .dw-field select:focus, .dw-field textarea:focus { border-color:var(--brand); }
   .dw-field textarea { min-height:110px; resize:vertical; }
 
   .dw-inline-2 { display:flex; gap:8px; }
@@ -2699,7 +2731,7 @@
 
   .dw-conditional-box { margin-top:10px; padding:14px; background:#F3EADB; border:1px solid #E7DAC4; border-radius:8px; display:none; }
   .dw-conditional-box.show { display:block; }
-  .dw-conditional-box label { font-size:12px; font-weight:600; color:#A2693E; margin-bottom:6px; display:block; }
+  .dw-conditional-box label { font-size:12px; font-weight:600; color:var(--brand); margin-bottom:6px; display:block; }
 
   .dw-author-readonly { font-size:13px; color:#999; }
 
@@ -2733,8 +2765,8 @@
   </div>
 
   <!-- 조건 패널 -->
-  <div id="csCondPanel" style="display:none;background:#F3EADB;border:1px solid #E5D9C6;border-radius:10px;padding:14px 18px;margin-bottom:10px;">
-    <div style="font-size:12px;font-weight:800;color:#A2693E;margin-bottom:10px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>필터 조건 설정</div>
+  <div id="csCondPanel" style="display:none;background:#F3EADB;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:800;color:var(--brand);margin-bottom:10px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>필터 조건 설정</div>
     <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">
       <div>
         <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;">상태</div>
@@ -2768,7 +2800,7 @@
     <button class="dw-toolbar-item" onclick="openManualRegister()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>등록</button>
     <button class="dw-toolbar-item" onclick="deleteCheckedConsults()" style="color:#c0392b;border-color:#e6b0aa;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>삭제</button>
     <button class="dw-toolbar-item" id="myConsultsBtn" onclick="toggleMyConsults()" style="color:#2c5fc4;border-color:#b8cced;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>나의상담내역</button>
-    <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:#A2693E;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>다우 시트 변환</button>
+    <button class="dw-toolbar-item" onclick="importFromDaouSheet()" style="color:var(--brand);font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>다우 시트 변환</button>
     <button class="dw-toolbar-item" onclick="downloadConsultCSV()">↓ 목록 다운로드(CSV)</button>
     <div class="dw-toolbar-spacer"></div>
     <select class="dw-toolbar-select" id="csPageSize" onchange="currentPage=1;renderConsultList()">
@@ -2901,21 +2933,21 @@
     </div>
 
     <!-- 기존 방문 이력 검색 (전체 폭 사용 — 검색결과가 좁게 줄바뀜 되지 않도록) -->
-    <div id="cfRevisitSearchBox" style="display:none;margin:0 0 16px;background:#F3EADB;border:1px solid #E5D9C6;border-radius:8px;padding:14px 16px;">
-      <div style="font-size:12px;font-weight:700;color:#A2693E;margin-bottom:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
+    <div id="cfRevisitSearchBox" style="display:none;margin:0 0 16px;background:#F3EADB;border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>기존 방문 이력 검색 <span style="font-size:11px;font-weight:400;color:#999;">더블클릭 시 이력 적용</span></div>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="search" id="cfRevisitInput" name="revisit_lookup_noauto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="성함, 연락처, 업체명, 주소 등 검색" onkeydown="if(event.key==='Enter') window.searchRevisitOverlay();" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box;">
-        <button type="button" onclick="window.searchRevisitOverlay()" style="padding:8px 20px;background:#A2693E;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;">검색</button>
+        <button type="button" onclick="window.searchRevisitOverlay()" style="padding:8px 20px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;">검색</button>
       </div>
       <div id="cfRevisitResults">
         <table style="width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;border-radius:6px;overflow:hidden;table-layout:fixed;">
           <thead>
-            <tr style="background:#f5ede0;color:#A2693E;font-weight:700;">
-              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:90px;">상태</th>
-              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:110px;">성함</th>
-              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;">업체명</th>
-              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:110px;">일정</th>
-              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid #E5D9C6;width:130px;">연락처</th>
+            <tr style="background:#f5ede0;color:var(--brand);font-weight:700;">
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);width:90px;">상태</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);width:110px;">성함</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);">업체명</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);width:110px;">일정</th>
+              <th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);width:130px;">연락처</th>
             </tr>
           </thead>
           <tbody id="cfRevisitResultsBody">
@@ -3094,8 +3126,8 @@
       </div>
     </div>
 
-    <div id="cfPastHistoryBox" style="display:none;margin:20px 0 0;background:#fffdf9;border:1px solid #E5D9C6;border-radius:8px;padding:14px 16px;">
-      <strong style="color:#A2693E;font-size:13px;">기존 상담이력</strong>
+    <div id="cfPastHistoryBox" style="display:none;margin:20px 0 0;background:#fffdf9;border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+      <strong style="color:var(--brand);font-size:13px;">기존 상담이력</strong>
       <pre id="cfPastHistoryText" style="margin:8px 0 0;font-size:12px;font-family:inherit;white-space:pre-wrap;word-break:break-all;color:#444;background:none;border:none;padding:0;line-height:1.7;"></pre>
     </div>
 
@@ -3534,7 +3566,7 @@
     if (!el) return;
     const badges = [];
     if (csCurrentFilter && csCurrentFilter !== '전체') {
-      badges.push(`<span onclick="clearStatusFilter()" style="cursor:pointer;background:#A2693E;color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${csCurrentFilter} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>`);
+      badges.push(`<span onclick="clearStatusFilter()" style="cursor:pointer;background:var(--brand);color:#fff;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">${csCurrentFilter} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>`);
     }
     if (csDateFilter) {
       const label = csDateFilter === 'today' ? '금일' : csDateFilter === '1day' ? '1일전' : '2일전';
@@ -3742,7 +3774,7 @@
     if (totalPages <= 1) { el.innerHTML = ''; return; }
 
     const btnStyle = 'padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#555;';
-    const activeBtnStyle = 'padding:4px 10px;border:1px solid #A2693E;border-radius:6px;background:#A2693E;font-size:12px;cursor:pointer;color:#fff;font-weight:700;';
+    const activeBtnStyle = 'padding:4px 10px;border:1px solid var(--brand);border-radius:6px;background:var(--brand);font-size:12px;cursor:pointer;color:#fff;font-weight:700;';
 
     let html = '';
     html += `<button style="${btnStyle}" onclick="gotoPage(1)" ${currentPage===1?'disabled':''}>«</button>`;
@@ -4352,7 +4384,7 @@ function csDateInputValue(val) {
     if (s === '샘플수령') return 'background:#d4edda;color:#1a7a45;';
     if (s === '미방문')   return 'background:#fde8e8;color:#c0392b;';
     if (s === '전화상담') return 'background:#e8f0fb;color:#2c5fc4;';
-    return 'background:#F1EADF;color:#5b4a35;';
+    return 'background:var(--cream-2);color:#5b4a35;';
   }
 
   window.setConsultView = function(view) {
@@ -4479,7 +4511,7 @@ function csDateInputValue(val) {
         const MAX_DOTS = 4;
         const dots = items.slice(0, MAX_DOTS).map(({r}) => {
           const st = _csStatusStyle(r);
-          const bg = (st.match(/background:([^;]+);/) || [])[1] || '#A2693E';
+          const bg = (st.match(/background:([^;]+);/) || [])[1] || 'var(--brand)';
           return `<span class="cscal-dot" style="background:${bg};"></span>`;
         }).join('');
         const extra = items.length > MAX_DOTS ? `<span class="cscal-dot-more">+${items.length - MAX_DOTS}</span>` : '';
@@ -4570,7 +4602,7 @@ function csDateInputValue(val) {
   .notice-wrap { max-width:900px; margin:0 auto; }
   .notice-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .notice-header h2 { font-size:17px; font-weight:800; margin:0; }
-  .notice-write-btn { padding:8px 18px; background:#A2693E; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .notice-write-btn { padding:8px 18px; background:var(--brand); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
   table.notice-table { width:100%; border-collapse:collapse; font-size:13px; }
   table.notice-table th { padding:10px 12px; background:#fafafa; border-top:2px solid #333; border-bottom:1px solid #ddd; font-weight:700; color:#555; text-align:center; }
   table.notice-table td { padding:11px 12px; border-bottom:1px solid #eee; color:#333; }
@@ -4607,14 +4639,14 @@ function csDateInputValue(val) {
   .notice-modal input[type=text], .notice-modal textarea, .notice-modal select { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; margin-bottom:12px; }
   .notice-modal textarea { min-height:180px; resize:vertical; }
   .notice-modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
-  .notice-btn-submit { background:#A2693E; color:#fff; border:none; border-radius:8px; padding:10px 24px; font-size:13px; font-weight:700; cursor:pointer; }
+  .notice-btn-submit { background:var(--brand); color:#fff; border:none; border-radius:8px; padding:10px 24px; font-size:13px; font-weight:700; cursor:pointer; }
   .notice-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; }
   .notice-detail-content { font-size:13px; line-height:1.8; color:#333; white-space:pre-wrap; background:#fafafa; border-radius:8px; padding:16px; min-height:100px; }
   .notice-detail-meta { font-size:12px; color:#aaa; margin-bottom:14px; }
   #noticeContent[contenteditable]:empty:before { content: attr(placeholder); color:#aaa; }
   #noticeContent img { max-width:100%; border-radius:6px; margin:6px 0; display:block; }
   .notice-reply-item { background:#fafafa; border-radius:8px; padding:10px 12px; }
-  .notice-reply-author { font-size:12px; font-weight:700; color:#A2693E; margin-bottom:3px; }
+  .notice-reply-author { font-size:12px; font-weight:700; color:var(--brand); margin-bottom:3px; }
   .notice-reply-content { font-size:13px; color:#333; white-space:pre-wrap; }
   .notice-reply-date { font-size:11px; color:#aaa; margin-top:4px; }
 </style>
@@ -4859,7 +4891,7 @@ function csDateInputValue(val) {
       const badge = n.category === '공지' || n.category === '중요'
         ? `<span class="notice-badge">${n.category}</span>` : '';
       const replyCount = replies.filter(r => String(r.noticeId) === String(n.id)).length;
-      const replyTag = replyCount > 0 ? ` <span style="color:#A2693E;font-weight:700;">[${replyCount}]</span>` : '';
+      const replyTag = replyCount > 0 ? ` <span style="color:var(--brand);font-weight:700;">[${replyCount}]</span>` : '';
       return `<tr onclick="showNoticeDetail(${notices.length-1-i})">
         <td style="text-align:center;">${notices.length - i}</td>
         <td style="text-align:center;">${n.category||'일반'}</td>
@@ -4874,7 +4906,7 @@ function csDateInputValue(val) {
         const badge = n.category === '공지' || n.category === '중요'
           ? `<span class="notice-badge">${n.category}</span>` : '';
         const replyCount = replies.filter(r => String(r.noticeId) === String(n.id)).length;
-        const replyTag = replyCount > 0 ? ` <span style="color:#A2693E;font-weight:700;">[${replyCount}]</span>` : '';
+        const replyTag = replyCount > 0 ? ` <span style="color:var(--brand);font-weight:700;">[${replyCount}]</span>` : '';
         return `<div class="notice-card" onclick="showNoticeDetail(${notices.length-1-i})">
           <div class="notice-card-title">${badge}${n.title||''}${replyTag}</div>
           <div class="notice-card-meta">${n.category||'일반'} · ${n.author||''} · ${(n.date||'').slice(0,10)}</div>
@@ -5018,7 +5050,7 @@ function csDateInputValue(val) {
   }
 
   function _fileIconSvg() {
-    return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
   }
 
   // 글쓰기/수정 모달의 첨부목록 렌더 (삭제 버튼 포함)
@@ -5027,7 +5059,7 @@ function csDateInputValue(val) {
     if (!el) return;
     if (!_noticeAttachments.length) { el.innerHTML = ''; return; }
     el.innerHTML = _noticeAttachments.map((f, i) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid #E5D9C6;border-radius:8px;background:#FAF6EF;font-size:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:#FAF6EF;font-size:12px;">
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_fileIconSvg()}${_noticeEscHtml(f.name)} <span style="color:#aaa;">${_formatFileSize(f.size)}</span></span>
         <button type="button" onclick="removeNoticeAttach(${i})" style="border:none;background:none;color:#e74c3c;cursor:pointer;font-size:13px;flex-shrink:0;padding:0 4px;">✕</button>
       </div>`).join('');
@@ -5081,9 +5113,9 @@ function csDateInputValue(val) {
       <div style="font-size:12px;font-weight:800;color:#555;margin-bottom:8px;border-top:1px solid #eee;padding-top:12px;">첨부파일 ${list.length}</div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         ${list.map(f => `
-          <a href="${f.url}" target="_blank" rel="noopener" download style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid #E5D9C6;border-radius:8px;background:#FAF6EF;font-size:12.5px;text-decoration:none;color:#333;">
+          <a href="${f.url}" target="_blank" rel="noopener" download style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#FAF6EF;font-size:12.5px;text-decoration:none;color:#333;">
             <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_fileIconSvg()}${_noticeEscHtml(f.name)} <span style="color:#aaa;">${_formatFileSize(f.size)}</span></span>
-            <span style="color:#A2693E;font-weight:700;flex-shrink:0;">다운로드</span>
+            <span style="color:var(--brand);font-weight:700;flex-shrink:0;">다운로드</span>
           </a>`).join('')}
       </div>`;
   }
@@ -5205,7 +5237,7 @@ function csDateInputValue(val) {
 
   /* 프로필 카드 */
   .myi-profile-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px 28px; margin-bottom:16px; display:flex; align-items:center; gap:22px; }
-  .myi-avatar { width:90px; height:90px; border-radius:12px; background:#E7DAC4; display:flex; align-items:center; justify-content:center; font-size:36px; color:#A2693E; font-weight:800; flex-shrink:0; overflow:hidden; }
+  .myi-avatar { width:90px; height:90px; border-radius:12px; background:#E7DAC4; display:flex; align-items:center; justify-content:center; font-size:36px; color:var(--brand); font-weight:800; flex-shrink:0; overflow:hidden; }
   .myi-avatar img { width:100%; height:100%; object-fit:cover; }
   .myi-profile-info { flex:1; }
   .myi-profile-info .myi-name { font-size:22px; font-weight:800; color:#222; margin:0 0 6px; }
@@ -5227,7 +5259,7 @@ function csDateInputValue(val) {
 
   /* 근무현황 박스 */
   .myi-tenure-box { background:#F3EADB; border-radius:10px; padding:14px 16px; margin-top:14px; display:flex; align-items:center; justify-content:space-between; }
-  .myi-tenure-label { font-size:12px; color:#A2693E; font-weight:700; margin-bottom:4px; }
+  .myi-tenure-label { font-size:12px; color:var(--brand); font-weight:700; margin-bottom:4px; }
   .myi-tenure-val { font-size:17px; font-weight:800; color:#2c3e70; }
 
   /* 연차 프로그레스 */
@@ -5243,8 +5275,8 @@ function csDateInputValue(val) {
   .myi-pw-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
   .myi-pw-grid { display:flex; flex-direction:column; gap:10px; }
   .myi-pw-grid input { padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; outline:none; }
-  .myi-pw-grid input:focus { border-color:#A2693E; }
-  .myi-pw-btn { background:#A2693E; color:#fff; border:none; border-radius:8px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .myi-pw-grid input:focus { border-color:var(--brand); }
+  .myi-pw-btn { background:var(--brand); color:#fff; border:none; border-radius:8px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer; }
   .myi-pw-btn:hover { background:#4A3526; }
   .myi-pw-msg { text-align:center; font-size:12px; color:#555; margin-top:6px; }
 
@@ -5260,7 +5292,7 @@ function csDateInputValue(val) {
 
 <div class="myi-wrap">
 
-  <div id="myiGuestNotice" style="display:none;background:#F3EADB;border:1px solid #E5D9C6;border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:12.5px;color:#8A6A3D;">
+  <div id="myiGuestNotice" style="display:none;background:#F3EADB;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:12.5px;color:#8A6A3D;">
     게스트 계정은 개인정보가 없어 화면 표시 설정만 이용하실 수 있어요.
   </div>
 
@@ -5272,7 +5304,7 @@ function csDateInputValue(val) {
         <div class="myi-name" id="myiName" style="display:flex;align-items:center;gap:8px;">
           <span id="myiNameText">-</span>
           <button id="myiRequestBtn" onclick="openInfoRequestModal()" title="내 정보 변경 요청"
-            style="background:none;border:none;padding:0;cursor:pointer;color:#B79A78;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;align-self:center;line-height:1;">
+            style="background:none;border:none;padding:0;cursor:pointer;color:var(--brand-soft);display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;align-self:center;line-height:1;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
           </button>
         </div>
@@ -5292,7 +5324,7 @@ function csDateInputValue(val) {
     <div id="cardViewerOverlay" onclick="closeCardViewer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;align-items:center;justify-content:center;">
       <img id="cardViewerImg" src="" alt="명함 원본"
         style="max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.5);object-fit:contain;">
-      <button onclick="event.stopPropagation();downloadCardImage();" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#A2693E;border:none;border-radius:999px;padding:12px 26px;font-size:13.5px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(0,0,0,0.3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>다운로드</button>
+      <button onclick="event.stopPropagation();downloadCardImage();" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--brand);border:none;border-radius:999px;padding:12px 26px;font-size:13.5px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(0,0,0,0.3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>다운로드</button>
       <button onclick="closeCardViewer()" style="position:fixed;top:18px;right:18px;background:rgba(255,255,255,0.18);border:none;border-radius:50%;width:40px;height:40px;font-size:22px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
     </div>
   </div>
@@ -5300,7 +5332,7 @@ function csDateInputValue(val) {
   <div class="myi-grid" id="myiInfoGrid">
     <!-- 근무정보 카드 -->
     <div class="myi-card">
-      <div class="myi-card-title" style="justify-content:space-between;"><span style="display:flex;align-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>근무 정보</span><button onclick="openInfoRequestModal()" title="내 정보 변경 요청" style="background:none;border:none;padding:0;cursor:pointer;color:#B79A78;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;align-self:center;line-height:1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button></div>
+      <div class="myi-card-title" style="justify-content:space-between;"><span style="display:flex;align-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>근무 정보</span><button onclick="openInfoRequestModal()" title="내 정보 변경 요청" style="background:none;border:none;padding:0;cursor:pointer;color:var(--brand-soft);display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;align-self:center;line-height:1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button></div>
       <div class="myi-row">
         <span class="myi-row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span>
         <span class="myi-row-label">입사일</span>
@@ -5338,7 +5370,7 @@ function csDateInputValue(val) {
 
       <!-- 연락처 카드 -->
       <div class="myi-card">
-        <div class="myi-card-title" style="justify-content:space-between;"><span style="display:flex;align-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>연락처 및 이메일</span><button onclick="openInfoRequestModal()" title="내 정보 변경 요청" style="background:none;border:none;padding:0;cursor:pointer;color:#B79A78;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;align-self:center;line-height:1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button></div>
+        <div class="myi-card-title" style="justify-content:space-between;"><span style="display:flex;align-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>연락처 및 이메일</span><button onclick="openInfoRequestModal()" title="내 정보 변경 요청" style="background:none;border:none;padding:0;cursor:pointer;color:var(--brand-soft);display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;align-self:center;line-height:1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button></div>
         <div class="myi-row">
           <span class="myi-row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
           <span class="myi-row-label">연락처</span>
@@ -5360,14 +5392,14 @@ function csDateInputValue(val) {
     .home-dash-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:20px 22px; }
     .home-dash-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; cursor:pointer; }
     .home-dash-title { font-size:14px; font-weight:800; color:#222; display:flex; align-items:center; gap:7px; }
-    .home-dash-more { font-size:11.5px; color:#A2693E; font-weight:700; white-space:nowrap; }
+    .home-dash-more { font-size:11.5px; color:var(--brand); font-weight:700; white-space:nowrap; }
     .home-dash-list { display:flex; flex-direction:column; }
     .home-dash-item { display:flex; align-items:center; gap:8px; padding:9px 0; border-top:1px solid #f2f2f2; font-size:12.5px; cursor:pointer; }
     .home-dash-item:first-child { border-top:none; }
     .home-dash-item:hover { background:#FAF6EF; }
     .home-dash-item-main { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#333; font-weight:600; }
     .home-dash-item-sub { color:#aaa; font-size:11px; white-space:nowrap; flex-shrink:0; }
-    .home-dash-badge { font-size:10px; font-weight:800; padding:1px 6px; border-radius:5px; background:#F3EADB; color:#A2693E; flex-shrink:0; }
+    .home-dash-badge { font-size:10px; font-weight:800; padding:1px 6px; border-radius:5px; background:#F3EADB; color:var(--brand); flex-shrink:0; }
     .home-dash-empty { font-size:12px; color:#bbb; padding:16px 0; text-align:center; }
   </style>
   <div class="home-dash-grid" id="homeDashGrid">
@@ -5375,7 +5407,7 @@ function csDateInputValue(val) {
     <!-- 전사게시판 -->
     <div class="home-dash-card">
       <div class="home-dash-head" onclick="setTab('noticeTab')">
-        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>전사게시판</span>
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>전사게시판</span>
         <span class="home-dash-more">전체보기 ›</span>
       </div>
       <div class="home-dash-list" id="homeNoticeList"><div class="home-dash-empty">불러오는 중...</div></div>
@@ -5384,7 +5416,7 @@ function csDateInputValue(val) {
     <!-- 이메일 -->
     <div class="home-dash-card">
       <div class="home-dash-head" onclick="setTab('emailTab')">
-        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>메일함</span>
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>메일함</span>
         <span class="home-dash-more">전체보기 ›</span>
       </div>
       <div class="home-dash-list" id="homeEmailList"><div class="home-dash-empty">불러오는 중...</div></div>
@@ -5393,7 +5425,7 @@ function csDateInputValue(val) {
     <!-- 쇼룸상담 -->
     <div class="home-dash-card">
       <div class="home-dash-head" onclick="setTab('consultTab')">
-        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>쇼룸상담</span>
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>쇼룸상담</span>
         <span class="home-dash-more">전체보기 ›</span>
       </div>
       <div class="home-dash-list" id="homeConsultList"><div class="home-dash-empty">불러오는 중...</div></div>
@@ -5402,7 +5434,7 @@ function csDateInputValue(val) {
     <!-- 예약관리 -->
     <div class="home-dash-card">
       <div class="home-dash-head" onclick="setTab('reservationTab')">
-        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>예약관리</span>
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>예약관리</span>
         <span class="home-dash-more">전체보기 ›</span>
       </div>
       <div class="home-dash-list" id="homeReservationList"><div class="home-dash-empty">불러오는 중...</div></div>
@@ -5417,11 +5449,11 @@ function csDateInputValue(val) {
       <span style="font-size:12px;color:#999;white-space:nowrap;flex-shrink:0;">작게</span>
       <div style="flex:1;position:relative;">
         <input type="range" id="uiScaleSlider" min="50" max="150" step="1" value="100"
-          style="width:100%;height:4px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,#A2693E 0%,#A2693E 50%,#e0e0e0 50%,#e0e0e0 100%);border-radius:2px;outline:none;cursor:pointer;">
+          style="width:100%;height:4px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,var(--brand) 0%,var(--brand) 50%,#e0e0e0 50%,#e0e0e0 100%);border-radius:2px;outline:none;cursor:pointer;">
       </div>
       <span style="font-size:12px;color:#999;white-space:nowrap;flex-shrink:0;">크게</span>
     </div>
-    <div style="text-align:center;margin-top:10px;font-size:12px;color:#A2693E;font-weight:700;">
+    <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--brand);font-weight:700;">
       현재: <span id="uiScaleLabel">100</span>%
       <button type="button" onclick="resetUiScale()" style="margin-left:10px;background:none;border:1px solid #ddd;border-radius:6px;padding:2px 10px;font-size:11px;color:#999;font-weight:600;cursor:pointer;min-height:auto;">초기화</button>
     </div>
@@ -5430,17 +5462,41 @@ function csDateInputValue(val) {
     #uiScaleSlider::-webkit-slider-thumb {
       -webkit-appearance:none; appearance:none;
       width:22px; height:22px; border-radius:50%;
-      background:#A2693E; cursor:pointer;
+      background:var(--brand); cursor:pointer;
       box-shadow:0 2px 6px rgba(162,105,62,0.4);
       border:2px solid #fff;
     }
     #uiScaleSlider::-moz-range-thumb {
       width:22px; height:22px; border-radius:50%;
-      background:#A2693E; cursor:pointer;
+      background:var(--brand); cursor:pointer;
       box-shadow:0 2px 6px rgba(162,105,62,0.4);
       border:2px solid #fff;
     }
   </style>
+
+  <!-- 테마 색상 설정 -->
+  <div class="myi-pw-card" id="myiThemeCard">
+    <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>테마 색상</div>
+    <p style="font-size:12.5px;color:#888;margin:0 0 16px;">앱 전체의 색상 테마를 선택할 수 있어요. 이 기기에서 유지됩니다. (견적서 등 문서 화면은 변경되지 않습니다.)</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="theme-opt" data-theme="brown" onclick="setAppTheme('brown')" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;">
+        <span style="display:flex;gap:3px;"><span style="width:16px;height:16px;border-radius:50%;background:#A2693E;"></span><span style="width:16px;height:16px;border-radius:50%;background:#F7F1E7;border:1px solid #E5D9C6;"></span></span>
+        <span style="font-size:13px;font-weight:700;color:#333;">브라운</span>
+      </button>
+      <button type="button" class="theme-opt" data-theme="mono" onclick="setAppTheme('mono')" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;">
+        <span style="display:flex;gap:3px;"><span style="width:16px;height:16px;border-radius:50%;background:#222;"></span><span style="width:16px;height:16px;border-radius:50%;background:#F4F4F4;border:1px solid #ddd;"></span></span>
+        <span style="font-size:13px;font-weight:700;color:#333;">화이트 &amp; 블랙</span>
+      </button>
+      <button type="button" class="theme-opt" data-theme="gray" onclick="setAppTheme('gray')" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;">
+        <span style="display:flex;gap:3px;"><span style="width:16px;height:16px;border-radius:50%;background:#5B6472;"></span><span style="width:16px;height:16px;border-radius:50%;background:#F2F3F5;border:1px solid #ddd;"></span></span>
+        <span style="font-size:13px;font-weight:700;color:#333;">그레이</span>
+      </button>
+      <button type="button" class="theme-opt" data-theme="navy" onclick="setAppTheme('navy')" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;">
+        <span style="display:flex;gap:3px;"><span style="width:16px;height:16px;border-radius:50%;background:#2c4a6e;"></span><span style="width:16px;height:16px;border-radius:50%;background:#eef2f7;border:1px solid #ddd;"></span></span>
+        <span style="font-size:13px;font-weight:700;color:#333;">네이비</span>
+      </button>
+    </div>
+  </div>
 
   <!-- 내 홈 화면 설정 -->
   <div class="myi-pw-card" id="myiHomeTabCard">
@@ -5448,7 +5504,7 @@ function csDateInputValue(val) {
     <p style="font-size:12.5px;color:#888;margin:0 0 14px;">로그인하면 바로 보여줄 화면을 골라주세요. 설정 안 하면 기본으로 "내 정보" 화면이 뜹니다. 어느 기기로 로그인하든 동일하게 적용됩니다.</p>
     <div style="display:flex;gap:8px;">
       <select id="miHomeTabSelect" style="flex:1;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;"></select>
-      <button onclick="saveMyHomeTab()" style="padding:9px 18px;background:#A2693E;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap;">저장</button>
+      <button onclick="saveMyHomeTab()" style="padding:9px 18px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap;">저장</button>
     </div>
     <div id="miHomeTabMsg" style="font-size:11.5px;color:#1a7a45;margin-top:8px;"></div>
   </div>
@@ -5477,7 +5533,7 @@ function csDateInputValue(val) {
     <div id="infoRequestMsg" style="font-size:12px;margin-top:8px;min-height:18px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
       <button onclick="closeInfoRequestModal()" style="padding:10px 20px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="submitInfoRequest()" style="padding:10px 24px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">신청하기</button>
+      <button onclick="submitInfoRequest()" style="padding:10px 24px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">신청하기</button>
     </div>
   </div>
 </div>
@@ -5495,13 +5551,13 @@ function csDateInputValue(val) {
   .sms-header { font-size:20px; font-weight:800; color:#222; margin-bottom:6px; }
   .sms-desc { font-size:13px; color:#888; margin-bottom:20px; }
   .sms-template-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
-  .sms-template-title { font-size:14px; font-weight:800; color:#A2693E; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .sms-template-title { font-size:14px; font-weight:800; color:var(--brand); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
   .sms-vars { font-size:11.5px; color:#aaa; margin-bottom:10px; }
-  .sms-vars span { background:#F3EADB; color:#A2693E; border-radius:4px; padding:2px 7px; margin-right:4px; font-weight:700; }
+  .sms-vars span { background:#F3EADB; color:var(--brand); border-radius:4px; padding:2px 7px; margin-right:4px; font-weight:700; }
   .sms-textarea { width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; resize:vertical; box-sizing:border-box; line-height:1.7; }
   .sms-footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:12px; }
   .sms-char-count { font-size:12px; color:#aaa; }
-  .sms-save-btn { padding:9px 22px; border:none; border-radius:8px; background:#A2693E; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+  .sms-save-btn { padding:9px 22px; border:none; border-radius:8px; background:var(--brand); color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
   .sms-save-btn:hover { background:#4A3526; }
   .sms-saved-msg { font-size:12px; color:#1a7a45; font-weight:700; display:none; }
   .sms-send-log-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; }
@@ -5567,10 +5623,10 @@ function csDateInputValue(val) {
   </div>
 
   <!-- ── 문자 발송 테스트 (베타 검증용) ── -->
-  <div class="sms-template-card" style="margin-top:16px;border:1.5px dashed #A2693E;background:#FCF9F4;">
+  <div class="sms-template-card" style="margin-top:16px;border:1.5px dashed var(--brand);background:#FCF9F4;">
     <div class="sms-template-title">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-      문자 발송 테스트 <span style="font-size:11px;background:#F3EADB;color:#A2693E;border-radius:4px;padding:2px 8px;font-weight:700;">지정한 번호로 즉시 발송</span>
+      문자 발송 테스트 <span style="font-size:11px;background:#F3EADB;color:var(--brand);border-radius:4px;padding:2px 8px;font-weight:700;">지정한 번호로 즉시 발송</span>
     </div>
     <div class="sms-vars" style="margin-bottom:14px;">입력한 값이 각 템플릿의 변수(<span>{이름}</span><span>{일정}</span><span>{상담자}</span><span>{연락처}</span>)에 치환되어 발송됩니다. API 미연동 상태에서는 발송내역에 <b>API미연동</b>으로 기록됩니다.</div>
 
@@ -5600,7 +5656,7 @@ function csDateInputValue(val) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button type="button" onclick="sendTestSms('confirm')" style="flex:1;min-width:120px;padding:11px 16px;border:none;border-radius:8px;background:#1a7a45;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">예약확정 발송</button>
       <button type="button" onclick="sendTestSms('cancel')" style="flex:1;min-width:120px;padding:11px 16px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">예약취소 발송</button>
-      <button type="button" onclick="sendTestSms('today')" style="flex:1;min-width:120px;padding:11px 16px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">당일예약안내 발송</button>
+      <button type="button" onclick="sendTestSms('today')" style="flex:1;min-width:120px;padding:11px 16px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">당일예약안내 발송</button>
     </div>
     <div id="smsTestResult" style="font-size:12.5px;margin-top:12px;min-height:18px;"></div>
   </div>
@@ -5618,7 +5674,7 @@ function csDateInputValue(val) {
     <div id="tabPermList" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
       <button onclick="closeTabPermModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="saveTabPermFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
+      <button onclick="saveTabPermFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
     </div>
   </div>
 </div>
@@ -5634,7 +5690,7 @@ function csDateInputValue(val) {
     <div id="guestTabList" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
       <button onclick="closeGuestTabModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="saveGuestTabsFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
+      <button onclick="saveGuestTabsFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
     </div>
   </div>
 </div>
@@ -5702,19 +5758,19 @@ function csDateInputValue(val) {
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <!-- 직책 설정 -->
-      <div style="display:flex;gap:16px;padding:10px 12px;background:#F7F1E7;border-radius:8px;">
+      <div style="display:flex;gap:16px;padding:10px 12px;background:var(--cream);border-radius:8px;">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#333;cursor:pointer;">
-          <input type="checkbox" id="empModalIsHead" style="width:15px;height:15px;accent-color:#A2693E;">
+          <input type="checkbox" id="empModalIsHead" style="width:15px;height:15px;accent-color:var(--brand);">
           대표
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#333;cursor:pointer;">
-          <input type="checkbox" id="empModalIsManager" style="width:15px;height:15px;accent-color:#A2693E;">
+          <input type="checkbox" id="empModalIsManager" style="width:15px;height:15px;accent-color:var(--brand);">
           부서장
         </label>
       </div>
       <!-- 추가 시: 초기 비밀번호 안내 -->
       <div id="empModalPwHint" style="background:#F3EADB;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0;"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>초기 비밀번호: <strong style="color:#A2693E;">0000</strong>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0;"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>초기 비밀번호: <strong style="color:var(--brand);">0000</strong>
       </div>
       <!-- 수정 시: 비밀번호 초기화 + 삭제 버튼 -->
       <div id="empModalPwReset" style="display:none;display:flex;flex-direction:column;gap:8px;">
@@ -5729,7 +5785,7 @@ function csDateInputValue(val) {
     <div id="empModalMsg" style="font-size:12px;min-height:18px;margin-top:10px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
       <button onclick="closeEmpModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">취소</button>
-      <button onclick="submitEmpModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+      <button onclick="submitEmpModal()" style="padding:9px 22px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
     </div>
   </div>
 </div>
@@ -5739,11 +5795,11 @@ function csDateInputValue(val) {
   .admin-wrap { max-width:1100px; margin:0 auto; }
   .admin-header { display:flex; align-items:center; gap:8px; margin-bottom:20px; }
   .admin-header h2 { font-size:17px; font-weight:700; color:#222; }
-  .admin-section-title { font-size:14px; font-weight:800; color:#A2693E; margin:0 0 14px; }
+  .admin-section-title { font-size:14px; font-weight:800; color:var(--brand); margin:0 0 14px; }
   .admin-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px; margin-bottom:20px; }
   .admin-toolbar { display:flex; gap:10px; margin-bottom:14px; }
   .admin-btn { padding:8px 16px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid #ddd; background:#fff; color:#555; }
-  .admin-btn.primary { background:#A2693E; color:#fff; border-color:#A2693E; }
+  .admin-btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
   table.admin-table { width:100%; border-collapse:collapse; font-size:13px; }
   table.admin-table th { padding:10px 8px; background:#fafafa; border:1px solid #e5e5e5; font-weight:700; color:#555; text-align:center; }
   table.admin-table td { padding:10px 8px; border:1px solid #f0f0f0; text-align:center; color:#333; }
@@ -5814,22 +5870,22 @@ function csDateInputValue(val) {
 
   <!-- 연차 현황 (조직도에서 이동) -->
   <style>
-  #orgLeaveList .leave-card { background:#fff; border:1px solid #E5D9C6; border-radius:14px; margin-bottom:10px; overflow:hidden; transition:box-shadow .15s, border-color .15s; }
-  #orgLeaveList .leave-card:hover { box-shadow:0 4px 16px rgba(60,40,20,.08); border-color:#D8C7AE; }
+  #orgLeaveList .leave-card { background:#fff; border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden; transition:box-shadow .15s, border-color .15s; }
+  #orgLeaveList .leave-card:hover { box-shadow:0 4px 16px rgba(60,40,20,.08); border-color:var(--border-2); }
   #orgLeaveList .leave-row { display:flex; align-items:center; gap:18px; padding:14px 18px; cursor:pointer; }
   #orgLeaveList .leave-id { min-width:110px; }
   #orgLeaveList .leave-id .nm { font-size:14px; font-weight:800; color:#2B2521; }
-  #orgLeaveList .leave-id .dp { font-size:11px; color:#A98C6B; margin-top:2px; }
+  #orgLeaveList .leave-id .dp { font-size:11px; color:var(--muted); margin-top:2px; }
   #orgLeaveList .leave-bar-wrap { flex:1; min-width:130px; }
   #orgLeaveList .leave-bar-top { display:flex; justify-content:space-between; font-size:11px; color:#999; margin-bottom:6px; }
   #orgLeaveList .leave-track { height:8px; background:#EFE6D6; border-radius:999px; overflow:hidden; }
-  #orgLeaveList .leave-fill { height:100%; background:linear-gradient(90deg,#C68A52,#A2693E); border-radius:999px; transition:width .3s; }
+  #orgLeaveList .leave-fill { height:100%; background:linear-gradient(90deg,var(--brand-light),var(--brand)); border-radius:999px; transition:width .3s; }
   #orgLeaveList .leave-remain { text-align:right; min-width:60px; }
   #orgLeaveList .leave-remain .big { font-size:20px; font-weight:800; color:#1a7a45; line-height:1; }
   #orgLeaveList .leave-remain .lbl { font-size:10px; color:#bbb; margin-top:3px; }
-  #orgLeaveList .leave-edit-btn { width:34px; height:34px; border-radius:9px; border:1px solid #E5D9C6; background:#fff; display:flex; align-items:center; justify-content:center; color:#A2693E; flex-shrink:0; }
-  #orgLeaveList .leave-row:hover .leave-edit-btn { background:#F7F1E7; }
-  #orgLeaveList .leave-editor { display:none; padding:0 18px 16px; border-top:1px dashed #E5D9C6; }
+  #orgLeaveList .leave-edit-btn { width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; justify-content:center; color:var(--brand); flex-shrink:0; }
+  #orgLeaveList .leave-row:hover .leave-edit-btn { background:var(--cream); }
+  #orgLeaveList .leave-editor { display:none; padding:0 18px 16px; border-top:1px dashed var(--border); }
   #orgLeaveList .leave-editor.open { display:block; }
   @media (max-width:560px) {
     #orgLeaveList .leave-row { flex-wrap:wrap; gap:10px 14px; }
@@ -5839,7 +5895,7 @@ function csDateInputValue(val) {
   <div class="admin-card" style="margin-top:20px;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
       <div class="admin-section-title" style="margin:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>연차 현황</div>
-      <div style="font-size:11.5px;color:#A98C6B;">행을 누르면 기사용 연차를 수정할 수 있어요</div>
+      <div style="font-size:11.5px;color:var(--muted);">행을 누르면 기사용 연차를 수정할 수 있어요</div>
     </div>
     <div id="orgLeaveList"></div>
   </div>
@@ -5853,8 +5909,8 @@ function csDateInputValue(val) {
     <div style="display:flex;flex-direction:column;gap:20px;">
 
       <!-- 솔라피 SMS -->
-      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           솔라피(SOLAPI) SMS API <span style="font-size:10.5px;background:#e8f5ec;color:#1a7a45;border-radius:4px;padding:2px 7px;font-weight:700;margin-left:4px;">권장 · IP 등록 불필요</span>
         </div>
@@ -5885,10 +5941,10 @@ function csDateInputValue(val) {
       </div>
 
       <!-- 이메일(Gmail API) 연동 설정 -->
-      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-          이메일(Gmail) 연동 <span id="gmailLinkState" style="font-size:10.5px;background:#f0ece3;color:#8a6a48;border-radius:4px;padding:2px 7px;font-weight:700;margin-left:4px;">연동 대기</span>
+          이메일(Gmail) 연동 <span id="gmailLinkState" style="font-size:10.5px;background:#f0ece3;color:var(--brand-dark);border-radius:4px;padding:2px 7px;font-weight:700;margin-left:4px;">연동 대기</span>
         </div>
         <div style="font-size:11px;color:#999;margin-bottom:14px;line-height:1.6;">
           Google Cloud Console에서 발급한 OAuth 클라이언트 ID/시크릿을 입력하세요. 이후 각 메일 계정을 <b>허용</b>하면 ERP에서 받은/보낸메일을 확인할 수 있습니다. (테스트 시 본인 gmail로 먼저 검증 가능)
@@ -5918,8 +5974,8 @@ function csDateInputValue(val) {
       </div>
 
       <!-- Firestore 초기 마이그레이션 (쇼룸상담: 구글시트 → Firestore 일괄 업로드) -->
-      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           쇼룸상담 Firestore 마이그레이션
         </div>
@@ -5931,8 +5987,8 @@ function csDateInputValue(val) {
       </div>
 
       <!-- Google Gemini API -->
-      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:14px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:14px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           Google Gemini API
         </div>
@@ -5944,8 +6000,8 @@ function csDateInputValue(val) {
       </div>
 
       <!-- Apps Script URL (읽기 전용 — 코드 하드코딩 값만 사용, 화면에서 변경 불가) -->
-      <div style="border:1px solid #E5D9C6;border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:14px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:14px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           Apps Script 배포 URL
         </div>
@@ -5964,11 +6020,11 @@ function csDateInputValue(val) {
 
 
       <!-- Google Workspace (준비 중) -->
-      <div style="border:1px dashed #D8C7AE;border-radius:10px;padding:18px;background:#FDFAF6;">
-        <div style="font-size:13px;font-weight:800;color:#A2693E;margin-bottom:6px;">
+      <div style="border:1px dashed var(--border-2);border-radius:10px;padding:18px;background:#FDFAF6;">
+        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
           Google Workspace 메일 연동
-          <span style="font-size:10px;background:#E5D9C6;color:#A2693E;border-radius:4px;padding:2px 7px;margin-left:8px;font-weight:700;">준비중</span>
+          <span style="font-size:10px;background:var(--border);color:var(--brand);border-radius:4px;padding:2px 7px;margin-left:8px;font-weight:700;">준비중</span>
         </div>
         <div style="font-size:12px;color:#B8A898;line-height:1.7;">
           Workspace 도입 후 Admin SDK OAuth 설정을 여기서 관리합니다.<br>
@@ -5998,10 +6054,10 @@ function csDateInputValue(val) {
       <button onclick="closeAdminInfoReqModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
     </div>
     <div id="adminInfoReqMeta" style="font-size:12px;color:#999;margin-bottom:14px;"></div>
-    <div id="adminInfoReqContent" style="white-space:pre-wrap;word-break:break-word;background:#F7F1E7;border-radius:10px;padding:14px 16px;font-size:13.5px;line-height:1.7;color:#333;min-height:60px;"></div>
+    <div id="adminInfoReqContent" style="white-space:pre-wrap;word-break:break-word;background:var(--cream);border-radius:10px;padding:14px 16px;font-size:13.5px;line-height:1.7;color:#333;min-height:60px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
       <button onclick="closeAdminInfoReqModal()" style="padding:9px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:700;cursor:pointer;">닫기</button>
-      <button id="adminInfoReqResolveBtn" onclick="resolveAdminInfoReqFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">완료 처리</button>
+      <button id="adminInfoReqResolveBtn" onclick="resolveAdminInfoReqFromModal()" style="padding:9px 22px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">완료 처리</button>
     </div>
   </div>
 </div>
@@ -6347,6 +6403,7 @@ function csDateInputValue(val) {
             window._currentUser = userData;
             // 사용자별 화면 표시 설정(촘촘하게/기본/넓게) 동기화
             if (typeof initUiDensity === 'function') initUiDensity();
+            if (typeof initAppTheme === 'function') initAppTheme();
             setTimeout(() => { initAfterLogin(userData); }, 1000);
         } else {
             window._isGuest = true;
@@ -6718,7 +6775,7 @@ function csDateInputValue(val) {
                       </div>
                       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
-                          style="padding:6px 12px;background:#F3EADB;color:#A2693E;border:1px solid #E5D9C6;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                          style="padding:6px 12px;background:#F3EADB;color:var(--brand);border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
                           허용메뉴 (${allowed.length}개)
                         </button>
                         <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
@@ -6750,7 +6807,7 @@ function csDateInputValue(val) {
                     <td><span class="admin-status-badge ${statusClass}">${status}</span></td>
                     <td>
                       <button onclick="event.stopPropagation();openTabPermModal(\'${r.id}\',${ri})"
-                        style="padding:5px 12px;background:#F3EADB;color:#A2693E;border:1px solid #E5D9C6;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                        style="padding:5px 12px;background:#F3EADB;color:var(--brand);border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">
                         허용메뉴 (${allowed.length}개)
                       </button>
                       <input type="hidden" id="emp-tabs-${ri}" value="${allowed.join(',')}">
@@ -6815,7 +6872,7 @@ function csDateInputValue(val) {
       });
       const card = document.getElementById(`emp-card-${idx}`);
       if (card) {
-        card.style.outline = '2px solid #A2693E';
+        card.style.outline = '2px solid var(--brand)';
         card.style.background = '#F3EADB';
       }
       const row = document.getElementById(`emp-row-${idx}`);
@@ -6997,7 +7054,7 @@ function csDateInputValue(val) {
             <div style="display:flex;gap:6px;" data-tabid="${t.id}" data-state="${isOn?'on':'off'}">
               <button onclick="setTabPerm('${t.id}',true)"
                 style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
-                  background:${isOn?'#A2693E':'#eee'};color:${isOn?'#fff':'#888'};">ON</button>
+                  background:${isOn?'var(--brand)':'#eee'};color:${isOn?'#fff':'#888'};">ON</button>
               <button onclick="setTabPerm('${t.id}',false)"
                 style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
                   background:${!isOn?'#e74c3c':'#eee'};color:${!isOn?'#fff':'#888'};">OFF</button>
@@ -7013,7 +7070,7 @@ function csDateInputValue(val) {
       if (!group) return;
       group.dataset.state = isOn ? 'on' : 'off';
       const [onBtn, offBtn] = group.querySelectorAll('button');
-      if (onBtn) { onBtn.style.background = isOn ? '#A2693E' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
+      if (onBtn) { onBtn.style.background = isOn ? 'var(--brand)' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
       if (offBtn) { offBtn.style.background = !isOn ? '#e74c3c' : '#eee'; offBtn.style.color = !isOn ? '#fff' : '#888'; }
     };
 
@@ -7095,7 +7152,7 @@ function csDateInputValue(val) {
             <div style="display:flex;gap:6px;" data-guesttabid="${t.id}" data-state="${isOn?'on':'off'}">
               <button onclick="setGuestTabPerm('${t.id}',true)"
                 style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
-                  background:${isOn?'#A2693E':'#eee'};color:${isOn?'#fff':'#888'};">ON</button>
+                  background:${isOn?'var(--brand)':'#eee'};color:${isOn?'#fff':'#888'};">ON</button>
               <button onclick="setGuestTabPerm('${t.id}',false)"
                 style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
                   background:${!isOn?'#e74c3c':'#eee'};color:${!isOn?'#fff':'#888'};">OFF</button>
@@ -7110,7 +7167,7 @@ function csDateInputValue(val) {
       if (!group) return;
       group.dataset.state = isOn ? 'on' : 'off';
       const [onBtn, offBtn] = group.querySelectorAll('button');
-      if (onBtn) { onBtn.style.background = isOn ? '#A2693E' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
+      if (onBtn) { onBtn.style.background = isOn ? 'var(--brand)' : '#eee'; onBtn.style.color = isOn ? '#fff' : '#888'; }
       if (offBtn) { offBtn.style.background = !isOn ? '#e74c3c' : '#eee'; offBtn.style.color = !isOn ? '#fff' : '#888'; }
     };
 
@@ -7713,7 +7770,7 @@ function csDateInputValue(val) {
       if (stateEl) {
         stateEl.textContent = configured ? '설정 완료 · 계정 허용 필요' : '연동 대기';
         stateEl.style.background = configured ? '#e8f5ec' : '#f0ece3';
-        stateEl.style.color = configured ? '#1a7a45' : '#8a6a48';
+        stateEl.style.color = configured ? '#1a7a45' : 'var(--brand-dark)';
       }
       // 클라이언트 설정이 완료되면 계정 허용 목록 노출 (허용 흐름은 2단계에서 구현)
       if (listEl) listEl.style.display = configured ? 'block' : 'none';
@@ -7747,7 +7804,7 @@ function csDateInputValue(val) {
           style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;">
         <button onclick="gmailStartAuth()" class="admin-btn primary" style="padding:8px 16px;white-space:nowrap;">인증 시작</button>
       </div>
-      <div id="gmailCodeBox" style="display:none;background:#faf8f4;border:1px solid #E5D9C6;border-radius:8px;padding:12px;margin-bottom:12px;">
+      <div id="gmailCodeBox" style="display:none;background:var(--surface-tint);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;">
         <div style="font-size:11.5px;color:#666;margin-bottom:8px;line-height:1.6;">
           새 창에서 허용 후 표시된 <b>인증 코드</b>를 복사해 아래에 붙여넣고 완료를 누르세요.
         </div>
@@ -8656,8 +8713,8 @@ function renderHamburgerItems() {
   const items = document.getElementById('hamburgerMenuItems');
   const editBtn = document.getElementById('hamburgerEditBtn');
   if (editBtn) {
-    editBtn.style.color = _hamburgerEditMode ? '#A2693E' : '#999';
-    editBtn.style.background = _hamburgerEditMode ? '#F7F1E7' : 'none';
+    editBtn.style.color = _hamburgerEditMode ? 'var(--brand)' : '#999';
+    editBtn.style.background = _hamburgerEditMode ? 'var(--cream)' : 'none';
     editBtn.title = _hamburgerEditMode ? '편집 완료' : '메뉴 편집';
   }
 
@@ -8733,7 +8790,7 @@ window.hamburgerDragOver = function(e) {
     el.style.borderTop = '';
   });
   e.currentTarget.style.background = '#F3EADB';
-  e.currentTarget.style.borderTop = '2px solid #A2693E';
+  e.currentTarget.style.borderTop = '2px solid var(--brand)';
 };
 window.hamburgerDragLeave = function(e) {
   e.currentTarget.style.background = '';
@@ -8789,7 +8846,7 @@ window.hamburgerTouchMove = function(e) {
   const item = target ? target.closest('.hamburger-edit-item') : null;
   if (item && item.dataset.tabid !== _touchDragSrcId) {
     item.style.background = '#F3EADB';
-    item.style.borderTop = '2px solid #A2693E';
+    item.style.borderTop = '2px solid var(--brand)';
     item._isHovered = true;
   }
 };
@@ -9480,7 +9537,7 @@ function initExcelUpload() {
         selectedFile = this.files[0];
         if (!selectedFile) return;
         statusEl.textContent = `${selectedFile.name}`;
-        statusEl.style.color = '#A2693E';
+        statusEl.style.color = 'var(--brand)';
         uploadBtn.style.display = 'inline-flex';
     });
 
@@ -9700,7 +9757,7 @@ if (stockFiltered.length) {
                     const prod = (typeof products !== 'undefined' ? products : []).find(p => p.code.toUpperCase() === code.toUpperCase());
                     if (prod && prod.box_m2 && !isNaN(pyNum)) {
                         const boxes = Math.ceil(pyNum * 3.24 / prod.box_m2);
-                        boxHint = ` <span style="color:#A2693E;font-size:12px;">(≈${boxes}BOX)</span>`;
+                        boxHint = ` <span style="color:var(--brand);font-size:12px;">(≈${boxes}BOX)</span>`;
                     }
                 }
                 return `<div style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
@@ -10121,8 +10178,8 @@ function createInvoiceItem(index) {
         </div>
 
         <!-- ── 직접입력 모드 (체크 시 표시) ── -->
-        <div class="inv-manual-fields" style="display:none; background:#FAF4EC; border:1px solid #E5D9C6; border-radius:10px; padding:12px; margin-bottom:12px;">
-          <div style="font-size:11px; color:#A2693E; font-weight:700; margin-bottom:10px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>직접입력 모드 — 견적서에 그대로 반영됩니다</div>
+        <div class="inv-manual-fields" style="display:none; background:#FAF4EC; border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:12px;">
+          <div style="font-size:11px; color:var(--brand); font-weight:700; margin-bottom:10px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>직접입력 모드 — 견적서에 그대로 반영됩니다</div>
           <div class="inv-field">
             <div class="inv-label">ITEM 명</div>
             <textarea id="invManualName${index}" class="inv-manual-name" rows="2" placeholder="" style="width:100%; resize:none; padding:6px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; line-height:1.4; font-family:inherit; height:44px !important; min-height:44px !important; overflow:hidden;"></textarea>
@@ -10223,7 +10280,7 @@ function applyUiDensity(value) {
         slider.value = pct;
         // 트랙 채워진 비율 업데이트
         const ratio = (pct - 50) / (150 - 50) * 100;
-        slider.style.background = `linear-gradient(to right,#A2693E 0%,#A2693E ${ratio}%,#e0e0e0 ${ratio}%,#e0e0e0 100%)`;
+        slider.style.background = `linear-gradient(to right,var(--brand) 0%,var(--brand) ${ratio}%,#e0e0e0 ${ratio}%,#e0e0e0 100%)`;
     }
     if (label) label.textContent = pct;
 }
@@ -10235,6 +10292,31 @@ function setUiDensity(value) {
 function resetUiScale() {
     setUiDensity(100);
 }
+
+// ── 앱 테마 색상 (브라운/모노/그레이/네이비) ──
+var THEME_KEY = 'baram_app_theme';
+window.setAppTheme = function(theme) {
+    var valid = ['brown','mono','gray','navy'];
+    if (valid.indexOf(theme) === -1) theme = 'brown';
+    // 브라운은 기본값이라 data-theme 없이 :root 사용
+    if (theme === 'brown') document.body.removeAttribute('data-theme');
+    else document.body.setAttribute('data-theme', theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch(_) {}
+    _highlightThemeButton(theme);
+};
+function _highlightThemeButton(theme) {
+    document.querySelectorAll('.theme-opt').forEach(function(btn){
+        var on = btn.getAttribute('data-theme') === theme;
+        btn.style.borderColor = on ? 'var(--brand)' : 'var(--border)';
+        btn.style.background = on ? 'var(--cream)' : '#fff';
+    });
+}
+function initAppTheme() {
+    var saved = 'brown';
+    try { saved = localStorage.getItem(THEME_KEY) || 'brown'; } catch(_) {}
+    window.setAppTheme(saved);
+}
+
 function initUiDensity() {
     let saved = '100';
     try { saved = localStorage.getItem(getUiDensityStorageKey()) || '100'; } catch(_) {}
@@ -11048,7 +11130,7 @@ async function saveInvoicePdf() {
                 <div style="width:42px; height:42px; background:#111; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:18px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1"></rect><line x1="9" y1="7" x2="9.01" y2="7"></line><line x1="15" y1="7" x2="15.01" y2="7"></line><line x1="9" y1="11" x2="9.01" y2="11"></line><line x1="15" y1="11" x2="15.01" y2="11"></line><line x1="10" y1="21" x2="10" y2="16"></line><line x1="14" y1="21" x2="14" y2="16"></line></svg></div>
                 <div style="font-size:13px; font-weight:800; color:#111; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.company || '-'}</div>
                 <div style="font-size:12px; color:#555; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name || ''}${c.position ? ' · ' + c.position : ''}</div>
-                <div style="font-size:12px; color:#A2693E; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.mobile || c.phone || '-'}</div>
+                <div style="font-size:12px; color:var(--brand); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.mobile || c.phone || '-'}</div>
             </div>
         `).join('');
     }
@@ -11110,7 +11192,7 @@ async function saveInvoicePdf() {
     let currentFileData = null;
 
     dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#A2693E'; });
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--brand)'; });
     dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#ccc'; });
     dropZone.addEventListener('drop', e => {
         e.preventDefault();
@@ -11252,13 +11334,13 @@ if ('serviceWorker' in navigator) {
 <style>
   .rsv-alert-banner {
     display:none; position:fixed; bottom:24px; right:24px; z-index:9999;
-    background:#fff; border:1px solid #e0e0e0; border-left:4px solid #A2693E;
+    background:#fff; border:1px solid #e0e0e0; border-left:4px solid var(--brand);
     border-radius:10px; padding:16px 20px; box-shadow:0 4px 20px rgba(0,0,0,0.12);
     max-width:340px; transform:translateY(120%); transition:transform 0.35s ease;
     cursor:pointer;
   }
   .rsv-alert-banner.show { transform:translateY(0); }
-  .rsv-alert-title { font-size:13px; font-weight:800; color:#A2693E; margin-bottom:6px; }
+  .rsv-alert-title { font-size:13px; font-weight:800; color:var(--brand); margin-bottom:6px; }
   .rsv-alert-body { font-size:12.5px; color:#333; line-height:1.6; }
   .rsv-alert-close { position:absolute; top:10px; right:12px; background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; }
   .rsv-alert-time { font-size:11px; color:#999; margin-top:6px; }
@@ -11283,7 +11365,7 @@ if ('serviceWorker' in navigator) {
   .csv-preview th, .csv-preview td { padding:4px 8px; border:1px solid #ddd; font-size:11px; text-align:left; }
   .csv-preview th { background:#f0f0f0; font-weight:700; }
   .csv-modal-footer { display:flex; gap:8px; justify-content:center; }
-  .csv-btn-import { background:#A2693E; color:#fff; border:none; border-radius:8px; padding:10px 28px; font-size:13px; font-weight:700; cursor:pointer; }
+  .csv-btn-import { background:var(--brand); color:#fff; border:none; border-radius:8px; padding:10px 28px; font-size:13px; font-weight:700; cursor:pointer; }
   .csv-btn-cancel { background:#fff; color:#555; border:1px solid #ddd; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; }
   .csv-msg { text-align:center; font-size:12px; margin-top:10px; color:#555; }
 </style>
@@ -11454,7 +11536,7 @@ if ('serviceWorker' in navigator) {
     if (!confirm('구글시트 [다우import] 탭의 데이터를 쇼룸상담으로 변환 등록하시겠습니까?')) return;
 
     const notif = document.createElement('div');
-    notif.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:#A2693E;color:#fff;padding:14px 26px;border-radius:10px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.25);white-space:nowrap;';
+    notif.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--brand);color:#fff;padding:14px 26px;border-radius:10px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.25);white-space:nowrap;';
     notif.textContent = '다우 시트 변환 중...';
     document.body.appendChild(notif);
 
@@ -11600,7 +11682,7 @@ if ('serviceWorker' in navigator) {
           <span id="csvProgressCount">0 / ${total}건</span>
         </div>
         <div style="background:#eee;border-radius:999px;height:8px;overflow:hidden;">
-          <div id="csvProgressBar" style="background:#A2693E;height:100%;width:0%;transition:width 0.3s;border-radius:999px;"></div>
+          <div id="csvProgressBar" style="background:var(--brand);height:100%;width:0%;transition:width 0.3s;border-radius:999px;"></div>
         </div>
       </div>
     `;
@@ -11727,9 +11809,9 @@ if ('serviceWorker' in navigator) {
     ['apply','history','calendar'].forEach(t => {
       document.getElementById('leavePanelContent_' + t).style.display = t === tab ? 'block' : 'none';
       const btn = document.getElementById('leavePanelTab_' + t);
-      btn.style.color = t === tab ? '#A2693E' : '#aaa';
+      btn.style.color = t === tab ? 'var(--brand)' : '#aaa';
       btn.style.fontWeight = t === tab ? '700' : '600';
-      btn.style.borderBottom = t === tab ? '2px solid #A2693E' : 'none';
+      btn.style.borderBottom = t === tab ? '2px solid var(--brand)' : 'none';
     });
     if (tab === 'history') renderLeaveHistory();
     if (tab === 'calendar') renderLeaveSchedCal();
@@ -11761,7 +11843,7 @@ if ('serviceWorker' in navigator) {
         onmouseover="leaveCalMouseOver('${dateStr}')"
         onmouseup="leaveCalMouseUp()"
         style="text-align:center;padding:6px 2px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
-          background:${isSel?'#A2693E':'transparent'};
+          background:${isSel?'var(--brand)':'transparent'};
           color:${isSel?'#fff':isWeekend?'#ccc':'#333'};
           border:${isSel?'none':'1px solid transparent'};">${d}</div>`;
     }
@@ -11819,7 +11901,7 @@ if ('serviceWorker' in navigator) {
     _leaveType = type;
     ['연차','반차'].forEach(t => {
       const btn = document.getElementById('leaveTypeBtn_' + t);
-      if (t === type) { btn.style.background='#A2693E'; btn.style.color='#fff'; btn.style.borderColor='#A2693E'; }
+      if (t === type) { btn.style.background='var(--brand)'; btn.style.color='#fff'; btn.style.borderColor='var(--brand)'; }
       else { btn.style.background='#fff'; btn.style.color='#888'; btn.style.borderColor='#ddd'; }
     });
     // 반차일 때만 오전/오후 세부 선택 표시
@@ -11997,7 +12079,7 @@ if ('serviceWorker' in navigator) {
       const needHead    = r.status === '대표승인대기' && isHead;
       const canApprove  = needManager || needHead;
       const approverRole = isHead && r.status === '대표승인대기' ? 'head' : 'manager';
-      return `<div style="border:1px solid #E5D9C6;border-radius:10px;padding:12px 14px;background:#F7F1E7;">
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--cream);">
         <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${r.name} · ${r.leaveType} ${r.days}일</div>
         <div style="font-size:12px;color:#777;margin-bottom:8px;">${r.startDate} ~ ${r.endDate}</div>
         ${canApprove ? `
@@ -12045,7 +12127,7 @@ if ('serviceWorker' in navigator) {
       if (s.indexOf('오전') !== -1) return '#3B82C4';
       if (s.indexOf('오후') !== -1) return '#E67E22';
       if (s.indexOf('반차') !== -1) return '#7B9E5B'; // 오전/오후 미지정 옛 반차
-      return '#A2693E'; // 연차
+      return 'var(--brand)'; // 연차
     };
     let html = days.map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:#aaa;padding:4px 0;">${d}</div>`).join('');
     for (let i = 0; i < firstDay; i++) html += '<div></div>';
@@ -12053,7 +12135,7 @@ if ('serviceWorker' in navigator) {
       const dateStr = _leaveSchedYear + '-' + String(_leaveSchedMon+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
       const items = leaveDates[dateStr] || [];
       html += `<div style="text-align:center;padding:4px 2px;border-radius:6px;font-size:12px;min-height:32px;
-        background:${items.length?'#F7F1E7':'transparent'};border:1px solid ${items.length?'#E5D9C6':'transparent'};">
+        background:${items.length?'var(--cream)':'transparent'};border:1px solid ${items.length?'var(--border)':'transparent'};">
         <div style="font-weight:600;color:#333;">${d}</div>
         ${items.map(it=>`<div style="font-size:9px;background:${typeColor(it.type)};color:#fff;border-radius:4px;padding:1px 3px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.name}</div>`).join('')}
       </div>`;
@@ -12126,7 +12208,7 @@ if ('serviceWorker' in navigator) {
             <span style="font-size:12px;color:#777;font-weight:700;">기사용 연차</span>
             <input type="number" id="usedLeaveInput_${e.id}" value="${used}" min="0" step="0.5" onclick="event.stopPropagation();" style="width:74px;border:1px solid #ddd;border-radius:8px;padding:6px 8px;font-size:13px;text-align:center;">
             <span style="font-size:12px;color:#aaa;">일 · 부여 ${total}일 기준 잔여 자동 갱신</span>
-            <button onclick="event.stopPropagation();saveUsedLeave('${e.id}')" style="padding:6px 16px;background:#A2693E;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
+            <button onclick="event.stopPropagation();saveUsedLeave('${e.id}')" style="padding:6px 16px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
             <span id="usedLeaveMsg_${e.id}" style="font-size:11px;color:#1a7a45;font-weight:800;"></span>
           </div>
         </div>
@@ -12265,20 +12347,20 @@ if ('serviceWorker' in navigator) {
 <div style="max-width:1100px;margin:24px auto;padding:0 16px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
     <div style="font-size:16px;font-weight:800;color:#222;">결재대기</div>
-    <button onclick="loadApprovalList()" style="padding:7px 16px;border:1px solid #E5D9C6;border-radius:8px;background:#fff;color:#A2693E;font-size:12px;font-weight:700;cursor:pointer;">새로고침</button>
+    <button onclick="loadApprovalList()" style="padding:7px 16px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;">새로고침</button>
   </div>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
-        <tr style="background:#F7F1E7;">
-          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;white-space:nowrap;">신청자</th>
-          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;white-space:nowrap;">부서</th>
-          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;white-space:nowrap;">종류</th>
-          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;white-space:nowrap;">기간</th>
-          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;white-space:nowrap;">일수</th>
-          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;">사유</th>
-          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;white-space:nowrap;">상태</th>
-          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid #E5D9C6;color:#978B7C;font-weight:700;white-space:nowrap;">처리</th>
+        <tr style="background:var(--cream);">
+          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;white-space:nowrap;">신청자</th>
+          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;white-space:nowrap;">부서</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;white-space:nowrap;">종류</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;white-space:nowrap;">기간</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;white-space:nowrap;">일수</th>
+          <th style="padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;">사유</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;white-space:nowrap;">상태</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:1px solid var(--border);color:#978B7C;font-weight:700;white-space:nowrap;">처리</th>
         </tr>
       </thead>
       <tbody id="approvalTableBody">
@@ -12298,14 +12380,14 @@ if ('serviceWorker' in navigator) {
   .em-layout { display:flex; height:calc(100vh - 120px); min-height:500px; gap:0; background:#F4EFE6; }
 
   /* 좌측 사이드바 */
-  .em-sidebar { width:200px; min-width:160px; background:#fff; border-right:1px solid #E5D9C6; display:flex; flex-direction:column; flex-shrink:0; }
+  .em-sidebar { width:200px; min-width:160px; background:#fff; border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
   .em-sidebar-header { padding:16px 14px 10px; font-size:16px; font-weight:800; color:#222; border-bottom:1px solid #F0E8DC; }
-  .em-compose-btn { margin:12px 14px; padding:10px 0; background:#A2693E; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:background .14s; }
+  .em-compose-btn { margin:12px 14px; padding:10px 0; background:var(--brand); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:background .14s; }
   .em-compose-btn:hover { background:#4A3526; }
   .em-folder-list { flex:1; overflow-y:auto; padding:6px 0; }
   .em-folder-item { display:flex; align-items:center; gap:8px; padding:9px 16px; font-size:13px; color:#555; cursor:pointer; border-radius:8px; margin:1px 6px; transition:background .12s; }
-  .em-folder-item:hover { background:#F3EADB; color:#A2693E; }
-  .em-folder-item.active { background:#F3EADB; color:#A2693E; font-weight:700; }
+  .em-folder-item:hover { background:#F3EADB; color:var(--brand); }
+  .em-folder-item.active { background:#F3EADB; color:var(--brand); font-weight:700; }
   .em-folder-item svg { flex-shrink:0; opacity:.7; }
   .em-folder-item.active svg { opacity:1; }
   .em-folder-badge { margin-left:auto; background:#e74c3c; color:#fff; border-radius:999px; padding:1px 7px; font-size:10px; font-weight:800; }
@@ -12322,18 +12404,18 @@ if ('serviceWorker' in navigator) {
   .em-search-box { display:flex; align-items:center; gap:6px; background:#F3EADB; border-radius:8px; padding:6px 12px; }
   .em-search-box input { border:none; background:transparent; font-size:12px; outline:none; width:140px; color:#333; }
   .em-search-box svg { flex-shrink:0; opacity:.5; }
-  .em-toolbar-btn { padding:6px 12px; border:1px solid #E5D9C6; border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; }
-  .em-toolbar-btn:hover { background:#F3EADB; color:#A2693E; }
+  .em-toolbar-btn { padding:6px 12px; border:1px solid var(--border); border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; }
+  .em-toolbar-btn:hover { background:#F3EADB; color:var(--brand); }
 
   /* 메일 목록 */
   .em-mail-list { flex:1; overflow-y:auto; }
-  .em-date-group { padding:8px 16px 4px; font-size:12px; font-weight:700; color:#A98C6B; border-bottom:1px solid #F5EDE0; background:#FDFAF6; position:sticky; top:0; z-index:1; }
+  .em-date-group { padding:8px 16px 4px; font-size:12px; font-weight:700; color:var(--muted); border-bottom:1px solid #F5EDE0; background:#FDFAF6; position:sticky; top:0; z-index:1; }
   .em-mail-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #F5EDE0; cursor:pointer; transition:background .1s; }
   .em-mail-row:hover { background:#FBF7F0; }
   .em-mail-row.unread { background:#FFF8F0; }
   .em-mail-row.unread .em-mail-sender { font-weight:800; color:#222; }
   .em-mail-row.unread .em-mail-subject { font-weight:700; color:#333; }
-  .em-mail-check { flex-shrink:0; width:16px; height:16px; accent-color:#A2693E; }
+  .em-mail-check { flex-shrink:0; width:16px; height:16px; accent-color:var(--brand); }
   .em-mail-flag { flex-shrink:0; opacity:.3; cursor:pointer; }
   .em-mail-flag:hover { opacity:.8; }
   .em-mail-icon { flex-shrink:0; opacity:.4; }
@@ -12352,23 +12434,23 @@ if ('serviceWorker' in navigator) {
   .em-compose-header { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #F0E8DC; background:#FDFAF6; flex-shrink:0; }
   .em-compose-title { font-size:15px; font-weight:800; color:#222; }
   .em-compose-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
-  .em-compose-send-btn { padding:8px 20px; background:#A2693E; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .em-compose-send-btn { padding:8px 20px; background:var(--brand); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; }
   .em-compose-send-btn:hover { background:#4A3526; }
   .em-compose-send-btn:disabled { background:#ccc; cursor:not-allowed; }
-  .em-compose-draft-btn { padding:8px 14px; border:1px solid #E5D9C6; border-radius:8px; background:#fff; color:#888; font-size:12px; font-weight:600; cursor:pointer; }
+  .em-compose-draft-btn { padding:8px 14px; border:1px solid var(--border); border-radius:8px; background:#fff; color:#888; font-size:12px; font-weight:600; cursor:pointer; }
   .em-compose-draft-btn:hover { background:#F3EADB; }
   .em-compose-close-btn { padding:6px 10px; border:none; background:transparent; color:#aaa; font-size:18px; cursor:pointer; line-height:1; }
   .em-compose-close-btn:hover { color:#333; }
   .em-compose-field { display:flex; align-items:center; border-bottom:1px solid #F0E8DC; padding:0 16px; flex-shrink:0; }
-  .em-compose-field label { width:70px; font-size:12px; font-weight:700; color:#A98C6B; flex-shrink:0; }
+  .em-compose-field label { width:70px; font-size:12px; font-weight:700; color:var(--muted); flex-shrink:0; }
   .em-compose-field input, .em-compose-field select { flex:1; border:none; outline:none; font-size:13px; padding:11px 0; background:transparent; color:#222; font-family:inherit; }
   .em-compose-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
   .em-compose-body textarea { flex:1; border:none; outline:none; padding:16px; font-size:13px; line-height:1.8; resize:none; font-family:inherit; color:#333; background:#fff; }
   .em-compose-ai-bar { background:#FBF7F0; border-top:1px solid #F0E8DC; padding:10px 16px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
-  .em-compose-ai-input { flex:1; border:1px solid #E5D9C6; border-radius:8px; padding:8px 12px; font-size:12px; outline:none; font-family:inherit; background:#fff; }
+  .em-compose-ai-input { flex:1; border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:12px; outline:none; font-family:inherit; background:#fff; }
   .em-compose-ai-btn { padding:8px 16px; background:#222; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
-  .em-compose-ai-btn:hover { background:#A2693E; }
-  .em-compose-msg { font-size:12px; color:#A2693E; font-weight:600; }
+  .em-compose-ai-btn:hover { background:var(--brand); }
+  .em-compose-msg { font-size:12px; color:var(--brand); font-weight:600; }
 
   /* 메일 상세보기 패널 */
   .em-detail-panel { display:none; flex-direction:column; flex:1; overflow-y:auto; overflow-x:hidden; }
@@ -12378,8 +12460,8 @@ if ('serviceWorker' in navigator) {
   .em-detail-meta { display:flex; align-items:center; gap:16px; font-size:12px; color:#888; }
   .em-detail-sender { font-weight:700; color:#333; }
   .em-detail-actions { display:flex; gap:8px; margin-top:12px; }
-  .em-detail-action-btn { padding:6px 14px; border:1px solid #E5D9C6; border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; }
-  .em-detail-action-btn:hover { background:#F3EADB; color:#A2693E; }
+  .em-detail-action-btn { padding:6px 14px; border:1px solid var(--border); border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; }
+  .em-detail-action-btn:hover { background:#F3EADB; color:var(--brand); }
   .em-detail-body { flex:1; overflow-y:auto; padding:20px 16px; font-size:13px; line-height:1.8; color:#333; white-space:pre-wrap; }
   .em-detail-close { margin-left:auto; }
 
@@ -12441,8 +12523,8 @@ if ('serviceWorker' in navigator) {
 </style>
 
 <!-- 모바일 하단 탭바 -->
-<div class="em-mobile-tabbar" id="emMobileTabbar" style="display:none;border-top:1px solid #E5D9C6;background:#fff;flex-shrink:0;">
-  <button class="em-mobile-tab active" data-folder="inbox" onclick="setEmailFolder('inbox',null);emMobileTabSwitch(this)" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:3px;font-size:10px;color:#A2693E;font-weight:700;border:none;background:transparent;cursor:pointer;">
+<div class="em-mobile-tabbar" id="emMobileTabbar" style="display:none;border-top:1px solid var(--border);background:#fff;flex-shrink:0;">
+  <button class="em-mobile-tab active" data-folder="inbox" onclick="setEmailFolder('inbox',null);emMobileTabSwitch(this)" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:3px;font-size:10px;color:var(--brand);font-weight:700;border:none;background:transparent;cursor:pointer;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
     받은메일
   </button>
@@ -12527,7 +12609,7 @@ if ('serviceWorker' in navigator) {
         <div class="em-compose-actions">
           <span class="em-compose-msg" id="emComposeMsg"></span>
           <button class="em-compose-draft-btn" onclick="saveEmailDraft()">임시저장</button>
-          <button class="em-compose-draft-btn" onclick="previewEmail()" style="color:#A2693E;border-color:#A2693E;">
+          <button class="em-compose-draft-btn" onclick="previewEmail()" style="color:var(--brand);border-color:var(--brand);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             미리보기
           </button>
@@ -12558,7 +12640,7 @@ if ('serviceWorker' in navigator) {
         <textarea id="emailBody" placeholder="내용을 입력하세요..."></textarea>
       </div>
       <div class="em-compose-ai-bar">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A2693E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         <input class="em-compose-ai-input" id="emAiPrompt" placeholder="AI 메일 작성: 작성하고 싶은 내용을 입력하세요 (예: 견적 문의 답변 메일)">
         <button class="em-compose-ai-btn" onclick="aiWriteEmail()">AI 작성</button>
       </div>
@@ -12570,11 +12652,11 @@ if ('serviceWorker' in navigator) {
         <div style="display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid #F0E8DC;flex-shrink:0;">
           <div style="font-size:15px;font-weight:800;color:#222;">메일 미리보기</div>
           <div style="margin-left:auto;display:flex;gap:8px;">
-            <button onclick="sendMailFromERP();closeEmailPreview();" style="padding:8px 20px;background:#A2693E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">이대로 발송</button>
+            <button onclick="sendMailFromERP();closeEmailPreview();" style="padding:8px 20px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">이대로 발송</button>
             <button onclick="closeEmailPreview()" style="padding:8px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;font-size:13px;font-weight:600;cursor:pointer;">닫기</button>
           </div>
         </div>
-        <div style="padding:14px 20px;background:#F7F1E7;border-bottom:1px solid #F0E8DC;flex-shrink:0;font-size:12px;color:#888;line-height:1.8;">
+        <div style="padding:14px 20px;background:var(--cream);border-bottom:1px solid #F0E8DC;flex-shrink:0;font-size:12px;color:#888;line-height:1.8;">
           <div><span style="font-weight:700;color:#555;width:60px;display:inline-block;">발신</span><span id="emPreviewFrom"></span></div>
           <div><span style="font-weight:700;color:#555;width:60px;display:inline-block;">수신</span><span id="emPreviewTo"></span></div>
           <div id="emPreviewCcRow" style="display:none;"><span style="font-weight:700;color:#555;width:60px;display:inline-block;">참조</span><span id="emPreviewCc"></span></div>
@@ -12637,7 +12719,7 @@ if ('serviceWorker' in navigator) {
       t.style.fontWeight = '600';
     });
     if (btn) {
-      btn.style.color = '#A2693E';
+      btn.style.color = 'var(--brand)';
       btn.style.fontWeight = '700';
     }
   };
@@ -12652,18 +12734,18 @@ if ('serviceWorker' in navigator) {
     const email    = user.email   || '';
     const cardUrl  = user.cardUrl || '';
     return `
-<table style="margin-top:32px;padding-top:20px;border-top:2px solid #E5D9C6;font-family:Arial,'Noto Sans KR',sans-serif;border-collapse:collapse;">
+<table style="margin-top:32px;padding-top:20px;border-top:2px solid var(--border);font-family:Arial,'Noto Sans KR',sans-serif;border-collapse:collapse;">
   <tr>
     ${cardUrl ? `<td style="padding-right:20px;vertical-align:top;">
-      <img src="${cardUrl}" alt="명함" style="width:100px;height:auto;border-radius:6px;border:1px solid #E5D9C6;">
+      <img src="${cardUrl}" alt="명함" style="width:100px;height:auto;border-radius:6px;border:1px solid var(--border);">
     </td>` : ''}
     <td style="vertical-align:top;">
-      <div style="font-size:16px;font-weight:800;color:#2B2521;margin-bottom:2px;">${name}${title ? ' <span style="font-size:13px;font-weight:600;color:#A2693E;">' + title + '</span>' : ''}</div>
+      <div style="font-size:16px;font-weight:800;color:#2B2521;margin-bottom:2px;">${name}${title ? ' <span style="font-size:13px;font-weight:600;color:var(--brand);">' + title + '</span>' : ''}</div>
       ${dept ? `<div style="font-size:12px;color:#888;margin-bottom:6px;">${dept}</div>` : ''}
       <table style="border-collapse:collapse;font-size:12px;color:#666;line-height:1.9;">
-        ${phone ? `<tr><td style="color:#A2693E;font-weight:700;padding-right:10px;white-space:nowrap;">T.</td><td>${phone}</td></tr>` : ''}
-        ${email ? `<tr><td style="color:#A2693E;font-weight:700;padding-right:10px;">E.</td><td><a href="mailto:${email}" style="color:#A2693E;text-decoration:none;">${email}</a></td></tr>` : ''}
-        <tr><td style="color:#A2693E;font-weight:700;padding-right:10px;">W.</td><td><a href="https://jibokdeukmaru.com" style="color:#A2693E;text-decoration:none;">jibokdeukmaru.com</a></td></tr>
+        ${phone ? `<tr><td style="color:var(--brand);font-weight:700;padding-right:10px;white-space:nowrap;">T.</td><td>${phone}</td></tr>` : ''}
+        ${email ? `<tr><td style="color:var(--brand);font-weight:700;padding-right:10px;">E.</td><td><a href="mailto:${email}" style="color:var(--brand);text-decoration:none;">${email}</a></td></tr>` : ''}
+        <tr><td style="color:var(--brand);font-weight:700;padding-right:10px;">W.</td><td><a href="https://jibokdeukmaru.com" style="color:var(--brand);text-decoration:none;">jibokdeukmaru.com</a></td></tr>
       </table>
       <div style="margin-top:10px;">
         <img src="https://chiwoo3292-sudo.github.io/logo.png" alt="지복득마루" style="height:28px;" onerror="this.style.display='none'">
@@ -12894,7 +12976,7 @@ if ('serviceWorker' in navigator) {
     const wrap = document.createElement('div');
     wrap.id = 'emLoadMoreWrap';
     wrap.style.cssText = 'text-align:center;padding:14px;';
-    wrap.innerHTML = `<button id="emLoadMoreBtn" onclick="gmailLoadMore()" style="background:#fff;border:1px solid #D8C7AE;border-radius:8px;padding:9px 24px;font-size:13px;color:#8a6a48;font-weight:700;cursor:pointer;">더 보기</button>`;
+    wrap.innerHTML = `<button id="emLoadMoreBtn" onclick="gmailLoadMore()" style="background:#fff;border:1px solid var(--border-2);border-radius:8px;padding:9px 24px;font-size:13px;color:var(--brand-dark);font-weight:700;cursor:pointer;">더 보기</button>`;
     listEl.appendChild(wrap);
   }
 
@@ -12992,7 +13074,7 @@ if ('serviceWorker' in navigator) {
       : `<div style="white-space:pre-wrap;font-size:14px;color:#222;line-height:1.7;">${_emEsc(msg.body)}</div>`;
     dp.innerHTML = `
       <div style="padding:20px 24px;border-bottom:1px solid #eee;">
-        <button onclick="backToEmailList()" style="background:none;border:none;color:#A2693E;font-size:13px;cursor:pointer;margin-bottom:12px;">← 목록으로</button>
+        <button onclick="backToEmailList()" style="background:none;border:none;color:var(--brand);font-size:13px;cursor:pointer;margin-bottom:12px;">← 목록으로</button>
         <div style="font-size:18px;font-weight:800;color:#222;margin-bottom:12px;">${_emEsc(msg.subject)}</div>
         <div style="font-size:12.5px;color:#555;line-height:1.8;">
           <div><b>보낸사람:</b> ${_emEsc(msg.from)}</div>
@@ -13192,7 +13274,7 @@ if ('serviceWorker' in navigator) {
     if (!body)    { if (msgEl) { msgEl.textContent = '내용을 입력하세요.'; msgEl.style.color='#c0392b'; } return; }
 
     if (btnEl) btnEl.disabled = true;
-    if (msgEl) { msgEl.textContent = '발송 중...'; msgEl.style.color='#A2693E'; }
+    if (msgEl) { msgEl.textContent = '발송 중...'; msgEl.style.color='var(--brand)'; }
 
     try {
       // 발신자 정보 파라미터 추가
@@ -13347,10 +13429,10 @@ if ('serviceWorker' in navigator) {
       <button onclick="closeLeavePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1;">×</button>
     </div>
     <!-- 잔여 연차 표시 -->
-    <div id="leaveBalanceBox" style="background:#F7F1E7;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+    <div id="leaveBalanceBox" style="background:var(--cream);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
       <div style="text-align:center;flex:1;">
         <div style="font-size:11px;color:#999;margin-bottom:4px;">부여</div>
-        <div id="leaveTotal" style="font-size:18px;font-weight:800;color:#A2693E;">-</div>
+        <div id="leaveTotal" style="font-size:18px;font-weight:800;color:var(--brand);">-</div>
       </div>
       <div style="text-align:center;flex:1;">
         <div style="font-size:11px;color:#999;margin-bottom:4px;">사용</div>
@@ -13367,7 +13449,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <!-- 탭: 신청 / 내역 / 일정 -->
     <div style="display:flex;gap:0;border-bottom:2px solid #eee;">
-      <button id="leavePanelTab_apply" onclick="switchLeaveTab('apply')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:700;color:#A2693E;border-bottom:2px solid #A2693E;margin-bottom:-2px;cursor:pointer;">신청</button>
+      <button id="leavePanelTab_apply" onclick="switchLeaveTab('apply')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:700;color:var(--brand);border-bottom:2px solid var(--brand);margin-bottom:-2px;cursor:pointer;">신청</button>
       <button id="leavePanelTab_history" onclick="switchLeaveTab('history')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">내역</button>
       <button id="leavePanelTab_calendar" onclick="switchLeaveTab('calendar')" style="flex:1;padding:10px 0;border:none;background:none;font-size:13px;font-weight:600;color:#aaa;cursor:pointer;">일정</button>
     </div>
@@ -13387,7 +13469,7 @@ if ('serviceWorker' in navigator) {
     <div id="leaveSelectedInfo" style="font-size:12px;color:#555;margin-bottom:12px;min-height:18px;"></div>
     <!-- 종류 선택 -->
     <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #A2693E;background:#A2693E;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">연차</button>
+      <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid var(--brand);background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">연차</button>
       <button id="leaveTypeBtn_반차" onclick="setLeaveType('반차')" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:13px;font-weight:700;cursor:pointer;">반차</button>
     </div>
     <!-- 반차 세부(오전/오후) — 반차 선택 시에만 표시 -->
@@ -13398,7 +13480,7 @@ if ('serviceWorker' in navigator) {
     <!-- 사유 -->
     <textarea id="leaveReason" placeholder="사유 (선택)" style="width:100%;min-height:70px;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;margin-bottom:14px;"></textarea>
     <!-- 신청 버튼 -->
-    <button onclick="submitLeave()" style="width:100%;padding:13px 0;background:#A2693E;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">신청하기</button>
+    <button onclick="submitLeave()" style="width:100%;padding:13px 0;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">신청하기</button>
     <div id="leaveApplyMsg" style="text-align:center;font-size:12px;color:#1a7a45;margin-top:8px;min-height:18px;"></div>
   </div>
 
