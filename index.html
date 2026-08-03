@@ -8583,6 +8583,11 @@ window.addEventListener('popstate', function(e) {
   // 로그인 전(잠금화면)이면 히스토리 탐색을 무시 (보안: 인증 없이 메인 화면 노출 방지)
   const mainSection = document.getElementById('mainSection');
   if (!mainSection || mainSection.style.display === 'none') return;
+  // 메일 본문이 열려 있으면 탭 이동 대신 목록으로 복귀
+  if (window._emailDetailOpen) {
+    window._emailDetailOpen = false;
+    if (typeof backToEmailList === 'function') { backToEmailList(); return; }
+  }
   const tabId = e.state && e.state.tab;
   if (tabId && document.getElementById(tabId)) {
     setTab(tabId, true);
@@ -12419,6 +12424,11 @@ if ('serviceWorker' in navigator) {
   .em-search-box svg { flex-shrink:0; opacity:.5; }
   .em-toolbar-btn { padding:6px 12px; border:1px solid var(--border); border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; }
   .em-toolbar-btn:hover { background:#F3EADB; color:var(--brand); }
+  .em-bulk-btn { padding:5px 14px; border:1px solid var(--border); border-radius:7px; background:#fff; color:#555; font-size:12px; font-weight:700; cursor:pointer; }
+  .em-bulk-btn:hover:not(:disabled) { background:var(--cream); color:var(--brand); border-color:var(--border-2); }
+  .em-bulk-btn:disabled { opacity:.45; cursor:default; }
+  .em-bulk-btn.em-bulk-del { color:#c0392b; border-color:#e6b8b3; }
+  .em-bulk-btn.em-bulk-del:hover:not(:disabled) { background:#fbeceb; color:#c0392b; border-color:#d99; }
 
   /* 메일 목록 */
   .em-mail-list { flex:1; overflow-y:auto; }
@@ -12606,6 +12616,19 @@ if ('serviceWorker' in navigator) {
             새로고침
           </button>
         </div>
+      </div>
+      <!-- 일괄 작업 바 (체크 시 활성화) -->
+      <div class="em-bulk-bar" id="emBulkBar" style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #F0E8DC;background:#FBF8F3;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;cursor:pointer;">
+          <input type="checkbox" id="emSelectAll" onclick="emToggleSelectAll(this.checked)" style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer;">
+          전체선택
+        </label>
+        <span id="emSelCount" style="font-size:12px;color:var(--brand);font-weight:700;min-width:44px;"></span>
+        <div style="width:1px;height:16px;background:#E5D9C6;"></div>
+        <button class="em-bulk-btn" id="emBulkRead"   onclick="emBulkAction('read')"   disabled>읽음</button>
+        <button class="em-bulk-btn" id="emBulkUnread" onclick="emBulkAction('unread')" disabled>안읽음</button>
+        <button class="em-bulk-btn" id="emBulkSpam"   onclick="emBulkAction('spam')"   disabled>스팸</button>
+        <button class="em-bulk-btn em-bulk-del" id="emBulkTrash" onclick="emBulkAction('trash')" disabled>삭제</button>
       </div>
       <div class="em-mail-list" id="emMailList">
         <div class="em-empty">
@@ -12842,6 +12865,10 @@ if ('serviceWorker' in navigator) {
     document.querySelectorAll('.em-folder-item').forEach(i => i.classList.remove('active'));
     if (el) el.classList.add('active');
     document.getElementById('emFolderTitle').textContent = FOLDER_LABELS[folder] || folder;
+    // 일괄 작업 바는 Gmail 폴더(받은/스팸/휴지통)에서만 표시
+    const bulk = document.getElementById('emBulkBar');
+    if (bulk) bulk.style.display = (window.USE_GMAIL_API && ['inbox','spam','trash'].includes(folder)) ? 'flex' : 'none';
+    const allChk = document.getElementById('emSelectAll'); if (allChk) allChk.checked = false;
     closeEmailCompose();
     closeEmailDetail();
     showEmailListView();
@@ -13033,7 +13060,7 @@ if ('serviceWorker' in navigator) {
         const subjectDisplay = _emEsc(m.subject || '(제목없음)');
         const weight = m.unread ? 'font-weight:800;' : '';
         html += `<div class="em-mail-row" onclick="openGmailDetailById('${m.gmailId}')">
-          <input type="checkbox" class="em-mail-check" onclick="event.stopPropagation()">
+          <input type="checkbox" class="em-mail-check" data-gmail-id="${m.gmailId}" onchange="emOnCheck()" onclick="event.stopPropagation()">
           <svg class="em-mail-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
           <span class="em-mail-sender" style="${weight}">${sender}</span>
           <span class="em-mail-subject" style="${weight}">${subjectDisplay}</span>
@@ -13042,12 +13069,64 @@ if ('serviceWorker' in navigator) {
       });
     });
     listEl.innerHTML = html;
+    if (typeof _emUpdateBulkState === 'function') _emUpdateBulkState();
   }
 
   // gmailId로 목록에서 메일 찾아 상세 열기 (날짜 그룹으로 순서 바뀌어도 정확)
   window.openGmailDetailById = function(gmailId) {
     const idx = _allEmailItems.findIndex(x => x.gmailId === gmailId);
     if (idx >= 0) openGmailDetail(idx);
+  };
+
+  // ── 메일 일괄 선택/작업 ──
+  function _emCheckedIds() {
+    return Array.from(document.querySelectorAll('.em-mail-check:checked'))
+      .map(cb => cb.getAttribute('data-gmail-id')).filter(Boolean);
+  }
+  function _emUpdateBulkState() {
+    const ids = _emCheckedIds();
+    const n = ids.length;
+    const cntEl = document.getElementById('emSelCount');
+    if (cntEl) cntEl.textContent = n ? (n + '개 선택') : '';
+    ['emBulkRead','emBulkUnread','emBulkSpam','emBulkTrash'].forEach(id => {
+      const b = document.getElementById(id); if (b) b.disabled = (n === 0);
+    });
+    // 스팸함에선 '스팸' 버튼이 '스팸해제'로
+    const spamBtn = document.getElementById('emBulkSpam');
+    if (spamBtn) spamBtn.textContent = (_currentFolder === 'spam') ? '스팸해제' : '스팸';
+    // 전체선택 체크 상태 동기화
+    const all = document.getElementById('emSelectAll');
+    const boxes = document.querySelectorAll('.em-mail-check');
+    if (all) all.checked = boxes.length > 0 && n === boxes.length;
+  }
+  window.emOnCheck = function() { _emUpdateBulkState(); };
+  window.emToggleSelectAll = function(checked) {
+    document.querySelectorAll('.em-mail-check').forEach(cb => { cb.checked = checked; });
+    _emUpdateBulkState();
+  };
+  window.emBulkAction = async function(op) {
+    const ids = _emCheckedIds();
+    if (!ids.length) return;
+    let realOp = op;
+    if (op === 'spam' && _currentFolder === 'spam') realOp = 'unspam'; // 스팸함에선 해제
+    // 삭제는 확인
+    if (op === 'trash') {
+      if (!confirm(`${ids.length}개 메일을 휴지통으로 옮기시겠습니까?`)) return;
+    }
+    const user = window._currentUser;
+    const email = user && user.email ? user.email : '';
+    try {
+      const params = new URLSearchParams({ action: 'gmailBatchModify', email, op: realOp, ids: ids.join(',') });
+      const res = await fetchWithRetry(`${window.ERP_URL}?${params}`, undefined, 0, 30000);
+      const data = await res.json();
+      if (data.status !== 'ok') { alert('작업 실패: ' + (data.message||'')); return; }
+      // 캐시 무효화 후 현재 폴더 새로고침
+      const cacheKey = email + '|' + _currentFolder;
+      delete _gmailCache[cacheKey];
+      _fetchGmailAndRender(_currentFolder, true);
+    } catch(e) {
+      alert('작업 오류: ' + e.message);
+    }
   };
 
   // Gmail 메일 상세 열기
@@ -13060,6 +13139,8 @@ if ('serviceWorker' in navigator) {
     document.getElementById('emListView').style.display = 'none';
     const cp = document.getElementById('emComposePanel');
     if (cp) { cp.classList.remove('open'); cp.style.display = 'none'; }
+    // 뒤로가기 시 탭 이동 대신 목록으로 돌아가도록 히스토리 상태 추가
+    try { history.pushState({ emailDetail: true }, '', ''); window._emailDetailOpen = true; } catch(_) {}
     const dp = document.getElementById('emDetailPanel');
     if (dp) {
       dp.style.display = 'flex'; dp.classList.add('open');
@@ -13123,6 +13204,8 @@ if ('serviceWorker' in navigator) {
     const dp = document.getElementById('emDetailPanel');
     if (dp) { dp.classList.remove('open'); dp.style.display = 'none'; }
     document.getElementById('emListView').style.display = 'flex';
+    // 버튼으로 닫은 경우, pushState로 쌓인 상태를 뒤로 정리 (뒤로가기로 닫은 경우는 이미 소비됨)
+    if (window._emailDetailOpen) { window._emailDetailOpen = false; try { history.back(); } catch(_) {} }
   };
 
   function renderEmailList() {
