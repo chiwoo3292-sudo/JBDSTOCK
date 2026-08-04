@@ -4793,7 +4793,7 @@ function csDateInputValue(val) {
     _renderHomeNotices();   // 게시판 (notices 캐시 우선, 없으면 로드)
     _renderHomeConsults();  // 쇼룸상담
     _renderHomeReservations(); // 예약관리
-    _renderHomeEmails();    // 메일함(보낸메일)
+    _renderHomeEmails();    // 받은메일함(Gmail 연동)
 
     // 게시판: 캐시 없으면 불러온 뒤 재렌더
     if (!notices.length) {
@@ -4875,18 +4875,26 @@ function csDateInputValue(val) {
     }).join('');
   }
 
-  function _renderHomeEmails() {
+  async function _renderHomeEmails() {
     const el = document.getElementById('homeEmailList'); if (!el) return;
-    // 받은메일은 미연동 상태 → 보낸메일함(localStorage) 최근 5건 표시
-    const logKey = 'baram_email_log_' + ((window._currentUser && window._currentUser.id) || 'guest');
-    let items = [];
-    try { items = JSON.parse(localStorage.getItem(logKey) || '[]'); } catch(e) {}
-    if (!items.length) { el.innerHTML = '<div class="home-dash-empty">보낸 메일이 없습니다.</div>'; return; }
-    const list = items.slice(0, 5);
-    el.innerHTML = list.map((m) => {
-      const when = m.sentAt ? String(m.sentAt).slice(5,16) : '';
-      return _homeItem(_noticeEscHtml(m.subject||'(제목없음)'), when, '보냄', `setTab('emailTab')`);
-    }).join('');
+    // 받은메일함(Gmail 연동) 최근 5건 표시
+    const email = (window._currentUser && window._currentUser.email) || '';
+    if (!email || !window.USE_GMAIL_API || typeof window._gmailFetchPage !== 'function') {
+      el.innerHTML = '<div class="home-dash-empty">받은 메일이 없습니다.</div>'; return;
+    }
+    try {
+      const { msgs } = await window._gmailFetchPage(email, 'inbox');
+      const list = (msgs || []).slice(0, 5);
+      if (!list.length) { el.innerHTML = '<div class="home-dash-empty">받은 메일이 없습니다.</div>'; return; }
+      el.innerHTML = list.map((m) => {
+        const when = m.sentAt ? String(m.sentAt).slice(5,16) : '';
+        const sub = m.from || '';
+        const badge = m.unread ? '안읽음' : '받음';
+        return _homeItem(_noticeEscHtml(m.subject||'(제목없음)') + (sub ? ' · ' + _noticeEscHtml(sub) : ''), when, badge, `setTab('emailTab')`);
+      }).join('');
+    } catch(e) {
+      el.innerHTML = '<div class="home-dash-empty">받은 메일이 없습니다.</div>';
+    }
   }
 
 
@@ -5429,7 +5437,7 @@ function csDateInputValue(val) {
     <!-- 이메일 -->
     <div class="home-dash-card">
       <div class="home-dash-head" onclick="setTab('emailTab')">
-        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>메일함</span>
+        <span class="home-dash-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>받은메일함</span>
         <span class="home-dash-more">전체보기 ›</span>
       </div>
       <div class="home-dash-list" id="homeEmailList"><div class="home-dash-empty">불러오는 중...</div></div>
@@ -13123,6 +13131,7 @@ if ('serviceWorker' in navigator) {
     }));
     return { msgs, nextPageToken: data.nextPageToken || '' };
   }
+  window._gmailFetchPage = _gmailFetchPage;
 
   // 폴더 첫 로드 — 캐시 우선(5분), forceRefresh면 캐시 무시
   async function _fetchGmailAndRender(folder, forceRefresh) {
