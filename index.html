@@ -9795,6 +9795,49 @@ async function fetchStockData() {
 // ============================================================
 //  품번 상세 모달 — 발주현황 / 입고예정일 / 예약일정
 // ============================================================
+// iframe(Wix 임베드) 안에서 부모 페이지의 스크롤/뷰포트 정보를 저장
+window._parentViewport = null;
+window.addEventListener('message', function(ev) {
+  if (ev.data && ev.data.__erpViewport) {
+    window._parentViewport = ev.data.__erpViewport;
+    const m = document.getElementById('itemDetailModal');
+    if (m && m.style.display === 'flex') _positionItemModal();
+  }
+}, false);
+
+function _requestParentViewport() {
+  try { if (window.parent && window.parent !== window) window.parent.postMessage({ __erpRequestViewport: true }, '*'); } catch(e) {}
+}
+
+// 재고 상세 팝업을 현재 보이는 영역에 배치 (iframe 대응)
+function _positionItemModal() {
+  const modal = document.getElementById('itemDetailModal');
+  if (!modal) return;
+  const box = modal.firstElementChild;
+  if (!box) return;
+  _requestParentViewport();
+
+  const vp = window._parentViewport;
+  if (vp && typeof vp.scrollY === 'number' && typeof vp.iframeTop === 'number') {
+    // 부모 협조 정보가 있을 때: 부모 뷰포트 중앙을 iframe 내부 좌표로 변환해 배치
+    modal.style.position = 'absolute';
+    modal.style.alignItems = 'flex-start';
+    const centerInParent = vp.scrollY + vp.innerHeight / 2;
+    const yInIframe = centerInParent - vp.iframeTop;
+    const boxH = box.offsetHeight || 400;
+    let top = yInIframe - boxH / 2;
+    if (top < 20) top = 20;
+    box.style.marginTop = top + 'px';
+  } else {
+    // 부모 정보 없음(대부분의 Wix 임베드): 팝업을 iframe 뷰포트 상단 근처에 고정.
+    //   position:fixed는 iframe 안에서 iframe 좌상단 기준이라, 부모가 스크롤해도
+    //   'iframe에서 보이는 위쪽'에 항상 떠서 잘리지 않는다.
+    modal.style.position = 'fixed';
+    modal.style.alignItems = 'flex-start';
+    box.style.marginTop = 'clamp(20px, 8vh, 120px)';
+  }
+}
+
 async function openItemDetail(itemCode) {
     const modal  = document.getElementById('itemDetailModal');
     const title  = document.getElementById('itemDetailTitle');
@@ -9806,9 +9849,11 @@ async function openItemDetail(itemCode) {
     title.textContent = itemCode;
     stockEl.innerHTML = orderEl.innerHTML = arrivalEl.innerHTML = reserveEl.innerHTML =
         '<span style="color:#aaa;">불러오는 중...</span>';
-    // 모달을 body 직속으로 옮겨 부모 컨테이너(transform 등) 영향 없이 화면 중앙에 고정
+    // 모달을 body 직속으로 이동
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
     modal.style.display = 'flex';
+    // iframe(Wix 임베드) 환경에서도 팝업이 현재 보이는 위치에 오도록 배치
+    _positionItemModal();
 
     const noData = '<span style="color:#aaa;">정보 없음</span>';
     const code = itemCode.trim().toUpperCase();
