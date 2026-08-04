@@ -4915,7 +4915,7 @@ function csDateInputValue(val) {
         const initial = _noticeEscHtml(name.slice(0,2).toUpperCase());
         const unreadDot = m.unread ? '<span class="home-mail-unread"></span>' : '';
         const snippet = m.snippet ? `<div class="home-mail-snippet">${_noticeEscHtml(m.snippet)}</div>` : '';
-        return `<div class="home-mail-item" onclick="setTab('emailTab')">
+        return `<div class="home-mail-item" onclick="openMailFromHome('${_noticeEscHtml(m.gmailId||'')}')">
           <div class="home-mail-top">
             <span class="home-mail-avatar" style="background:${color};">${initial}</span>
             <span class="home-mail-from">${_noticeEscHtml(name)}</span>
@@ -5325,6 +5325,15 @@ function csDateInputValue(val) {
   .myi-progress-wrap { background:#e8e8e8; border-radius:999px; height:10px; overflow:hidden; }
   .myi-progress-bar { background:#2ecc71; height:100%; border-radius:999px; transition:width 0.5s; }
   .myi-progress-pct { text-align:right; font-size:11px; color:#2ecc71; font-weight:700; margin-top:4px; }
+  /* 연차 3구간(사용/예정/남은) 프로그레스 */
+  .myi-progress-seg { display:flex; height:100%; width:100%; }
+  .myi-progress-seg > span { height:100%; transition:width 0.5s; }
+  .myi-seg-used { background:#c9ccd1; }
+  .myi-seg-scheduled { background:#e6a23c; }
+  .myi-seg-remain { background:#2ecc71; }
+  .myi-progress-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:6px; font-size:11px; font-weight:700; }
+  .myi-progress-legend span { display:inline-flex; align-items:center; gap:5px; color:#666; }
+  .myi-progress-legend i { width:9px; height:9px; border-radius:50%; display:inline-block; }
 
   /* 비밀번호 변경 */
   .myi-pw-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
@@ -5418,9 +5427,18 @@ function csDateInputValue(val) {
           <span class="myi-leave-total" id="myiLeaveTotal"></span>
         </div>
         <div class="myi-progress-wrap">
-          <div class="myi-progress-bar" id="myiProgressBar" style="width:0%"></div>
+          <div class="myi-progress-seg">
+            <span class="myi-seg-used" id="myiSegUsed" style="width:0%"></span>
+            <span class="myi-seg-scheduled" id="myiSegScheduled" style="width:0%"></span>
+            <span class="myi-seg-remain" id="myiSegRemain" style="width:0%"></span>
+          </div>
         </div>
-        <div class="myi-progress-pct" id="myiProgressPct"></div>
+        <div class="myi-progress-legend">
+          <span><i style="background:#2ecc71;"></i>남은 <b id="myiLegRemain" style="color:#2ecc71;margin-left:2px;">0</b>일</span>
+          <span><i style="background:#c9ccd1;"></i>사용 <b id="myiLegUsed" style="color:#666;margin-left:2px;">0</b>일</span>
+          <span><i style="background:#e6a23c;"></i>예정 <b id="myiLegScheduled" style="color:#e6a23c;margin-left:2px;">0</b>일</span>
+        </div>
+        <div class="myi-progress-pct" id="myiProgressPct" style="display:none;"></div>
       </div>
 
       <!-- 연락처 카드 -->
@@ -6700,17 +6718,48 @@ function csDateInputValue(val) {
 
         const used = parseInt(u.annualLeave || 0);
         const remaining = Math.max(generated - used, 0);
-        const pct = generated > 0 ? Math.round((remaining / generated) * 100) : 0;
 
         set('myiLeaveLeft', remaining);
         const totalEl = document.getElementById('myiLeaveTotal');
         if (totalEl) totalEl.textContent = `/ ${generated} 일`;
-        const bar = document.getElementById('myiProgressBar');
-        if (bar) bar.style.width = pct + '%';
-        const pctEl = document.getElementById('myiProgressPct');
-        if (pctEl) pctEl.textContent = `남은연차 ${remaining}일 / 사용연차 ${used}일`;
-        // 프로그레스바 색상 (50% 이하면 주황)
-        if (bar) bar.style.background = pct >= 50 ? '#2ecc71' : '#e67e22';
+
+        // 3구간(사용/예정/남은) 프로그레스 렌더 — scheduled는 비동기로 채움
+        const _renderLeaveSegments = (scheduled) => {
+          const sched = Math.max(0, Math.min(scheduled || 0, remaining)); // 예정은 남은 범위 내로 클램프
+          const realRemain = Math.max(remaining - sched, 0);
+          const g = generated > 0 ? generated : 1;
+          const usedPct  = Math.min(100, Math.round((used / g) * 100));
+          const schedPct = Math.min(100 - usedPct, Math.round((sched / g) * 100));
+          const remainPct = Math.max(0, 100 - usedPct - schedPct);
+          const segU = document.getElementById('myiSegUsed');
+          const segS = document.getElementById('myiSegScheduled');
+          const segR = document.getElementById('myiSegRemain');
+          if (segU) segU.style.width = usedPct + '%';
+          if (segS) segS.style.width = schedPct + '%';
+          if (segR) segR.style.width = remainPct + '%';
+          const legR = document.getElementById('myiLegRemain');
+          const legU = document.getElementById('myiLegUsed');
+          const legS = document.getElementById('myiLegScheduled');
+          if (legR) legR.textContent = realRemain;
+          if (legU) legU.textContent = used;
+          if (legS) legS.textContent = sched;
+        };
+        _renderLeaveSegments(0); // 우선 예정 0으로 즉시 표시
+
+        // 예정연차(확정 & 종료일 미도래) 비동기 조회 후 반영
+        (async () => {
+          try {
+            const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeaves&id=${encodeURIComponent(u.id)}&role=${encodeURIComponent(u.role||'staff')}&nocache=${Date.now()}`, undefined, 0, 20000);
+            const data = await res.json();
+            if (data.status === 'ok') {
+              const todayStr = new Date().toISOString().slice(0,10);
+              const scheduledDays = (data.rows||[])
+                .filter(r => String(r.id) === String(u.id) && r.status === '확정' && String(r.endDate||'') >= todayStr)
+                .reduce((s, r) => s + (parseFloat(r.days||0) || 0), 0);
+              _renderLeaveSegments(scheduledDays);
+            }
+          } catch(e) { /* 실패 시 예정 0 유지 */ }
+        })();
     }
 
     // 게스트 비밀번호 확인
@@ -8602,6 +8651,12 @@ function resetViewportZoom() {
     meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes');
   }, 50);
   window.scrollTo(0, 0);
+  // Wix(iframe 부모)에도 최상단 스크롤 요청 — 탭 전환 시 부모 페이지가 중간에 걸리는 문제 해소
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'jbdSCROLLTOP' }, '*');
+    }
+  } catch(_) {}
 }
 
 function openCardViewer(src) {
@@ -13241,6 +13296,7 @@ if ('serviceWorker' in navigator) {
       _gmailNextToken = cached.nextPageToken || '';
       _renderGmailList(_allEmailItems, folder);
       _appendMoreButton();
+      _maybeOpenPendingMail();
       return;
     }
     listEl.innerHTML = '<div class="em-empty"><p>메일을 불러오는 중...</p></div>';
@@ -13252,6 +13308,7 @@ if ('serviceWorker' in navigator) {
       _renderGmailList(_allEmailItems, folder);
       _appendMoreButton();
       if (folder === 'inbox' && typeof refreshInboxUnread === 'function') refreshInboxUnread();
+      _maybeOpenPendingMail();
     } catch (e) {
       listEl.innerHTML = `<div class="em-empty"><p>메일 조회 오류<br><span style="font-size:11px;color:#aaa;">${_emEsc(e.message||'')}</span></p></div>`;
     }
@@ -13469,6 +13526,24 @@ if ('serviceWorker' in navigator) {
       _fetchGmailAndRender(_currentFolder, true);
     }
   };
+
+  // 마이홈 받은메일함에서 특정 메일 클릭 → 이메일 탭 열고 본문까지 자동 표시
+  window._pendingOpenMailId = null;
+  window.openMailFromHome = function(gmailId) {
+    window._pendingOpenMailId = gmailId || null;
+    if (typeof setTab === 'function') setTab('emailTab');
+  };
+  // 목록 렌더 완료 후, 대기 중인 메일이 있으면 본문 자동 오픈
+  function _maybeOpenPendingMail() {
+    const id = window._pendingOpenMailId;
+    if (!id) return;
+    const idx = _allEmailItems.findIndex(m => String(m.gmailId||'') === String(id));
+    window._pendingOpenMailId = null; // 1회성
+    if (idx >= 0 && typeof window.openGmailDetail === 'function') {
+      window.openGmailDetail(idx);
+    }
+    // 못 찾으면 목록만 표시(폴백) — 별도 처리 없음
+  }
 
   // Gmail 메일 상세 열기
   window.openGmailDetail = async function(idx) {
