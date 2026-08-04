@@ -5994,6 +5994,19 @@ function csDateInputValue(val) {
         <div id="migrationProgress" style="font-size:12px;color:#888;margin-top:10px;"></div>
       </div>
 
+      <!-- 직원정보 Firestore 동기화 (로그인·직원조회 속도 개선) -->
+      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
+        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          직원정보 Firestore 동기화
+        </div>
+        <div style="font-size:11px;color:#999;margin-bottom:14px;line-height:1.6;">
+          구글시트 [직원정보]를 Firestore로 복사합니다. 로그인·직원조회가 빨라집니다. 시트가 원본이며, <b>시트를 수정한 뒤 이 버튼을 누르면 최신 상태로 갱신</b>됩니다. (문서ID=직원 아이디라 중복 없음)
+        </div>
+        <button onclick="runEmployeeSync()" class="admin-btn primary" style="padding:8px 20px;">직원정보 동기화 실행</button>
+        <div id="empSyncProgress" style="font-size:12px;color:#888;margin-top:10px;"></div>
+      </div>
+
       <!-- Google Gemini API -->
       <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
         <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:14px;">
@@ -6653,8 +6666,18 @@ function csDateInputValue(val) {
         const btn = document.getElementById('loginBtn');
         btn.textContent = '로그인 중...'; btn.disabled = true;
         try {
-            const res = await fetchWithRetry(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
-            const data = await res.json();
+            let data = null;
+            // 1) Firestore 우선 조회 (빠름). 실패 시 시트 로그인으로 폴백.
+            try {
+                data = await _loginViaFirestore(id, pw);
+            } catch(fsErr) {
+                data = null; // Firestore 실패 → 폴백
+            }
+            // 2) 폴백: 기존 시트 기반 로그인
+            if (!data || data.status !== 'ok') {
+                const res = await fetchWithRetry(`${RESERVE_URL}?action=login&id=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`);
+                data = await res.json();
+            }
             if (data.status === 'ok') {
                 localStorage.setItem(LOGIN_TYPE_KEY, 'user');
                 localStorage.setItem(USER_KEY, JSON.stringify(data.user));
@@ -6672,6 +6695,35 @@ function csDateInputValue(val) {
         }
         btn.textContent = '로그인'; btn.disabled = false;
     };
+
+    // 비밀번호 SHA-256 hex (서버 hashPassword와 동일: pw + salt)
+    async function _sha256Hex(str) {
+        const salted = str + 'jibokdeuk_salt_2024';
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salted));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    // Firestore employees에서 직접 로그인 (문서ID = 직원 id)
+    async function _loginViaFirestore(id, pw) {
+        await window.fbEnsureAuth();
+        const ref = window.FB.doc(window.FB.db, 'employees', String(id).trim());
+        const snap = await window.FB.getDoc(ref);
+        if (!snap.exists()) throw new Error('no-doc');
+        const e = snap.data() || {};
+        const inputHash = await _sha256Hex(pw);
+        if (String(e.passwordHash || '') !== inputHash) {
+            return { status: 'error', message: '아이디 또는 비밀번호가 올바르지 않습니다.' };
+        }
+        // 시트 로그인과 동일한 user 객체 구성 (passwordHash는 제외)
+        const user = {
+            id: e.id, name: e.name, dept: e.dept, title: e.title,
+            joinDate: e.joinDate, leaveDate: e.leaveDate, annualLeave: e.annualLeave,
+            phone: e.phone, email: e.email, allowedTabs: e.allowedTabs, role: e.role,
+            isManager: e.isManager, isHead: e.isHead, usedLeave: e.usedLeave,
+            approverIds: e.approverIds, birthday: e.birthday, cardUrl: e.cardUrl, homeTab: e.homeTab
+        };
+        return { status: 'ok', user: user };
+    }
 
     // 로그아웃
     window.logoutUser = function() {
@@ -7574,8 +7626,24 @@ function csDateInputValue(val) {
     } catch (e) { /* 무시 */ }
   };
 
-  // ── 쇼룸상담 Firestore 초기 마이그레이션 ──
-  //   구글시트 [쇼룸상담] 전체를 1회 조회(getConsultsFull)한 뒤 Firestore로 batch 업로드.
+  // ── 직원정보 시트 → Firestore 동기화 ──
+  window.runEmployeeSync = async function() {
+    const prog = document.getElementById('empSyncProgress');
+    if (prog) { prog.style.color = '#888'; prog.textContent = '동기화 중... (직원 수에 따라 시간이 걸릴 수 있습니다)'; }
+    try {
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=syncEmployeesToFirestore`, undefined, 0, 120000);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        if (prog) { prog.style.color = '#1a7a45'; prog.textContent = `✓ 동기화 완료: 직원 ${data.count}명`; }
+      } else {
+        if (prog) { prog.style.color = '#c0392b'; prog.textContent = '실패: ' + (data.message || ''); }
+      }
+    } catch(e) {
+      if (prog) { prog.style.color = '#c0392b'; prog.textContent = '오류: ' + e.message; }
+    }
+  };
+
+  // ── 쇼룸상담 Firestore 초기 마이그레이션 ──//   구글시트 [쇼룸상담] 전체를 1회 조회(getConsultsFull)한 뒤 Firestore로 batch 업로드.
   //   ★ 문서 ID를 '날짜+이름+번호+시간' 조합으로 고정 → 같은 상담은 항상 같은 ID가 되어
   //     몇 번을 올리든 덮어써질 뿐 중복 생성되지 않는다(멱등성).
   //     (기존엔 행번호 기반이라, batch 실패 후 건별 재시도에서 랜덤 ID로 빠져 2개씩 쌓이는 문제가 있었음)
