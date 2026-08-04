@@ -9806,6 +9806,8 @@ async function openItemDetail(itemCode) {
     title.textContent = itemCode;
     stockEl.innerHTML = orderEl.innerHTML = arrivalEl.innerHTML = reserveEl.innerHTML =
         '<span style="color:#aaa;">불러오는 중...</span>';
+    // 모달을 body 직속으로 옮겨 부모 컨테이너(transform 등) 영향 없이 화면 중앙에 고정
+    if (modal.parentElement !== document.body) document.body.appendChild(modal);
     modal.style.display = 'flex';
 
     const noData = '<span style="color:#aaa;">정보 없음</span>';
