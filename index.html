@@ -807,6 +807,7 @@
       <div class="udh-sub" id="userInfoSub">게스트 접속</div>
     </div>
     <div class="user-dropdown-item" id="userDropdownMyInfo" onclick="goMyInfo()">내 정보</div>
+    <div class="user-dropdown-item" id="userDropdownSettings" onclick="openMySettings()">내 설정</div>
     <div class="user-dropdown-item" id="userDropdownLeave" onclick="openLeavePanel()" style="display:none;">
       휴가신청
     </div>
@@ -1703,7 +1704,7 @@
 <section id="reservationTab" class="tab-panel" style="display:none;">
 <style>
   /* ── 예약관리 전용 스타일 ── */
-  .rsv-wrap { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; overflow-x:clip; }
+  .rsv-wrap { max-width: 1500px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; overflow-x:clip; }
   @media(max-width:900px){ .rsv-wrap { grid-template-columns: 1fr; } }
 
   .rsv-card { background:#fff; border:1px solid #e8e8e8; border-radius:18px; padding:20px; }
@@ -4793,7 +4794,7 @@ function csDateInputValue(val) {
     _renderHomeNotices();   // 게시판 (notices 캐시 우선, 없으면 로드)
     _renderHomeConsults();  // 쇼룸상담
     _renderHomeReservations(); // 예약관리
-    _renderHomeEmails();    // 받은메일함(Gmail 연동)
+    _renderHomeEmails();    // 메일함(보낸메일)
 
     // 게시판: 캐시 없으면 불러온 뒤 재렌더
     if (!notices.length) {
@@ -4875,9 +4876,30 @@ function csDateInputValue(val) {
     }).join('');
   }
 
+  // Gmail from 헤더에서 표시이름만 추출 ("이름" <메일> → 이름, 메일만 있으면 로컬파트)
+  function _mailFromName(from) {
+    const s = String(from || '').trim();
+    if (!s) return '(발신자 없음)';
+    const m = s.match(/^(.*?)<[^>]+>\s*$/);
+    let name = m ? m[1].trim() : s;
+    name = name.replace(/^["']|["']$/g, '').trim();
+    if (!name) {
+      const em = s.match(/[\w.+-]+@[\w.-]+/);
+      name = em ? em[0].split('@')[0] : s;
+    } else if (name.indexOf('@') >= 0 && !m) {
+      name = name.split('@')[0];
+    }
+    return name;
+  }
+  function _mailAvatarColor(str) {
+    let h = 0; const t = String(str||'');
+    for (let i=0;i<t.length;i++) h = t.charCodeAt(i) + ((h<<5)-h);
+    const colors = ['#B8860B','#C0392B','#8E44AD','#2E86C1','#16A085','#D35400','#2C3E50','#CA6F1E'];
+    return colors[Math.abs(h) % colors.length];
+  }
   async function _renderHomeEmails() {
     const el = document.getElementById('homeEmailList'); if (!el) return;
-    // 받은메일함(Gmail 연동) 최근 5건 표시
+    // 받은메일함(Gmail 연동) 최근 5건 — 카드형 표시
     const email = (window._currentUser && window._currentUser.email) || '';
     if (!email || !window.USE_GMAIL_API || typeof window._gmailFetchPage !== 'function') {
       el.innerHTML = '<div class="home-dash-empty">받은 메일이 없습니다.</div>'; return;
@@ -4887,10 +4909,22 @@ function csDateInputValue(val) {
       const list = (msgs || []).slice(0, 5);
       if (!list.length) { el.innerHTML = '<div class="home-dash-empty">받은 메일이 없습니다.</div>'; return; }
       el.innerHTML = list.map((m) => {
-        const when = m.sentAt ? String(m.sentAt).slice(5,16) : '';
-        const sub = m.from || '';
-        const badge = m.unread ? '안읽음' : '받음';
-        return _homeItem(_noticeEscHtml(m.subject||'(제목없음)') + (sub ? ' · ' + _noticeEscHtml(sub) : ''), when, badge, `setTab('emailTab')`);
+        const name = _mailFromName(m.from);
+        const when = m.sentAt ? String(m.sentAt).slice(5,16).replace('T',' ') : '';
+        const color = _mailAvatarColor(name);
+        const initial = _noticeEscHtml(name.slice(0,2).toUpperCase());
+        const unreadDot = m.unread ? '<span class="home-mail-unread"></span>' : '';
+        const snippet = m.snippet ? `<div class="home-mail-snippet">${_noticeEscHtml(m.snippet)}</div>` : '';
+        return `<div class="home-mail-item" onclick="setTab('emailTab')">
+          <div class="home-mail-top">
+            <span class="home-mail-avatar" style="background:${color};">${initial}</span>
+            <span class="home-mail-from">${_noticeEscHtml(name)}</span>
+            ${unreadDot}
+            <span class="home-mail-time">${_noticeEscHtml(when)}</span>
+          </div>
+          <div class="home-mail-subject">${_noticeEscHtml(m.subject||'(제목없음)')}</div>
+          ${snippet}
+        </div>`;
       }).join('');
     } catch(e) {
       el.innerHTML = '<div class="home-dash-empty">받은 메일이 없습니다.</div>';
@@ -5254,7 +5288,7 @@ function csDateInputValue(val) {
 
 <section id="myInfoTab" class="tab-panel" style="display:none;">
 <style>
-  .myi-wrap { max-width:960px; margin:0 auto; padding:12px 0; overflow-x:clip; }
+  .myi-wrap { max-width:1360px; margin:0 auto; padding:12px 0; overflow-x:clip; }
 
   /* 프로필 카드 */
   .myi-profile-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:24px 28px; margin-bottom:16px; display:flex; align-items:center; gap:22px; }
@@ -5422,6 +5456,17 @@ function csDateInputValue(val) {
     .home-dash-item-sub { color:#aaa; font-size:11px; white-space:nowrap; flex-shrink:0; }
     .home-dash-badge { font-size:10px; font-weight:800; padding:1px 6px; border-radius:5px; background:var(--cream-2); color:var(--brand); flex-shrink:0; }
     .home-dash-empty { font-size:12px; color:#bbb; padding:16px 0; text-align:center; }
+    /* 받은메일함 카드형 항목 */
+    .home-mail-item { display:flex; flex-direction:column; gap:6px; padding:12px 14px; border-radius:10px; background:#f7f7f8; cursor:pointer; margin-top:10px; }
+    .home-mail-item:first-child { margin-top:0; }
+    .home-mail-item:hover { background:#f0efe9; }
+    .home-mail-top { display:flex; align-items:center; gap:9px; }
+    .home-mail-avatar { width:30px; height:30px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:800; }
+    .home-mail-from { font-size:13px; font-weight:800; color:#222; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .home-mail-time { font-size:11px; color:#aaa; white-space:nowrap; flex-shrink:0; }
+    .home-mail-unread { width:7px; height:7px; border-radius:50%; background:var(--brand); flex-shrink:0; }
+    .home-mail-subject { font-size:12.5px; color:#333; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .home-mail-snippet { font-size:11.5px; color:#999; line-height:1.5; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   </style>
   <div class="home-dash-grid" id="homeDashGrid">
 
@@ -5463,6 +5508,22 @@ function csDateInputValue(val) {
 
   </div>
 
+
+</div>
+
+<!-- 내 설정 모달 -->
+<div id="mySettingsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:620px;padding:24px 24px 28px;box-shadow:0 8px 40px rgba(0,0,0,0.18);position:relative;margin:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <h3 style="font-size:17px;font-weight:800;color:#222;margin:0;display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        내 설정
+      </h3>
+      <button onclick="closeMySettings()" style="background:none;border:none;font-size:24px;color:#999;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
+    </div>
+    <div id="mySettingsGuestNotice" style="display:none;background:var(--cream-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:10px 0 4px;font-size:12.5px;color:var(--brand-dark);">
+      게스트 계정은 화면 표시 설정과 테마만 이용하실 수 있어요.
+    </div>
   <div class="myi-pw-card">
     <div class="myi-card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>화면 표시 설정</div>
     <p style="font-size:12.5px;color:#888;margin:0 0 18px;">여백·글자 크기를 조절해 더 많은 정보를 한눈에 볼 수 있어요. 이 기기에서 내 계정으로 로그인할 때마다 설정한 값이 그대로 유지됩니다.</p>
@@ -5542,7 +5603,9 @@ function csDateInputValue(val) {
     </div>
   </div>
 
+  </div>
 </div>
+
 
 <!-- 정보 수정 신청 모달 -->
 <div id="infoRequestModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:center;justify-content:center;">
@@ -6415,7 +6478,7 @@ function csDateInputValue(val) {
             if (myBtn) myBtn.style.display = '';
             // 직원 전용 내정보 항목들 표시 (게스트→직원 전환 대비 초기화)
             ['myiGuestNotice'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard','homeDashGrid'].forEach(id => {
+            ['myiProfileCard','myiInfoGrid','myiRequestBtn','homeDashGrid'].forEach(id => {
               const el = document.getElementById(id);
               if (el) el.style.display = '';
             });
@@ -6443,7 +6506,7 @@ function csDateInputValue(val) {
             const myInfoItem = document.getElementById('userDropdownMyInfo');
             // ★ 게스트도 "내 정보"(화면 표시 설정)에는 접근 가능하게 열어줌 — 개인정보는 없으니 관련 카드만 숨김
             if (myInfoItem) myInfoItem.style.display = 'flex';
-            ['myiProfileCard','myiInfoGrid','myiPwChangeCard','myiRequestBtn','myiHomeTabCard','homeDashGrid'].forEach(id => {
+            ['myiProfileCard','myiInfoGrid','myiRequestBtn','homeDashGrid'].forEach(id => {
               const el = document.getElementById(id);
               if (el) el.style.display = 'none';
             });
@@ -9065,6 +9128,33 @@ document.addEventListener('click', () => {
   const dd = document.getElementById('userDropdown');
   if (dd) dd.classList.remove('open');
 });
+window.openMySettings = function() {
+  const dd = document.getElementById('userDropdown');
+  if (dd) dd.classList.remove('open');
+  const modal = document.getElementById('mySettingsModal');
+  if (!modal) return;
+  // 게스트: 내홈화면·비밀번호 카드 숨김, 안내 표시 / 직원: 전체 표시
+  const isGuest = !!window._isGuest;
+  const notice = document.getElementById('mySettingsGuestNotice');
+  if (notice) notice.style.display = isGuest ? 'block' : 'none';
+  ['myiHomeTabCard','myiPwChangeCard'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isGuest ? 'none' : '';
+  });
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+window.closeMySettings = function() {
+  const modal = document.getElementById('mySettingsModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+};
+// 오버레이(모달 바깥) 클릭 시 닫기
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('mySettingsModal');
+  if (modal && modal.style.display === 'flex' && e.target === modal) window.closeMySettings();
+});
+
 window.goMyInfo = function() {
   document.getElementById('userDropdown').classList.remove('open');
   setTab('myInfoTab');
