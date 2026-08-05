@@ -9673,6 +9673,58 @@ async function fetchSheetJson(sheetName, timeoutMs = 20000, forceRefresh = false
     return rows;
 }
 
+// 여러 시트를 한 번의 요청으로 묶어서 조회 — 같은 백엔드에 동시요청 여러 개가 몰려
+// 서로 대기하다 타임아웃나는 문제를 방지한다(예: 재고현황 탭이 STOCK+발주현황+입고예정일+TOOLTIP
+// 4개를 매번 동시에 쐈던 것). 캐시는 fetchSheetJson과 동일한 키/TTL을 공유한다.
+async function fetchSheetJsonBatch(sheetNames, ssId, timeoutMs = 20000, forceRefresh = false) {
+    const result = {};
+    const uncached = [];
+    sheetNames.forEach(name => {
+        const cacheKey = ssId + '|' + name;
+        const cached = _sheetJsonCache[cacheKey];
+        if (!forceRefresh && cached && (Date.now() - cached.at) < _SHEET_JSON_CACHE_MS) {
+            result[name] = cached.rows;
+        } else {
+            uncached.push(name);
+        }
+    });
+    if (!uncached.length) return result;
+
+    const url = `${ERP_URL}?action=getSheetDataBatch&spreadsheetId=${encodeURIComponent(ssId)}&sheetNames=${encodeURIComponent(uncached.join(','))}`;
+
+    async function attemptOnce() {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!res.ok) throw new Error(`네트워크 오류 (배치): ${res.status}`);
+            const data = await res.json();
+            if (data.status === 'error') throw new Error(data.message || '시트 배치 조회 오류');
+            return data.sheets || {};
+        } catch (err) {
+            clearTimeout(timeoutId);
+            if (err.name === 'AbortError') throw new Error(`요청 시간 초과 (${timeoutMs/1000}초) - 배치: ${uncached.join(',')}`);
+            throw err;
+        }
+    }
+
+    let sheets;
+    try {
+        sheets = await attemptOnce();
+    } catch (err) {
+        console.warn(`시트 배치 로드 1차 실패, 재시도:`, err.message);
+        sheets = await attemptOnce();
+    }
+    const now = Date.now();
+    uncached.forEach(name => {
+        const rows = sheets[name] || [];
+        result[name] = rows;
+        _sheetJsonCache[ssId + '|' + name] = { rows, at: now };
+    });
+    return result;
+}
+
 function getCellVal(cell) {
     if (!cell) return '';
     if (cell.f !== undefined) return String(cell.f).trim();
@@ -9723,21 +9775,26 @@ async function loadProducts() {
 // ============================================================
 let tooltipMap = null;
 
+function _buildTooltipMap(rows) {
+    const map = {};
+    (rows || []).forEach(row => {
+        if (!row || !row.c) return;
+        const code = getCellVal(row.c[0]);
+        if (!code || code === '품번') return;
+        map[code.toUpperCase()] = {
+            name:    getCellVal(row.c[1]),
+            spec:    getCellVal(row.c[2]),
+            natural: getCellVal(row.c[3]).toUpperCase() === 'Y'   // D열: 네츄럴 여부
+        };
+    });
+    return map;
+}
+
 async function loadTooltipMap() {
     if (tooltipMap) return;
     try {
         const rows = await fetchSheetJson(SHEET_CONFIG.TOOLTIP);
-        tooltipMap = {};
-        rows.forEach(row => {
-            if (!row || !row.c) return;
-            const code = getCellVal(row.c[0]);
-            if (!code || code === '품번') return;
-            tooltipMap[code.toUpperCase()] = {
-                name:    getCellVal(row.c[1]),
-                spec:    getCellVal(row.c[2]),
-                natural: getCellVal(row.c[3]).toUpperCase() === 'Y'   // D열: 네츄럴 여부
-            };
-        });
+        tooltipMap = _buildTooltipMap(rows);
     } catch (e) {
         console.warn('툴팁 데이터 로드 실패:', e.message);
         tooltipMap = {};
@@ -9943,13 +10000,17 @@ async function fetchStockData(forceRefresh = false) {
     tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:#888;">데이터를 불러오는 중...</td></tr>`;
 
     try {
-        // 재고 + 발주 + 입고 + 툴팁 병렬 로드
-        const [stockRows, orderRows, arrivalRows] = await Promise.all([
-            fetchSheetJson(SHEET_CONFIG.STOCK, undefined, forceRefresh),
-            fetchSheetJson(SHEET_CONFIG.ORDER, undefined, forceRefresh).catch(() => []),
-            fetchSheetJson(SHEET_CONFIG.ARRIVAL, undefined, forceRefresh).catch(() => []),
-            loadTooltipMap()
-        ]);
+        // 재고 + 발주 + 입고 + 툴팁을 배치 요청 1개로 로드 (개별 병렬 요청 4개가 같은 백엔드에
+        //   몰려 서로 대기하다 타임아웃나는 문제 방지)
+        const ssId = sheetSpreadsheetId(SHEET_CONFIG.STOCK);
+        const sheets = await fetchSheetJsonBatch(
+            [SHEET_CONFIG.STOCK, SHEET_CONFIG.ORDER, SHEET_CONFIG.ARRIVAL, SHEET_CONFIG.TOOLTIP],
+            ssId, undefined, forceRefresh
+        );
+        const stockRows = sheets[SHEET_CONFIG.STOCK] || [];
+        const orderRows = sheets[SHEET_CONFIG.ORDER] || [];
+        const arrivalRows = sheets[SHEET_CONFIG.ARRIVAL] || [];
+        if (!tooltipMap || forceRefresh) tooltipMap = _buildTooltipMap(sheets[SHEET_CONFIG.TOOLTIP]);
         renderStockTable(stockRows, orderRows, arrivalRows);
     } catch (error) {
         console.error('재고 로드 실패:', error);
@@ -10026,14 +10087,18 @@ async function openItemDetail(itemCode) {
     const noData = '<span style="color:#aaa;">정보 없음</span>';
     const code = itemCode.trim().toUpperCase();
 
-    // 발주현황, 입고예정일, 예약일정, STOCK 병렬 fetch
+    // 발주현황, 입고예정일, 예약일정, STOCK — 배치 요청 1개로 로드 (같은 백엔드에 동시요청
+    //   여러 개가 몰려 서로 대기하다 타임아웃나는 문제 방지. 품번 클릭마다 호출되므로 특히 중요)
     try {
-        const [orderRows, arrivalRows, reserveRows, stockRows] = await Promise.all([
-            fetchSheetJson(SHEET_CONFIG.ORDER).catch(() => null),
-            fetchSheetJson(SHEET_CONFIG.ARRIVAL).catch(() => null),
-            fetchSheetJson(SHEET_CONFIG.RESERVE).catch(() => null),
-            fetchSheetJson(SHEET_CONFIG.STOCK).catch(() => null),
-        ]);
+        const ssId = sheetSpreadsheetId(SHEET_CONFIG.STOCK);
+        const sheets = await fetchSheetJsonBatch(
+            [SHEET_CONFIG.ORDER, SHEET_CONFIG.ARRIVAL, SHEET_CONFIG.RESERVE, SHEET_CONFIG.STOCK],
+            ssId
+        ).catch(() => ({}));
+        const orderRows = sheets[SHEET_CONFIG.ORDER] || null;
+        const arrivalRows = sheets[SHEET_CONFIG.ARRIVAL] || null;
+        const reserveRows = sheets[SHEET_CONFIG.RESERVE] || null;
+        const stockRows = sheets[SHEET_CONFIG.STOCK] || null;
 
         // ── 잔여 총재고 합산 — STOCK 시트에서 해당 품번 총재고(㎡) 합산 ──
         // STOCK 헤더: [품번(0), LOT(1), BOX(2), 현재고(3), 총BOX(4), 총재고(5)]
