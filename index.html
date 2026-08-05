@@ -1816,12 +1816,17 @@
 <script>
   // ★ 사내계정에서 GAS 재배포 후 새 /exec URL로 교체 ★
   //   RESERVE_URL = RESERVE스크립트(예약·인사·운영) 배포 URL
-  //   ERP_URL     = ERP스크립트(재고·연락처 appendRow) 배포 URL
+  //   ERP_URL     = ERP스크립트(재고·연락처 appendRow·이메일) 배포 URL
+  //   SMS_URL     = SMS스크립트(솔라피 문자발송) 배포 URL — ERP스크립트에서 분리됨.
+  //                 아래 값은 아직 미배포 상태의 플레이스홀더이므로, SMS스크립트.txt를
+  //                 새 Apps Script 프로젝트로 배포한 뒤 실제 /exec URL로 반드시 교체할 것.
   var RESERVE_URL = 'https://script.google.com/macros/s/AKfycbyA2-Dp_MlixvFD6nRBGUtxuDPesDW1wG-zVXUN9GlIhm3Fd2fTiaVuDDhpoUaOQp32aA/exec';
   var ERP_URL = 'https://script.google.com/macros/s/AKfycbw2JUC4LIZc8cJd1ONoWRDUzDp0KJB8c85SZCgLtPIdcuOApn98T5aMBfPTnJesGmWJ/exec';
+  var SMS_URL = 'https://script.google.com/macros/s/AKfycbxkVvjRazJNNuZGwIe6RkjPkfhBItoDRjAOkWkrqopke4T2OxY2QAuxCFTCcGkD_7li/exec';
   // ★ 코드에 저장된 최신 기본값을 별도로 보존 (하위호환용 참조)
   window._DEFAULT_RESERVE_URL = RESERVE_URL;
   window._DEFAULT_ERP_URL = ERP_URL;
+  window._DEFAULT_SMS_URL = SMS_URL;
   // ★ URL은 이 하드코딩 값만 사용한다. (localStorage 등 외부 값의 간섭을 완전히 차단)
   //   과거에 저장돼 있을 수 있는 캐시값도 여기서 깨끗이 제거한다.
   try {
@@ -7645,7 +7650,7 @@ function csDateInputValue(val) {
         const params = new URLSearchParams({ action: 'sendSolapi', receiver: phone, msg });
         // ★ 발송은 부작용이 있는 요청이므로 자동 재시도 금지(중복 발송 방지).
         //   응답이 늦어도 재시도하지 않도록 retries=0, 타임아웃은 넉넉히 30초.
-        const res = await fetchWithRetry(`${ERP_URL}?${params}`, undefined, 0, 30000);
+        const res = await fetchWithRetry(`${SMS_URL}?${params}`, undefined, 0, 30000);
         const data = await res.json();
         if (data.status === 'ok') {
           result = '발송성공';
@@ -7722,7 +7727,7 @@ function csDateInputValue(val) {
     //   apiKey/secret 실제 값은 서버가 주지 않음 → 저장돼 있으면 마스킹(●)으로 "저장됨"을 시각적으로 표시.
     //   발신번호는 민감도가 낮아 실제 값을 그대로 표시.
     try {
-      const res = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
+      const res = await fetchWithRetry(`${SMS_URL}?action=getSolapiSettings`);
       const data = await res.json();
       if (data.status === 'ok' && data.settings) {
         const s = data.settings;
@@ -7918,7 +7923,7 @@ function csDateInputValue(val) {
     if (!sender) { alert('발신번호는 필수입니다.'); return; }
     try {
       // 현재 저장 상태 확인 (apiKey/secret 을 비워둔 채 저장할 수 있는지 판단)
-      const chk = await fetchWithRetry(`${ERP_URL}?action=getSolapiSettings`);
+      const chk = await fetchWithRetry(`${SMS_URL}?action=getSolapiSettings`);
       const chkData = await chk.json();
       const cur = (chkData.status === 'ok' && chkData.settings) ? chkData.settings : {};
 
@@ -7930,7 +7935,7 @@ function csDateInputValue(val) {
       if (apiKey) params.set('apiKey', apiKey);
       if (apiSecret) params.set('apiSecret', apiSecret);
 
-      const res = await fetchWithRetry(`${ERP_URL}?${params}`);
+      const res = await fetchWithRetry(`${SMS_URL}?${params}`);
       const data = await res.json();
       if (data.status === 'ok') {
         const el = document.getElementById('adminSolapiSaved');
