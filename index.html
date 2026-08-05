@@ -1886,6 +1886,9 @@
   let holidayMap = {}; // { "2026-01-01": "신정", ... } — 소비자 예약폼과 동일 소스
   let currentSlots = WEEKDAY_SLOTS; // 현재 선택된 날짜 기준 슬롯 목록 (동적으로 바뀜)
 
+  // 로컬 이스케이프: 소비자 예약폼에서 들어오는 값(name/phone/memo/address 등)을 innerHTML에 넣기 전 처리
+  function _esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
   async function loadAdminHolidays() {
     try {
       const res = await fetchWithRetry(`${RESERVE_URL}?action=getHolidays`);
@@ -2056,12 +2059,12 @@
       <div class="rsv-item${selectedRsv && selectedRsv.receiptNo === r.receiptNo ? ' selected':''}"
            onclick="selectRsv(${allReservations.indexOf(r)})">
         <div class="rsv-item-top">
-          <span class="rsv-item-name">${r.date} ${r.time ? r.time.split('~')[0] : ''}</span>
+          <span class="rsv-item-name">${_esc(r.date)} ${r.time ? _esc(r.time.split('~')[0]) : ''}</span>
           <span class="rsv-badge 대기">대기</span>
         </div>
         <div class="rsv-item-info">
-          <span>${r.name||''}</span>
-          <span>${r.phone||''}</span>
+          <span>${_esc(r.name)}</span>
+          <span>${_esc(r.phone)}</span>
         </div>
       </div>
     `).join('');
@@ -2164,7 +2167,7 @@
         ${rows.map(([l,v]) => `
           <div class="rsv-detail-row">
             <span class="rsv-detail-label">${l}</span>
-            <span class="rsv-detail-val">${v}</span>
+            <span class="rsv-detail-val">${_esc(v)}</span>
           </div>
         `).join('')}
       </div>
@@ -3605,10 +3608,6 @@
     renderConsultList();
     updateActiveFilterBadges();
   };
-
-  // setCsFilter/setDateFilter 후 배지 업데이트
-  const _origSetCsFilter = window.setCsFilter;
-  const _origSetDateFilter = window.setDateFilter;
 
   window.toggleSort = function(field) {
     if (csSort.field === field) {
@@ -8289,7 +8288,7 @@ function csDateInputValue(val) {
           <td>${r.type||''}</td>
           <td>${r.name||''}</td>
           <td>${r.phone||''}</td>
-          <td><span style="color:${r.result==='성공'?'#1a7a45':'#e74c3c'};font-weight:700;">${r.result||''}</span></td>
+          <td><span style="color:${r.result==='발송성공'?'#1a7a45':'#e74c3c'};font-weight:700;">${r.result||''}</span></td>
         </tr>`;
     }
 
@@ -10694,12 +10693,12 @@ function initInvoiceTab() {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', renderInvoice);
             if (el && (el.tagName === 'SELECT')) el.addEventListener('change', renderInvoice);
+        });
 
-const remarksEditorEl = document.getElementById('invRemarksEditor');
+        const remarksEditorEl = document.getElementById('invRemarksEditor');
         if (remarksEditorEl) {
             remarksEditorEl.addEventListener('input', renderInvoice);
         }
-        });
 
   // REMARKS 에디터: 선택한 글자에 색 적용 (color='' 이면 기본색으로 되돌림)
   window.remarksApplyColor = function(color) {
@@ -11549,7 +11548,7 @@ async function saveInvoicePdf() {
 
     analyzeBtn.addEventListener('click', async () => {
         if (!currentFileData) return;
-        const apiKey = apiKeyInput.value.trim() || localStorage.getItem('baram_gemini_key') || '';
+        const apiKey = (document.getElementById('adminGeminiKey')?.value || '').trim() || localStorage.getItem('baram_gemini_key') || '';
         if (!apiKey) {
             alert('API 키를 먼저 입력하고 저장해주세요.');
             return;
@@ -13427,12 +13426,13 @@ if ('serviceWorker' in navigator) {
     if (btn) { btn.textContent = '불러오는 중...'; btn.disabled = true; }
     const user = window._currentUser;
     const email = user && user.email ? user.email : '';
+    const q = ((document.getElementById('emSearchInput')||{}).value || '').trim();
     try {
-      const { msgs, nextPageToken } = await _gmailFetchPage(email, _currentFolder, _gmailNextToken);
+      const { msgs, nextPageToken } = await _gmailFetchPage(email, _currentFolder, _gmailNextToken, q);
       _allEmailItems = _allEmailItems.concat(msgs);
       _gmailNextToken = nextPageToken;
       // 캐시 갱신 (쌓인 전체 + 토큰)
-      const cacheKey = email + '|' + _currentFolder;
+      const cacheKey = email + '|' + _currentFolder + (q ? '|q=' + q : '');
       _gmailCache[cacheKey] = { items: _allEmailItems.slice(), nextPageToken, at: Date.now() };
       _renderGmailList(_allEmailItems, _currentFolder);
       _appendMoreButton();
@@ -13546,9 +13546,10 @@ if ('serviceWorker' in navigator) {
   async function _gmailBackfill(email) {
     if (_gmailLoadingMore || !_gmailNextToken) return;
     _gmailLoadingMore = true;
+    const q = ((document.getElementById('emSearchInput')||{}).value || '').trim();
     try {
       while (_allEmailItems.length < 20 && _gmailNextToken) {
-        const { msgs, nextPageToken } = await _gmailFetchPage(email, _currentFolder, _gmailNextToken);
+        const { msgs, nextPageToken } = await _gmailFetchPage(email, _currentFolder, _gmailNextToken, q);
         // 이미 목록에 있는 id는 제외하고 추가
         const have = new Set(_allEmailItems.map(m => m.gmailId));
         const add = msgs.filter(m => !have.has(m.gmailId));
@@ -13560,7 +13561,7 @@ if ('serviceWorker' in navigator) {
       _appendMoreButton();
       const cntEl = document.getElementById('emMailCount');
       if (cntEl) cntEl.textContent = _allEmailItems.length ? `전체메일 ${_allEmailItems.length}` : '';
-      const cacheKey = email + '|' + _currentFolder;
+      const cacheKey = email + '|' + _currentFolder + (q ? '|q=' + q : '');
       if (_gmailCache[cacheKey]) { _gmailCache[cacheKey].items = _allEmailItems.slice(); _gmailCache[cacheKey].nextPageToken = _gmailNextToken; }
     } catch(e) {
       // 보충 실패는 조용히 무시 (다음 새로고침에 정상화)
@@ -13789,8 +13790,8 @@ if ('serviceWorker' in navigator) {
       html += `<div class="em-date-group">${label}</div>`;
       groups[label].forEach(m => {
         const timeStr = m.sentAt || m.savedAt ? formatMailTime(new Date(m.sentAt || m.savedAt)) : '-';
-        const sender = _currentFolder === 'sent' ? (m.to || '-') : (m.from || '나');
-        const subjectDisplay = m.subject || '(제목없음)';
+        const sender = _emEsc(_currentFolder === 'sent' ? (m.to || '-') : (m.from || '나'));
+        const subjectDisplay = _emEsc(m.subject || '(제목없음)');
         html += `<div class="em-mail-row" onclick="openEmailDetail(${m._idx})">
           <input type="checkbox" class="em-mail-check" onclick="event.stopPropagation()">
           <svg class="em-mail-flag" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" onclick="event.stopPropagation()"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
@@ -14027,12 +14028,6 @@ if ('serviceWorker' in navigator) {
     const isToday = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
     if (isToday) return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
     return `${String(d.getFullYear()).slice(2)}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  }
-
-  // Workspace 연동 후 수신함 로드
-  async function loadEmailInbox() {
-    if (!window.USE_GMAIL_API) return;
-    // TODO: Gmail API 연동 후 구현
   }
 
 })();
