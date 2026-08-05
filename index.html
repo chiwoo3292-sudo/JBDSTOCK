@@ -779,7 +779,7 @@
       <button type="button" class="tab-btn" data-tab="floorplanTab">면적분석</button>
       <button type="button" class="tab-btn" data-tab="memoTab">메모장</button>
       <button type="button" class="tab-btn" data-tab="noticeTab">전사게시판</button>
-      <button type="button" class="tab-btn" data-tab="leaveTab" id="leaveTabBtn" style="display:none;">휴가</button>
+      <button type="button" class="tab-btn" data-tab="leaveTab" id="leaveTabBtn" style="display:none;">휴가신청</button>
       <button type="button" class="tab-btn" data-tab="smsTab" id="smsTabBtn" style="display:none;">문자발송</button>
       <button type="button" class="tab-btn" data-tab="emailTab" id="emailTabBtn">이메일</button>
     </div>
@@ -6901,7 +6901,7 @@ function csDateInputValue(val) {
       {id:'consultTab',label:'쇼룸상담'},{id:'reservationTab',label:'예약관리'},
       {id:'cardScanTab',label:'명함스캐닝'},{id:'contactsTab',label:'연락처'},
       {id:'floorplanTab',label:'면적분석'},{id:'memoTab',label:'메모장'},
-      {id:'noticeTab',label:'전사게시판'},{id:'emailTab',label:'이메일'},{id:'smsTab',label:'문자발송'}
+      {id:'noticeTab',label:'전사게시판'},{id:'leaveTab',label:'휴가신청'},{id:'emailTab',label:'이메일'},{id:'smsTab',label:'문자발송'}
     ];
 
     window.loadEmployees = async function() {
@@ -8831,7 +8831,7 @@ const TAB_LABELS = {
   pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
-  memoTab:'메모장', noticeTab:'전사게시판', adminTab:'관리자', smsTab:'문자발송', emailTab:'이메일', leaveTab:'휴가'
+  memoTab:'메모장', noticeTab:'전사게시판', adminTab:'관리자', smsTab:'문자발송', emailTab:'이메일', leaveTab:'휴가신청'
 };
 
 // ── 내 홈 화면 설정 ──
@@ -12089,17 +12089,23 @@ if ('serviceWorker' in navigator) {
   let _dragStart  = null;
   let _allLeaves  = []; // 전체 휴가 내역 캐시
   let _publicLeaves = []; // 전사 휴가 캘린더용 (getLeavesPublic)
+  let _publicLeavesAt = 0;
 
-  // 전사 휴가(전 직원) 로드 — 일정 캘린더용
-  async function loadPublicLeaves() {
+  async function loadPublicLeaves(force) {
+    const now = Date.now();
+    if (!force && _publicLeaves.length && (now - _publicLeavesAt) < 300000) {
+      if (typeof renderLeaveCal === 'function') renderLeaveCal();
+      return;
+    }
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeavesPublic&nocache=${Date.now()}`, undefined, 0, 20000);
+      const res = await fetchWithRetry(`${RESERVE_URL}?action=getLeavesPublic`);
       const data = await res.json();
       if (data.status === 'ok') {
         _publicLeaves = data.rows || [];
-        if (typeof renderLeaveSchedCal === 'function') renderLeaveSchedCal();
+        _publicLeavesAt = Date.now();
+        if (typeof renderLeaveCal === 'function') renderLeaveCal();
       }
-    } catch(e) { /* 실패 시 기존 데이터 유지 */ }
+    } catch(e) {}
   }
 
   // ── 휴가 종류 정의 (일수/차감여부/오전오후) ──
@@ -12219,7 +12225,7 @@ if ('serviceWorker' in navigator) {
       if (s.indexOf('오전') !== -1) return '#3B82C4';
       if (s.indexOf('오후') !== -1) return '#E67E22';
       if (s.indexOf('반차') !== -1) return '#7B9E5B';
-      return 'var(--brand)';
+      return '#5B6EE1';
     };
     const leaveDates = {};
     const src = (_publicLeaves && _publicLeaves.length) ? _publicLeaves : _allLeaves;
@@ -12302,12 +12308,17 @@ if ('serviceWorker' in navigator) {
     el.textContent = sorted[0] + (sorted.length > 1 ? ' ~ ' + sorted[sorted.length-1] : '') + '  |  ' + days + '일';
   }
 
+  const LEAVE_TYPE_COLOR = {
+    '연차':'#5B6EE1', '반차':'#3B82C4', '반반차':'#8E7CC3',
+    '건강검진반일':'#2E9E6B', '건강검진종일':'#2E9E6B', '출산휴가':'#E86AA6'
+  };
   window.setLeaveType = function(type) {
     _leaveType = type;
     Object.keys(LEAVE_TYPES).forEach(t => {
       const btn = document.getElementById('leaveTypeBtn_' + t);
       if (!btn) return;
-      if (t === type) { btn.style.background='var(--brand)'; btn.style.color='#fff'; btn.style.borderColor='var(--brand)'; }
+      const c = LEAVE_TYPE_COLOR[t] || 'var(--brand)';
+      if (t === type) { btn.style.background=c; btn.style.color='#fff'; btn.style.borderColor=c; }
       else { btn.style.background='#fff'; btn.style.color='#888'; btn.style.borderColor='#ddd'; }
     });
     // 오전/오후 세부 선택은 half 종류(반차·반반차)일 때만 표시
@@ -14034,7 +14045,7 @@ if ('serviceWorker' in navigator) {
       <div style="font-size:18px;font-weight:800;color:#222;">휴가신청</div>
     </div>
     <!-- 잔여 연차 표시 -->
-    <div id="leaveBalanceBox" style="background:var(--cream);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+    <div id="leaveBalanceBox" style="background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
       <div style="text-align:center;flex:1;">
         <div style="font-size:11px;color:#999;margin-bottom:4px;">부여</div>
         <div id="leaveTotal" style="font-size:18px;font-weight:800;color:var(--brand);">-</div>
@@ -14064,23 +14075,23 @@ if ('serviceWorker' in navigator) {
     <div style="font-size:12px;color:#999;margin-bottom:10px;">전사원 휴가를 확인하고, 날짜를 클릭하거나 드래그해서 선택하세요.</div>
     <!-- 신청 달력 -->
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:#666;font-weight:700;">
-      <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:var(--brand);display:inline-block;"></i>연차</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#5B6EE1;display:inline-block;"></i>연차</span>
       <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#3B82C4;display:inline-block;"></i>오전(반차/반반차)</span>
       <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#E67E22;display:inline-block;"></i>오후(반차/반반차)</span>
       <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#2E9E6B;display:inline-block;"></i>건강검진</span>
       <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#E86AA6;display:inline-block;"></i>출산휴가</span>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <button onclick="leaveCalPrev()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">‹</button>
+      <button onclick="leaveCalPrev()" style="background:#fff;border:1px solid #ccc;border-radius:8px;width:38px;height:38px;cursor:pointer;font-size:18px;font-weight:700;color:#333;box-shadow:0 1px 3px rgba(0,0,0,0.12);">‹</button>
       <div id="leaveCalTitle" style="font-size:15px;font-weight:700;color:#222;"></div>
-      <button onclick="leaveCalNext()" style="background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;">›</button>
+      <button onclick="leaveCalNext()" style="background:#fff;border:1px solid #ccc;border-radius:8px;width:38px;height:38px;cursor:pointer;font-size:18px;font-weight:700;color:#333;box-shadow:0 1px 3px rgba(0,0,0,0.12);">›</button>
     </div>
     <div id="leaveCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:14px;user-select:none;"></div>
     <!-- 선택된 날짜 -->
     <div id="leaveSelectedInfo" style="font-size:12px;color:#555;margin-bottom:12px;min-height:18px;"></div>
     <!-- 종류 선택 (6종) -->
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-      <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1 1 30%;min-width:88px;padding:9px 0;border-radius:8px;border:2px solid var(--brand);background:var(--brand);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">연차</button>
+      <button id="leaveTypeBtn_연차" onclick="setLeaveType('연차')" style="flex:1 1 30%;min-width:88px;padding:9px 0;border-radius:8px;border:2px solid #5B6EE1;background:#5B6EE1;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">연차</button>
       <button id="leaveTypeBtn_반차" onclick="setLeaveType('반차')" style="flex:1 1 30%;min-width:88px;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:12.5px;font-weight:700;cursor:pointer;">반차</button>
       <button id="leaveTypeBtn_반반차" onclick="setLeaveType('반반차')" style="flex:1 1 30%;min-width:88px;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:12.5px;font-weight:700;cursor:pointer;">반반차</button>
       <button id="leaveTypeBtn_건강검진반일" onclick="setLeaveType('건강검진반일')" style="flex:1 1 30%;min-width:88px;padding:9px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#888;font-size:12px;font-weight:700;cursor:pointer;">건강검진(반일)</button>
