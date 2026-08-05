@@ -3458,7 +3458,8 @@
       return todayStart > nextDayStart;
     });
     if (!targets.length) return;
-    for (const r of targets) {
+    // 병렬로 처리(순차 대기 시 대상이 많을수록 화면이 느려짐)
+    await Promise.all(targets.map(async (r) => {
       try {
         const ref = window.FB.doc(window.FB.db, 'consults', r._docId);
         await window.FB.updateDoc(ref, { status: '미방문' });
@@ -3466,7 +3467,7 @@
       } catch(e) {
         console.warn('[미방문 자동변경] 실패:', r._docId, e && e.message);
       }
-    }
+    }));
   }
 
   // 실제 서버 요청: 최근 100건 (getConsults). 성공 시 캐시 갱신 + 렌더
@@ -3484,13 +3485,17 @@
       const snap = await window.FB.getDocs(q);
       _consultsCache = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
       window._consultsCache = _consultsCache; // 홈 대시보드 등 다른 블록에서 참조용
-      // 예약일 다음날이 지났는데 아직 '예약' 상태인 건 → '미방문'으로 자동 변경 + 서버 저장
-      await _autoMarkNoShow(_consultsCache);
+      // 화면을 먼저 렌더링해서 사용자가 기다리지 않게 함
       if (_consultsMode === 'recent') {
         allConsults = _consultsCache;
         _syncConsultRefs();
         renderConsultList();
       }
+      // 예약일 다음날이 지났는데 아직 '예약' 상태인 건 → '미방문'으로 자동 변경 + 서버 저장.
+      //   화면을 막지 않도록 백그라운드에서 처리 후 조용히 재렌더.
+      _autoMarkNoShow(_consultsCache).then(() => {
+        if (_consultsMode === 'recent') renderConsultList();
+      });
     } catch(e) {
       if (!_consultsCache) {
         const bodyEl = document.getElementById('csTableBody');
@@ -9625,8 +9630,18 @@ function sheetSpreadsheetId(sheetName) {
 //   (1) 시트 "링크 공개" 설정에 의존하지 않음 → 모바일에서 로그인 세션 문제로 인한 실패 해소
 //   (2) 서버(ERP스크립트)에서 CacheService로 캐싱 → 반복 호출 시 응답 속도/안정성 개선
 //   (3) 타임아웃 10초→20초로 완화 + 실패 시 1회 자동 재시도 (모바일 네트워크 지연 대응)
-async function fetchSheetJson(sheetName, timeoutMs = 20000) {
+// ★ 클라이언트 캐시(90초): 같은 시트를 재방문/재조회할 때 매번 네트워크를 타지 않도록 함.
+//   백엔드(ERP스크립트) 캐시(2분)보다 짧게 잡아 신선도를 유지한다.
+const _sheetJsonCache = {};
+const _SHEET_JSON_CACHE_MS = 90 * 1000;
+
+async function fetchSheetJson(sheetName, timeoutMs = 20000, forceRefresh = false) {
     const ssId = sheetSpreadsheetId(sheetName);
+    const cacheKey = ssId + '|' + sheetName;
+    const cached = _sheetJsonCache[cacheKey];
+    if (!forceRefresh && cached && (Date.now() - cached.at) < _SHEET_JSON_CACHE_MS) {
+        return cached.rows;
+    }
     const url = `${ERP_URL}?action=getSheetData&spreadsheetId=${encodeURIComponent(ssId)}&sheetName=${encodeURIComponent(sheetName)}`;
 
     async function attemptOnce() {
@@ -9646,13 +9661,16 @@ async function fetchSheetJson(sheetName, timeoutMs = 20000) {
         }
     }
 
+    let rows;
     try {
-        return await attemptOnce();
+        rows = await attemptOnce();
     } catch (err) {
         // 모바일 네트워크 일시 오류 대비 1회 자동 재시도
         console.warn(`시트 로드 1차 실패(${sheetName}), 재시도:`, err.message);
-        return await attemptOnce();
+        rows = await attemptOnce();
     }
+    _sheetJsonCache[cacheKey] = { rows, at: Date.now() };
+    return rows;
 }
 
 function getCellVal(cell) {
@@ -9885,8 +9903,8 @@ function initExcelUpload() {
                 uploadBtn.textContent = '완료';
                 showToast('재고 데이터가 구글시트에 반영되었습니다!');
 
-                // 테이블 새로고침
-                setTimeout(() => fetchStockData(), 1500);
+                // 테이블 새로고침 (업로드 직후이므로 캐시를 우회해 최신 데이터를 즉시 반영)
+                setTimeout(() => fetchStockData(true), 1500);
 
                 // 버튼 초기화
                 setTimeout(() => {
@@ -9919,7 +9937,7 @@ function initExcelUpload() {
 // ============================================================
 //  재고현황 (STOCK 시트) — 단일 정의
 // ============================================================
-async function fetchStockData() {
+async function fetchStockData(forceRefresh = false) {
     const tbody = document.getElementById('stockTableBody');
     if (!tbody) return;
     tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:#888;">데이터를 불러오는 중...</td></tr>`;
@@ -9927,9 +9945,9 @@ async function fetchStockData() {
     try {
         // 재고 + 발주 + 입고 + 툴팁 병렬 로드
         const [stockRows, orderRows, arrivalRows] = await Promise.all([
-            fetchSheetJson(SHEET_CONFIG.STOCK),
-            fetchSheetJson(SHEET_CONFIG.ORDER).catch(() => []),
-            fetchSheetJson(SHEET_CONFIG.ARRIVAL).catch(() => []),
+            fetchSheetJson(SHEET_CONFIG.STOCK, undefined, forceRefresh),
+            fetchSheetJson(SHEET_CONFIG.ORDER, undefined, forceRefresh).catch(() => []),
+            fetchSheetJson(SHEET_CONFIG.ARRIVAL, undefined, forceRefresh).catch(() => []),
             loadTooltipMap()
         ]);
         renderStockTable(stockRows, orderRows, arrivalRows);
@@ -13382,7 +13400,9 @@ if ('serviceWorker' in navigator) {
   }
   window._gmailFetchPage = _gmailFetchPage;
 
-  // 폴더 첫 로드 — 캐시 우선(5분), forceRefresh면 캐시 무시
+  // 폴더 첫 로드 — 캐시 우선(5분) + stale-while-revalidate: 캐시가 만료됐어도
+  //   일단 있는 캐시부터 즉시 보여주고, 백그라운드로 최신 데이터를 가져와 조용히 교체한다.
+  //   (forceRefresh면 신선/오래됨 상관없이 무조건 새로 조회)
   async function _fetchGmailAndRender(folder, forceRefresh, q) {
     const listEl = document.getElementById('emMailList');
     const countEl = document.getElementById('emMailCount');
@@ -13395,7 +13415,8 @@ if ('serviceWorker' in navigator) {
     q = (q || '').trim();
     const cacheKey = email + '|' + folder + (q ? '|q=' + q : '');
     const cached = _gmailCache[cacheKey];
-    if (!forceRefresh && cached && (Date.now() - cached.at) < _GMAIL_CACHE_MS) {
+    const isFresh = cached && (Date.now() - cached.at) < _GMAIL_CACHE_MS;
+    if (!forceRefresh && isFresh) {
       _allEmailItems = cached.items.slice();
       _gmailNextToken = cached.nextPageToken || '';
       _renderGmailList(_allEmailItems, folder);
@@ -13403,7 +13424,16 @@ if ('serviceWorker' in navigator) {
       _maybeOpenPendingMail();
       return;
     }
-    listEl.innerHTML = q ? '<div class="em-empty"><p>검색 중...</p></div>' : '<div class="em-empty"><p>메일을 불러오는 중...</p></div>';
+    if (!forceRefresh && cached) {
+      // 캐시가 오래됐어도(만료) 일단 화면에 즉시 표시 — 아래에서 백그라운드로 최신화
+      _allEmailItems = cached.items.slice();
+      _gmailNextToken = cached.nextPageToken || '';
+      _renderGmailList(_allEmailItems, folder);
+      _appendMoreButton();
+      _maybeOpenPendingMail();
+    } else {
+      listEl.innerHTML = q ? '<div class="em-empty"><p>검색 중...</p></div>' : '<div class="em-empty"><p>메일을 불러오는 중...</p></div>';
+    }
     try {
       const { msgs, nextPageToken } = await _gmailFetchPage(email, folder, '', q);
       _allEmailItems = msgs;
@@ -13414,7 +13444,12 @@ if ('serviceWorker' in navigator) {
       if (folder === 'inbox' && !q && typeof refreshInboxUnread === 'function') refreshInboxUnread();
       _maybeOpenPendingMail();
     } catch (e) {
-      listEl.innerHTML = `<div class="em-empty"><p>메일 조회 오류<br><span style="font-size:11px;color:#aaa;">${_emEsc(e.message||'')}</span></p></div>`;
+      if (!cached) {
+        listEl.innerHTML = `<div class="em-empty"><p>메일 조회 오류<br><span style="font-size:11px;color:#aaa;">${_emEsc(e.message||'')}</span></p></div>`;
+      } else {
+        // 캐시된(오래된) 목록이 이미 화면에 떠 있으므로 조용히 실패 처리
+        console.warn('Gmail 백그라운드 갱신 실패:', e.message);
+      }
     }
   }
 
