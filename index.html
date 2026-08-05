@@ -5531,16 +5531,16 @@ function csDateInputValue(val) {
 </div>
 
 <!-- 내 설정 모달 -->
-<div id="mySettingsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:20000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px;">
-  <div style="background:#fff;border-radius:16px;width:100%;max-width:620px;padding:24px 24px 28px;box-shadow:0 8px 40px rgba(0,0,0,0.18);position:relative;margin:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <h3 style="font-size:17px;font-weight:800;color:#222;margin:0;display:flex;align-items:center;gap:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+<section id="mySettingsTab" class="tab-panel" style="display:none;">
+<div style="max-width:720px;margin:0 auto;padding:12px 0 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 4px;">
+      <h3 style="font-size:20px;font-weight:800;color:#222;margin:0;display:flex;align-items:center;gap:8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         내 설정
       </h3>
-      <button onclick="closeMySettings()" style="background:none;border:none;font-size:24px;color:#999;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
+      <button onclick="closeMySettings()" style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;color:#555;cursor:pointer;">완료</button>
     </div>
-    <div id="mySettingsGuestNotice" style="display:none;background:var(--cream-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:10px 0 4px;font-size:12.5px;color:var(--brand-dark);">
+    <div id="mySettingsGuestNotice" style="display:none;background:var(--cream-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 4px 12px;font-size:12.5px;color:var(--brand-dark);">
       게스트 계정은 화면 표시 설정과 테마만 이용하실 수 있어요.
     </div>
   <div class="myi-pw-card">
@@ -5622,8 +5622,8 @@ function csDateInputValue(val) {
     </div>
   </div>
 
-  </div>
 </div>
+</section>
 
 
 <!-- 정보 수정 신청 모달 -->
@@ -8831,7 +8831,7 @@ const TAB_LABELS = {
   pricingTab:'단가표', calculatorTab:'계산기', stockTab:'재고현황',
   invoiceTab:'견적서', consultTab:'쇼룸상담', reservationTab:'예약관리',
   cardScanTab:'명함스캐닝', contactsTab:'연락처', floorplanTab:'면적분석',
-  memoTab:'메모장', noticeTab:'전사게시판', adminTab:'관리자', smsTab:'문자발송', emailTab:'이메일', leaveTab:'휴가신청'
+  memoTab:'메모장', noticeTab:'전사게시판', adminTab:'관리자', smsTab:'문자발송', emailTab:'이메일', leaveTab:'휴가신청', mySettingsTab:'내 설정'
 };
 
 // ── 내 홈 화면 설정 ──
@@ -9192,9 +9192,6 @@ document.addEventListener('click', () => {
 window.openMySettings = function() {
   const dd = document.getElementById('userDropdown');
   if (dd) dd.classList.remove('open');
-  const modal = document.getElementById('mySettingsModal');
-  if (!modal) return;
-  // 게스트: 내홈화면·비밀번호 카드 숨김, 안내 표시 / 직원: 전체 표시
   const isGuest = !!window._isGuest;
   const notice = document.getElementById('mySettingsGuestNotice');
   if (notice) notice.style.display = isGuest ? 'block' : 'none';
@@ -9202,19 +9199,11 @@ window.openMySettings = function() {
     const el = document.getElementById(id);
     if (el) el.style.display = isGuest ? 'none' : '';
   });
-  modal.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
+  if (typeof setTab === 'function') setTab('mySettingsTab');
 };
 window.closeMySettings = function() {
-  const modal = document.getElementById('mySettingsModal');
-  if (modal) modal.style.display = 'none';
-  document.body.style.overflow = '';
+  if (typeof setTab === 'function') setTab('myInfoTab');
 };
-// 오버레이(모달 바깥) 클릭 시 닫기
-document.addEventListener('click', (e) => {
-  const modal = document.getElementById('mySettingsModal');
-  if (modal && modal.style.display === 'flex' && e.target === modal) window.closeMySettings();
-});
 
 window.goMyInfo = function() {
   document.getElementById('userDropdown').classList.remove('open');
