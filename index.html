@@ -6590,7 +6590,19 @@ function csDateInputValue(val) {
         setTimeout(async () => {
           await checkLeavePending(userData);
           if (window._leaveBadgeTimer) clearInterval(window._leaveBadgeTimer);
-          window._leaveBadgeTimer = setInterval(() => checkLeavePending(userData), 30000);
+          // 60초 간격(서버도 30초 캐시가 있어 대부분 캐시로 응답됨) + 탭이 백그라운드일 땐 건너뜀
+          //   (안 보고 있는 브라우저 탭이 계속 폴링해서 공유 백엔드에 부하 주는 것 방지)
+          window._leaveBadgeTimer = setInterval(() => {
+            if (document.hidden) return;
+            checkLeavePending(userData);
+          }, 60000);
+          // 백그라운드에 있다가 다시 돌아왔을 때는 즉시 한 번 갱신 (최대 60초 대기하지 않도록)
+          if (!window._leaveVisibilityBound) {
+            window._leaveVisibilityBound = true;
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden && window._currentUser) checkLeavePending(window._currentUser);
+            });
+          }
         }, 800);
       }
     }
