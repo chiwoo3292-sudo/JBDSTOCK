@@ -1912,6 +1912,16 @@
   let holidayMap = {}; // { "2026-01-01": "신정", ... } — 소비자 예약폼과 동일 소스
   let currentSlots = WEEKDAY_SLOTS; // 현재 선택된 날짜 기준 슬롯 목록 (동적으로 바뀜)
 
+  // ★ 매주 금요일 오전 4개 슬롯은 기본 마감 — 서버(예약스크립트)의 _computeSlotsForDate와 동일 규칙.
+  //   관리자가 그 날짜를 저장해 Firestore 문서가 이미 있으면 그 내용을 그대로 믿으면 되지만,
+  //   아직 한 번도 저장 안 한(문서가 없는) 미래의 금요일은 이 기본값을 클라이언트에서 직접 적용해야 한다.
+  const FRIDAY_MORNING_CLOSE_SLOTS = ['10:00~10:30', '10:30~11:00', '11:00~11:30', '11:30~12:00'];
+  function isFridayDateStr(dateStr) {
+    const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return false;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay() === 5;
+  }
+
   // 로컬 이스케이프: 소비자 예약폼에서 들어오는 값(name/phone/memo/address 등)을 innerHTML에 넣기 전 처리
   function _esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
@@ -2373,9 +2383,15 @@
       if (snap.exists()) {
         const data = snap.data();
         (data.closedSlots || []).forEach(s => { if (s in slotState) slotState[s] = 'closed'; });
+      } else if (isFridayDateStr(date)) {
+        // 문서가 아직 없는 금요일 — 오전 기본마감 규칙 적용
+        FRIDAY_MORNING_CLOSE_SLOTS.forEach(s => { if (s in slotState) slotState[s] = 'closed'; });
       }
       document.getElementById('slotMsg').textContent = '';
     } catch(e) {
+      if (isFridayDateStr(date)) {
+        FRIDAY_MORNING_CLOSE_SLOTS.forEach(s => { if (s in slotState) slotState[s] = 'closed'; });
+      }
       document.getElementById('slotMsg').textContent = '불러오기 실패, 기본값으로 표시합니다.';
     }
     renderSlotGrid();
