@@ -6057,6 +6057,12 @@ function csDateInputValue(val) {
   .admin-status-badge.재직 { background:#d1f0e0; color:#1a7a45; }
   .admin-status-badge.퇴직 { background:#fde8e8; color:#c0392b; }
   .admin-status-badge.휴직 { background:#fdf1d0; color:#a87900; }
+  /* PC에서는 좌우로 넓게 — 카드 두 개를 한 줄에 배치. 모바일은 그대로 세로로 쌓임 */
+  .admin-row-2col { margin-bottom:20px; }
+  @media (min-width:900px) {
+    .admin-row-2col { display:flex; align-items:flex-start; gap:20px; }
+    .admin-row-2col > .admin-card { flex:1; min-width:0; margin-top:0 !important; margin-bottom:0; }
+  }
 </style>
 <div class="admin-wrap">
   <div class="admin-header">
@@ -6064,6 +6070,7 @@ function csDateInputValue(val) {
     <button class="admin-btn" onclick="loadEmployees()" style="margin-left:auto;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>새로고침</button>
   </div>
 
+  <div class="admin-row-2col">
   <div class="admin-card">
     <div class="admin-section-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>Firestore 동기화</div>
     <div style="font-size:12.5px;color:#888;margin-bottom:12px;">공휴일 시트를 직접 수정했거나, 예전(파이어스토어 도입 이전)부터 있던 슬롯·월별휴무안내·전사게시판 데이터를 한 번에 옮기고 싶을 때 누르세요. 여러 번 눌러도 중복 생성되지 않아 안전합니다.</div>
@@ -6080,6 +6087,7 @@ function csDateInputValue(val) {
       <button class="admin-btn primary" onclick="openGuestTabModal()">게스트 메뉴 선택</button>
       <span id="guestTabSummary" style="font-size:12.5px;color:#666;">불러오는 중...</span>
     </div>
+  </div>
   </div>
 
   <div class="admin-card">
@@ -6144,6 +6152,11 @@ function csDateInputValue(val) {
   #orgLeaveList .leave-row:hover .leave-edit-btn { background:var(--cream); }
   #orgLeaveList .leave-editor { display:none; padding:0 18px 16px; border-top:1px dashed var(--border); }
   #orgLeaveList .leave-editor.open { display:block; }
+  /* PC에서는 직원 카드를 2열로 배치해 세로 길이를 줄인다 (모바일은 기존처럼 1열) */
+  @media (min-width:900px) {
+    #orgLeaveList { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; }
+    #orgLeaveList .leave-card { margin-bottom:0; }
+  }
   @media (max-width:560px) {
     #orgLeaveList .leave-row { flex-wrap:wrap; gap:10px 14px; }
     #orgLeaveList .leave-bar-wrap { order:3; flex-basis:100%; }
@@ -7176,7 +7189,16 @@ function csDateInputValue(val) {
                 </tr>`;
               }).join('');
             }
-        } catch(e) { console.error(e); }
+        } catch(e) {
+            console.error(e);
+            const tbody = document.getElementById('adminEmpList');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="8" class="admin-empty" style="color:#c0392b;">
+                    불러오기 실패: ${e.message}<br>
+                    <button onclick="loadEmployees()" style="margin-top:10px;padding:6px 16px;background:#111;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">다시 시도</button>
+                    </td></tr>`;
+            }
+        }
     };
 
     // ── 직원 선택 상태 ──
