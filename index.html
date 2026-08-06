@@ -11991,21 +11991,10 @@ if ('serviceWorker' in navigator) {
 
 <script>
 (function(){
-  // ── 5. 예약 알림 배너 + Web Push ──
+  // ── 5. 예약 알림 배너 ──
   // lastKnownRsvCount: -1 = 아직 첫 체크 전 (기준값 미설정)
   let lastKnownRsvCount = -1;
   window._lastPendingCount = 0;
-
-  // Web Push 권한 요청
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-
-  function sendWebPush(title, body) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '' });
-    }
-  }
 
   async function checkNewReservations() {
     try {
@@ -12035,15 +12024,6 @@ if ('serviceWorker' in navigator) {
       if (lastKnownRsvCount === -1) {
         lastKnownRsvCount = count;
         return;
-      }
-
-      // ── Web Push: 대기 건이 이전보다 증가했을 때만 1회 발송 ──
-      if (count > lastKnownRsvCount) {
-        const increased = count - lastKnownRsvCount;
-        sendWebPush(
-          '새 예약 접수',
-          `신규 예약 ${increased}건이 접수되었습니다. (전체 대기 ${count}건)`
-        );
       }
 
       // ── 배너: 5분 주기 체크 시 대기 건 있으면 통합 메시지로 표시 ──
