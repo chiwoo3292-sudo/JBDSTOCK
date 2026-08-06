@@ -2451,13 +2451,13 @@
 
     <!-- 서식 툴바: 텍스트를 드래그로 선택한 뒤 눌러서 적용 -->
     <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-      <button type="button" onmousedown="event.preventDefault();document.execCommand('bold')" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-weight:800;font-size:13px;color:#333;">B</button>
-      <button type="button" onmousedown="event.preventDefault()" onclick="document.getElementById('noticeColorPicker').click()" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#333;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/></svg>
+      <button type="button" onmousedown="event.preventDefault();document.execCommand('bold')" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#333;line-height:1;padding:0;">B</button>
+      <button type="button" onmousedown="event.preventDefault()" onclick="document.getElementById('noticeColorPicker').click()" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+        <span id="noticeColorSwatch" style="display:block;width:16px;height:16px;border-radius:50%;background:#7a5c44;border:1px solid rgba(0,0,0,0.15);"></span>
       </button>
       <input type="color" id="noticeColorPicker" value="#7a5c44" style="width:0;height:0;opacity:0;position:absolute;"
         onmousedown="event.preventDefault()"
-        oninput="document.execCommand('foreColor', false, this.value)">
+        oninput="document.execCommand('foreColor', false, this.value); document.getElementById('noticeColorSwatch').style.background = this.value;">
       <button type="button" onmousedown="event.preventDefault();document.execCommand('removeFormat')" style="padding:0 10px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;color:#888;">서식 지우기</button>
       <span style="font-size:11px;color:#aaa;margin-left:4px;">강조할 부분을 드래그로 선택한 뒤 버튼을 눌러주세요</span>
     </div>
@@ -12912,13 +12912,13 @@ if ('serviceWorker' in navigator) {
 <section id="emailTab" class="tab-panel" style="display:none;">
 <style>
   /* ── 이메일 탭 레이아웃 ── */
-  .em-layout { display:flex; height:calc(100vh - 120px); min-height:500px; gap:0; background:#F4EFE6; }
+  .em-layout { display:flex; height:calc(100vh - 120px); min-height:500px; gap:0; background:var(--app-bg); }
 
   /* 좌측 사이드바 */
   .em-sidebar { width:200px; min-width:160px; background:#fff; border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
   .em-sidebar-header { padding:16px 14px 10px; font-size:16px; font-weight:800; color:#222; border-bottom:1px solid var(--cream); }
   .em-compose-btn { margin:12px 14px; padding:10px 0; background:var(--brand); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:background .14s; }
-  .em-compose-btn:hover { background:#4A3526; }
+  .em-compose-btn:hover { background:var(--brand-deep); }
   .em-folder-list { flex:1; overflow-y:auto; padding:6px 0; }
   .em-folder-item { display:flex; align-items:center; gap:8px; padding:9px 16px; font-size:13px; color:#555; cursor:pointer; border-radius:8px; margin:1px 6px; transition:background .12s; }
   .em-folder-item:hover { background:var(--cream-2); color:var(--brand); }
@@ -12932,7 +12932,7 @@ if ('serviceWorker' in navigator) {
   .em-main { flex:1; display:flex; flex-direction:column; overflow:hidden; background:#fff; }
 
   /* 메인 툴바 */
-  .em-toolbar { display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid var(--cream); background:#FDFAF6; flex-shrink:0; }
+  .em-toolbar { display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid var(--cream); background:var(--surface-tint); flex-shrink:0; }
   .em-toolbar-title { font-size:15px; font-weight:800; color:#222; margin-right:8px; }
   .em-toolbar-count { font-size:12px; color:#aaa; }
   .em-toolbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
@@ -12949,10 +12949,10 @@ if ('serviceWorker' in navigator) {
 
   /* 메일 목록 */
   .em-mail-list { flex:1; overflow-y:auto; }
-  .em-date-group { padding:8px 16px 4px; font-size:12px; font-weight:700; color:var(--muted); border-bottom:1px solid var(--cream); background:#FDFAF6; position:sticky; top:0; z-index:1; }
+  .em-date-group { padding:8px 16px 4px; font-size:12px; font-weight:700; color:var(--muted); border-bottom:1px solid var(--cream); background:var(--surface-tint); position:sticky; top:0; z-index:1; }
   .em-mail-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--cream); cursor:pointer; transition:background .1s; }
-  .em-mail-row:hover { background:#FBF7F0; }
-  .em-mail-row.unread { background:#FFF8F0; }
+  .em-mail-row:hover { background:var(--cream); }
+  .em-mail-row.unread { background:var(--cream-2); }
   .em-mail-row.unread .em-mail-sender { font-weight:800; color:#222; }
   .em-mail-row.unread .em-mail-subject { font-weight:700; color:#333; }
   .em-mail-check { flex-shrink:0; width:16px; height:16px; accent-color:var(--brand); }
@@ -12971,11 +12971,11 @@ if ('serviceWorker' in navigator) {
   /* 메일쓰기 패널 */
   .em-compose-panel { display:none; flex-direction:column; flex:1; overflow:hidden; }
   .em-compose-panel.open { display:flex; }
-  .em-compose-header { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--cream); background:#FDFAF6; flex-shrink:0; }
+  .em-compose-header { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--cream); background:var(--surface-tint); flex-shrink:0; }
   .em-compose-title { font-size:15px; font-weight:800; color:#222; }
   .em-compose-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
   .em-compose-send-btn { padding:8px 20px; background:var(--brand); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; }
-  .em-compose-send-btn:hover { background:#4A3526; }
+  .em-compose-send-btn:hover { background:var(--brand-deep); }
   .em-compose-send-btn:disabled { background:#ccc; cursor:not-allowed; }
   .em-compose-draft-btn { padding:8px 14px; border:1px solid var(--border); border-radius:8px; background:#fff; color:#888; font-size:12px; font-weight:600; cursor:pointer; }
   .em-compose-draft-btn:hover { background:var(--cream-2); }
@@ -12986,7 +12986,7 @@ if ('serviceWorker' in navigator) {
   .em-compose-field input, .em-compose-field select { flex:1; border:none; outline:none; font-size:13px; padding:11px 0; background:transparent; color:#222; font-family:inherit; }
   .em-compose-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
   .em-compose-body textarea { flex:1; border:none; outline:none; padding:16px; font-size:13px; line-height:1.8; resize:none; font-family:inherit; color:#333; background:#fff; }
-  .em-compose-ai-bar { background:#FBF7F0; border-top:1px solid var(--cream); padding:10px 16px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .em-compose-ai-bar { background:var(--surface-tint); border-top:1px solid var(--cream); padding:10px 16px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .em-compose-ai-input { flex:1; border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:12px; outline:none; font-family:inherit; background:#fff; }
   .em-compose-ai-btn { padding:8px 16px; background:#222; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
   .em-compose-ai-btn:hover { background:var(--brand); }
@@ -12995,7 +12995,7 @@ if ('serviceWorker' in navigator) {
   /* 메일 상세보기 패널 */
   .em-detail-panel { display:none; flex-direction:column; flex:1; overflow-y:auto; overflow-x:hidden; }
   .em-detail-panel.open { display:flex; }
-  .em-detail-header { padding:14px 16px; border-bottom:1px solid var(--cream); background:#FDFAF6; flex-shrink:0; }
+  .em-detail-header { padding:14px 16px; border-bottom:1px solid var(--cream); background:var(--surface-tint); flex-shrink:0; }
   .em-detail-subject { font-size:16px; font-weight:800; color:#222; margin-bottom:10px; }
   .em-detail-meta { display:flex; align-items:center; gap:16px; font-size:12px; color:#888; }
   .em-detail-sender { font-weight:700; color:#333; }
