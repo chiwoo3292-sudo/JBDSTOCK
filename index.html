@@ -10066,11 +10066,13 @@ async function fetchStockData(forceRefresh = false) {
 // ============================================================
 // iframe(Wix 임베드) 안에서 부모 페이지의 스크롤/뷰포트 정보를 저장
 window._parentViewport = null;
+// 클릭 위치 기반 배치를 이미 했다면, 뒤늦게 도착하는 부모뷰포트 응답이 그걸 덮어쓰지 않게 막는 용도
+let _itemModalClickY = null;
 window.addEventListener('message', function(ev) {
   if (ev.data && ev.data.__erpViewport) {
     window._parentViewport = ev.data.__erpViewport;
     const m = document.getElementById('itemDetailModal');
-    if (m && m.style.display === 'flex') _positionItemModal();
+    if (m && m.style.display === 'flex' && _itemModalClickY == null) _positionItemModal();
   }
 }, false);
 
@@ -10078,14 +10080,26 @@ function _requestParentViewport() {
   try { if (window.parent && window.parent !== window) window.parent.postMessage({ __erpRequestViewport: true }, '*'); } catch(e) {}
 }
 
-// 재고 상세 팝업을 현재 보이는 영역에 배치 (iframe 대응)
-function _positionItemModal() {
+// 재고 상세 팝업 배치 (iframe 대응). clickY가 있으면 그 위치 근처에, 없으면 기존 방식으로 폴백.
+//   ★ ERP 페이지 body의 overflow-y:auto를 없앤 이중스크롤 수정 덕분에, iframe 자체엔 내부
+//     스크롤이 없다 — 그래서 클릭 이벤트의 clientY가 곧 문서(페이지) 안에서의 세로 위치와 같다.
+function _positionItemModal(clickY) {
   const modal = document.getElementById('itemDetailModal');
   if (!modal) return;
   const box = modal.firstElementChild;
   if (!box) return;
-  _requestParentViewport();
 
+  if (typeof clickY === 'number') {
+    modal.style.position = 'absolute';
+    modal.style.alignItems = 'flex-start';
+    let top = clickY - 40; // 클릭한 지점 바로 위쪽에서 살짝 아래로 시작
+    if (top < 20) top = 20;
+    box.style.marginTop = top + 'px';
+    return;
+  }
+
+  // 클릭 좌표가 없을 때(프로그래밍적 호출 등)는 기존 방식으로 폴백
+  _requestParentViewport();
   const vp = window._parentViewport;
   if (vp && typeof vp.scrollY === 'number' && typeof vp.iframeTop === 'number') {
     // 부모 협조 정보가 있을 때: 부모 뷰포트 중앙을 iframe 내부 좌표로 변환해 배치
@@ -10099,15 +10113,13 @@ function _positionItemModal() {
     box.style.marginTop = top + 'px';
   } else {
     // 부모 정보 없음(대부분의 Wix 임베드): 팝업을 iframe 뷰포트 상단 근처에 고정.
-    //   position:fixed는 iframe 안에서 iframe 좌상단 기준이라, 부모가 스크롤해도
-    //   'iframe에서 보이는 위쪽'에 항상 떠서 잘리지 않는다.
     modal.style.position = 'fixed';
     modal.style.alignItems = 'flex-start';
     box.style.marginTop = 'clamp(20px, 8vh, 120px)';
   }
 }
 
-async function openItemDetail(itemCode) {
+async function openItemDetail(itemCode, evt) {
     const modal  = document.getElementById('itemDetailModal');
     const title  = document.getElementById('itemDetailTitle');
     const stockEl   = document.getElementById('itemDetailStock');
@@ -10115,14 +10127,16 @@ async function openItemDetail(itemCode) {
     const arrivalEl = document.getElementById('itemDetailArrival');
     const reserveEl = document.getElementById('itemDetailReserve');
 
+    _itemModalClickY = (evt && typeof evt.clientY === 'number') ? evt.clientY : null;
+
     title.textContent = itemCode;
     stockEl.innerHTML = orderEl.innerHTML = arrivalEl.innerHTML = reserveEl.innerHTML =
         '<span style="color:#aaa;">불러오는 중...</span>';
     // 모달을 body 직속으로 이동
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
     modal.style.display = 'flex';
-    // iframe(Wix 임베드) 환경에서도 팝업이 현재 보이는 위치에 오도록 배치
-    _positionItemModal();
+    // 클릭한 위치 근처에 배치 (없으면 기존 방식으로 폴백)
+    _positionItemModal(_itemModalClickY);
 
     const noData = '<span style="color:#aaa;">정보 없음</span>';
     const code = itemCode.trim().toUpperCase();
@@ -10402,7 +10416,7 @@ tr.innerHTML = `
         // 품번 클릭 → 상세 모달
         if (isNewGroup) {
             const link = tr.querySelector('.item-code-link');
-            if (link) link.addEventListener('click', () => openItemDetail(d.itemCode));
+            if (link) link.addEventListener('click', (e) => openItemDetail(d.itemCode, e));
         }
 
         // 툴팁 — TOOLTIP 시트 기반
@@ -10473,7 +10487,7 @@ function updateStockAlertBanner(processedRows, orderRows, arrivalRows) {
     // 텍스트: "재고확인요망" + 품번들. 애니메이션 없이 그대로 표시(길면 자동 줄바꿈).
     const text = '재고확인요망 ▶ ' + alertCodes.map(c => `【 ${c} 】`).join('  ');
     marquee.innerHTML = text.replace(/【 ([^】]+) 】/g, (m, code) => {
-        return `<span style="cursor:pointer;text-decoration:underline;text-underline-offset:2px;" onclick="openItemDetail('${code.trim()}')">${m}</span>`;
+        return `<span style="cursor:pointer;text-decoration:underline;text-underline-offset:2px;" onclick="openItemDetail('${code.trim()}', event)">${m}</span>`;
     });
 }
 
