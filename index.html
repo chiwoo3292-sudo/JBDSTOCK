@@ -1204,6 +1204,8 @@
 
 /* ---- 견적서 미리보기 ---- */
 .inv-preview-wrap { background:#fff; border:1px solid #e0e0e0; border-radius:18px; padding:20px; overflow-x:auto; }
+/* PC 미리보기 전체 크기를 80%로 축소 (모바일/인쇄는 각자 별도 배율을 쓰므로 영향 없음) */
+.inv-preview-wrap #invoiceDoc { transform: scale(0.8); transform-origin: top center; }
 .inv-preview-label { font-size:11px; color:#888; font-weight:600; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
 
 /* A4 견적서 본체 */
@@ -10492,11 +10494,15 @@ function renderStockTable(rows, orderRows, arrivalRows) {
         }
     });
 
-    // 시리즈(품번의 "C#" 뒤 두 자리) 추출 — 예: "C#1504"→"15", "스모크 오크C#1801"→"18", 매칭 안 되면 "기타"
+    // 시리즈(품번의 "C#" 뒤 두 자리) 추출 — 예: "C#1504"→"15", "스모크 오크C#1801"→"18"
+    // ★ 14~20 시리즈만 실제로 운영되는 시리즈라, 그 외(#10, #11, #13, #21처럼 우연히 매칭되는
+    //   숫자 포함)는 전부 ETC로 몰아서 잘못된 낱개 시리즈가 따로 생기지 않게 한다.
+    const KNOWN_STOCK_SERIES = ['14','15','16','17','18','19','20'];
     function getStockSeries(itemCode) {
         // 품번/품명 안 어디에든 "#" 뒤에 두 자리 숫자가 있으면 그 시리즈로 분류 (앞에 붙는 글자는 무관)
         const m = String(itemCode).match(/#(\d{2})/);
-        return m ? m[1] : 'ETC';
+        const s = m ? m[1] : null;
+        return (s && KNOWN_STOCK_SERIES.includes(s)) ? s : 'ETC';
     }
     // ★ 시트 안에서 같은 시리즈 품목들이 한 군데 모여있지 않고 여러 군데 흩어져 있을 수 있어서,
     //   "바로 이전 행과 시리즈가 다르면 새 그룹" 방식으로는 같은 시리즈가 여러 번 쪼개져 나왔다.
@@ -10507,13 +10513,19 @@ function renderStockTable(rows, orderRows, arrivalRows) {
         if (!seriesMap.has(s)) seriesMap.set(s, []);
         seriesMap.get(s).push(d);
     });
+    // 표시 순서: 14→20 숫자 오름차순, ETC는 항상 맨 마지막
+    const orderedSeriesEntries = Array.from(seriesMap.entries()).sort((a, b) => {
+        if (a[0] === 'ETC') return 1;
+        if (b[0] === 'ETC') return -1;
+        return Number(a[0]) - Number(b[0]);
+    });
 
     // 2단계: 화면 렌더링 — 시리즈마다 접이식 헤더 행을 먼저 넣고, 그 아래 품번 행들은 기본 숨김
     let lastSeenItemCode = '';
     let isGrayGroup = false;
     let seriesSeq = 0;
 
-    seriesMap.forEach((seriesRows, series) => {
+    orderedSeriesEntries.forEach(([series, seriesRows]) => {
         seriesSeq++;
         const seriesGroupKey = 'series_' + series + '_' + seriesSeq;
         const itemCount = new Set(seriesRows.map(r => r.itemCode)).size;
