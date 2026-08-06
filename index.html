@@ -6201,8 +6201,8 @@ function csDateInputValue(val) {
   #orgLeaveList .leave-remain { text-align:right; min-width:60px; }
   #orgLeaveList .leave-remain .big { font-size:20px; font-weight:800; color:#1a7a45; line-height:1; }
   #orgLeaveList .leave-remain .lbl { font-size:10px; color:#bbb; margin-top:3px; }
-  #orgLeaveList .leave-edit-btn { width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; justify-content:center; color:var(--brand); flex-shrink:0; }
-  #orgLeaveList .leave-row:hover .leave-edit-btn { background:var(--cream); }
+  #orgLeaveList .leave-edit-btn { width:34px; height:34px; border-radius:9px; border:1px solid var(--border-2); background:var(--cream-2); display:flex; align-items:center; justify-content:center; color:var(--brand); flex-shrink:0; }
+  #orgLeaveList .leave-row:hover .leave-edit-btn { background:var(--cream); border-color:var(--brand); }
   #orgLeaveList .leave-editor { display:none; padding:0 18px 16px; border-top:1px dashed var(--border); }
   #orgLeaveList .leave-editor.open { display:block; }
   /* PC에서는 직원 카드를 2열로 배치해 세로 길이를 줄인다 (모바일은 기존처럼 1열) */
@@ -10498,38 +10498,35 @@ function renderStockTable(rows, orderRows, arrivalRows) {
         const m = String(itemCode).match(/#(\d{2})/);
         return m ? m[1] : 'ETC';
     }
-    // 시리즈별 품번 개수(중복 LOT 제외, 실제 품번 기준) 미리 집계 — 헤더에 표시용
-    const seriesItemCodeSets = {};
+    // ★ 시트 안에서 같은 시리즈 품목들이 한 군데 모여있지 않고 여러 군데 흩어져 있을 수 있어서,
+    //   "바로 이전 행과 시리즈가 다르면 새 그룹" 방식으로는 같은 시리즈가 여러 번 쪼개져 나왔다.
+    //   원본 순서와 무관하게 같은 시리즈는 전부 한 곳(첫 등장 위치)에 모으도록 먼저 그룹핑한다.
+    const seriesMap = new Map(); // series -> rows[]
     processedRows.forEach(d => {
         const s = getStockSeries(d.itemCode);
-        if (!seriesItemCodeSets[s]) seriesItemCodeSets[s] = new Set();
-        seriesItemCodeSets[s].add(d.itemCode);
+        if (!seriesMap.has(s)) seriesMap.set(s, []);
+        seriesMap.get(s).push(d);
     });
 
-    // 2단계: 화면 렌더링 — 시리즈가 바뀔 때마다 접이식 헤더 행을 먼저 넣고, 그 아래 품번 행들은 기본 숨김
+    // 2단계: 화면 렌더링 — 시리즈마다 접이식 헤더 행을 먼저 넣고, 그 아래 품번 행들은 기본 숨김
     let lastSeenItemCode = '';
     let isGrayGroup = false;
-    let lastSeries = null;
-    let seriesGroupKey = '';
     let seriesSeq = 0;
 
-    processedRows.forEach(d => {
-        const series = getStockSeries(d.itemCode);
-        if (series !== lastSeries) {
-            lastSeries = series;
-            seriesSeq++;
-            seriesGroupKey = 'series_' + series + '_' + seriesSeq;
-            const itemCount = seriesItemCodeSets[series] ? seriesItemCodeSets[series].size : 0;
-            const headerTr = document.createElement('tr');
-            headerTr.className = 'stock-series-header';
-            headerTr.style.cursor = 'pointer';
-            headerTr.innerHTML = `<td colspan="6" style="background:#eef1f5;font-weight:800;padding:10px 14px;text-align:left;">
-                <svg class="stock-series-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px;transition:transform .15s;"><polyline points="9 18 15 12 9 6"></polyline></svg>${series === 'ETC' ? 'ETC' : series + '시리즈'} (${itemCount}개 품번)
-            </td>`;
-            headerTr.addEventListener('click', () => window.toggleStockSeries(headerTr, seriesGroupKey));
-            tbody.appendChild(headerTr);
-        }
+    seriesMap.forEach((seriesRows, series) => {
+        seriesSeq++;
+        const seriesGroupKey = 'series_' + series + '_' + seriesSeq;
+        const itemCount = new Set(seriesRows.map(r => r.itemCode)).size;
+        const headerTr = document.createElement('tr');
+        headerTr.className = 'stock-series-header';
+        headerTr.style.cursor = 'pointer';
+        headerTr.innerHTML = `<td colspan="6" style="background:#eef1f5;font-weight:800;padding:10px 14px;text-align:left;">
+            <svg class="stock-series-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px;transition:transform .15s;"><polyline points="9 18 15 12 9 6"></polyline></svg>${series === 'ETC' ? 'ETC' : series + '시리즈'} (${itemCount}개 품번)
+        </td>`;
+        headerTr.addEventListener('click', () => window.toggleStockSeries(headerTr, seriesGroupKey));
+        tbody.appendChild(headerTr);
 
+    seriesRows.forEach(d => {
         const isNewGroup = d.itemCode !== lastSeenItemCode;
         let displayItemCode = '';
         if (isNewGroup) {
@@ -10623,6 +10620,7 @@ tr.innerHTML = `
         });
 
         tbody.appendChild(tr);
+    });
     });
 }
 
