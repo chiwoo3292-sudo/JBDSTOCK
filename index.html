@@ -6307,48 +6307,6 @@ function csDateInputValue(val) {
         <div id="migrationProgress" style="font-size:12px;color:#888;margin-top:10px;"></div>
       </div>
 
-      <!-- Apps Script URL (읽기 전용 — 코드 하드코딩 값만 사용, 화면에서 변경 불가) -->
-      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:14px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          Apps Script 배포 URL
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">
-          <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">RESERVE 스크립트 URL</label>
-            <div id="adminReserveUrl" style="width:100%;padding:9px 12px;border:1px solid #eee;border-radius:8px;font-size:11px;box-sizing:border-box;font-family:monospace;background:#f7f7f7;color:#555;word-break:break-all;"></div>
-          </div>
-          <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">ERP 스크립트 URL</label>
-            <div id="adminErpUrl" style="width:100%;padding:9px 12px;border:1px solid #eee;border-radius:8px;font-size:11px;box-sizing:border-box;font-family:monospace;background:#f7f7f7;color:#555;word-break:break-all;"></div>
-          </div>
-        </div>
-        <div style="font-size:11px;color:#aaa;">※ URL은 코드에 고정되어 있으며 화면에서 변경할 수 없습니다. (변경이 필요하면 코드에서 수정 후 재배포)</div>
-      </div>
-
-
-      <!-- Google Workspace (준비 중) -->
-      <div style="border:1px dashed var(--border-2);border-radius:10px;padding:18px;background:#FDFAF6;">
-        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-          Google Workspace 메일 연동
-          <span style="font-size:10px;background:var(--border);color:var(--brand);border-radius:4px;padding:2px 7px;margin-left:8px;font-weight:700;">준비중</span>
-        </div>
-        <div style="font-size:12px;color:var(--brand-soft);line-height:1.7;">
-          Workspace 도입 후 Admin SDK OAuth 설정을 여기서 관리합니다.<br>
-          계정 생성 / 그룹 이메일 / 별칭 / 메일 라우팅 설정이 가능해집니다.
-        </div>
-        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;opacity:.5;pointer-events:none;">
-          <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">Workspace Admin OAuth Client ID</label>
-            <input type="text" placeholder="연동 후 입력" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;" disabled>
-          </div>
-          <div>
-            <label style="font-size:11px;color:#888;font-weight:700;display:block;margin-bottom:4px;">Workspace 도메인</label>
-            <input type="text" placeholder="jibokdeukmaru.com" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;" disabled>
-          </div>
-        </div>
-      </div>
   </div>
   </div>
 
@@ -7966,19 +7924,8 @@ function csDateInputValue(val) {
           : '※ 아직 저장되지 않았습니다. API Key·Secret을 입력해주세요.';
       }
     } catch(e) {}
-
-    // Apps Script URL 표시 (읽기 전용 — 하드코딩 값만 사용)
-    if (document.getElementById('adminReserveUrl')) document.getElementById('adminReserveUrl').textContent = RESERVE_URL;
-    if (document.getElementById('adminErpUrl')) document.getElementById('adminErpUrl').textContent = ERP_URL;
   };
 
-  // ★ URL 변경 기능 제거됨 — 하드코딩 값만 사용. (남은 참조 대비 안전한 no-op로 유지)
-  window.adminResetUrlsToDefault = function() {
-    try {
-      localStorage.removeItem('baram_reserve_url');
-      localStorage.removeItem('baram_erp_url');
-    } catch (e) { /* 무시 */ }
-  };
 
   // ── 쇼룸상담 Firestore 초기 마이그레이션 ──//   구글시트 [쇼룸상담] 전체를 1회 조회(getConsultsFull)한 뒤 Firestore로 batch 업로드.
   //   ★ 문서 ID를 '날짜+이름+번호+시간' 조합으로 고정 → 같은 상담은 항상 같은 ID가 되어
@@ -8302,10 +8249,6 @@ function csDateInputValue(val) {
     } catch(e) { alert('해제 실패: ' + e.message); }
   };
 
-  // ★ URL 변경/저장 기능 제거됨 — 하드코딩 값만 사용. (남은 참조 대비 안전한 no-op)
-  window.adminSaveUrls = function() {
-    /* URL은 코드에 고정되어 화면에서 변경할 수 없습니다. */
-  };
 
 
     // ── 월별 휴무안내 편집 ──
