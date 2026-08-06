@@ -2452,9 +2452,12 @@
     <!-- 서식 툴바: 텍스트를 드래그로 선택한 뒤 눌러서 적용 -->
     <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
       <button type="button" onmousedown="event.preventDefault();document.execCommand('bold')" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#333;line-height:1;padding:0;">B</button>
-      <button type="button" onmousedown="event.preventDefault()" onclick="document.getElementById('noticeColorPicker').click()" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
-        <span id="noticeColorSwatch" style="display:block;width:16px;height:16px;border-radius:50%;background:#7a5c44;border:1px solid rgba(0,0,0,0.15);"></span>
-      </button>
+      <div style="display:flex;border:1px solid #ddd;border-radius:6px;overflow:hidden;height:30px;">
+        <button type="button" title="현재 색상 바로 적용" onmousedown="event.preventDefault();document.execCommand('foreColor', false, document.getElementById('noticeColorPicker').value)" style="width:30px;height:30px;border:none;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+          <span id="noticeColorSwatch" style="display:block;width:16px;height:16px;border-radius:50%;background:#7a5c44;border:1px solid rgba(0,0,0,0.15);"></span>
+        </button>
+        <button type="button" title="다른 색상 선택" onmousedown="event.preventDefault()" onclick="document.getElementById('noticeColorPicker').click()" style="width:16px;height:30px;border:none;border-left:1px solid #eee;background:#fafafa;cursor:pointer;font-size:8px;color:#999;padding:0;">▾</button>
+      </div>
       <input type="color" id="noticeColorPicker" value="#7a5c44" style="width:0;height:0;opacity:0;position:absolute;"
         onmousedown="event.preventDefault()"
         oninput="document.execCommand('foreColor', false, this.value); document.getElementById('noticeColorSwatch').style.background = this.value;">
@@ -13140,7 +13143,7 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
       <!-- 일괄 작업 바 (체크 시 활성화) -->
-      <div class="em-bulk-bar" id="emBulkBar" style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--cream);background:#FBF8F3;flex-wrap:wrap;">
+      <div class="em-bulk-bar" id="emBulkBar" style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--cream);background:var(--surface-tint);flex-wrap:wrap;">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;cursor:pointer;">
           <input type="checkbox" id="emSelectAll" onclick="emToggleSelectAll(this.checked)" style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer;">
           전체선택
