@@ -1810,6 +1810,10 @@
         <button class="slot-btn-save" onclick="closeAllSlots()" style="background:#c0392b;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>일괄마감</button>
       </div>
       <div id="slotMsg" style="font-size:12px;color:#555;margin-top:8px;text-align:center;"></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;text-align:center;">
+        <button onclick="syncHolidaysToFirestore()" style="background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;">공휴일 시트 → 동기화</button>
+        <div id="holidaySyncMsg" style="font-size:11px;color:#555;margin-top:6px;"></div>
+      </div>
     </div>
 
   </div>
@@ -1903,9 +1907,8 @@
 
   async function loadAdminHolidays() {
     try {
-      const res = await fetchWithRetry(`${BOOKING_URL}?action=getHolidays`);
-      const data = await res.json();
-      if (data.status === 'ok' && data.holidays) holidayMap = data.holidays;
+      const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'settings', 'holidays'));
+      holidayMap = snap.exists() ? snap.data() : {};
     } catch (e) {
       console.warn('공휴일 정보 로드 실패:', e.message);
     }
@@ -2192,11 +2195,19 @@
     `;
   }
 
+  // ★ 삭제/상태변경 중 버튼을 빠르게 연타하면 confirm() 대기 중 쌓인 클릭이 뒤이어
+  //   또 실행되면서, 먼저 끝난 처리가 이미 지워버린 rsvActionMsg에 접근해 null 에러가 났었다.
+  //   같은 처리 진행 중엔 재진입을 막는다.
+  let _rsvActionBusy = false;
+
   // ── 예약 삭제 (문자발송 없음. 예약 문서를 완전히 삭제) ──
   window.deleteReservation = async function() {
-    if (!selectedRsv) return;
+    if (!selectedRsv || _rsvActionBusy) return;
     if (!confirm(`[${selectedRsv.name}] 예약을 완전히 삭제하시겠습니까?\n(문자는 발송되지 않으며, 삭제된 예약은 복구할 수 없습니다.)`)) return;
-    document.getElementById('rsvActionMsg').textContent = '삭제 중...';
+    if (_rsvActionBusy) return;
+    _rsvActionBusy = true;
+    const msgEl = document.getElementById('rsvActionMsg');
+    if (msgEl) msgEl.textContent = '삭제 중...';
     try {
       await window.fbEnsureAuth();
       const ref = window.FB.doc(window.FB.db, 'reservations', selectedRsv.receiptNo);
@@ -2208,17 +2219,22 @@
       if (typeof window._triggerRsvCheck === 'function') window._triggerRsvCheck();
       selectedRsv = null;
       document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
-      document.getElementById('rsvActionMsg').textContent = '';
     } catch(e) {
-      document.getElementById('rsvActionMsg').textContent = '오류: ' + e.message;
+      const m = document.getElementById('rsvActionMsg');
+      if (m) m.textContent = '오류: ' + e.message;
+    } finally {
+      _rsvActionBusy = false;
     }
   };
 
   // ── 상태 변경 (Firestore) ──
   window.updateStatus = async function(newStatus) {
-    if (!selectedRsv) return;
+    if (!selectedRsv || _rsvActionBusy) return;
     if (!confirm(`[${selectedRsv.name}] 예약을 "${newStatus}" 처리하시겠습니까?`)) return;
-    document.getElementById('rsvActionMsg').textContent = '처리 중...';
+    if (_rsvActionBusy) return;
+    _rsvActionBusy = true;
+    const msgEl0 = document.getElementById('rsvActionMsg');
+    if (msgEl0) msgEl0.textContent = '처리 중...';
     try {
       await _applyReservationStatus(selectedRsv, newStatus);
       selectedRsv.status = newStatus;
@@ -2241,13 +2257,16 @@
       if (newStatus === '취소' || newStatus === '예약') {
         selectedRsv = null;
         document.getElementById('rsvDetailBody').innerHTML = '<div class="rsv-empty">목록에서 예약을 선택하세요.</div>';
-        document.getElementById('rsvActionMsg').textContent = '';
       } else {
         renderRsvDetail(selectedRsv);
-        document.getElementById('rsvActionMsg').textContent = `"${newStatus}" 처리 완료`;
+        const m2 = document.getElementById('rsvActionMsg');
+        if (m2) m2.textContent = `"${newStatus}" 처리 완료`;
       }
     } catch(e) {
-      document.getElementById('rsvActionMsg').textContent = '오류: ' + e.message;
+      const m = document.getElementById('rsvActionMsg');
+      if (m) m.textContent = '오류: ' + e.message;
+    } finally {
+      _rsvActionBusy = false;
     }
   };
 
@@ -2337,10 +2356,10 @@
     }
 
     try {
-      const res = await fetchWithRetry(`${BOOKING_URL}?action=getSlots&date=${date}`);
-      const data = await res.json();
-      if (data.status === 'ok' && data.closedSlots) {
-        data.closedSlots.forEach(s => { if (s in slotState) slotState[s] = 'closed'; });
+      const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'slots', date));
+      if (snap.exists()) {
+        const data = snap.data();
+        (data.closedSlots || []).forEach(s => { if (s in slotState) slotState[s] = 'closed'; });
       }
       document.getElementById('slotMsg').textContent = '';
     } catch(e) {
@@ -2403,6 +2422,25 @@
     currentSlots.forEach(s => slotState[s] = 'closed');
     renderSlotGrid();
     await saveSlots();
+  };
+
+  // 공휴일 시트 편집 후 수동으로 눌러 Firestore에 반영 (공휴일은 직접 시트에서 관리하므로 자동 동기화 없음)
+  window.syncHolidaysToFirestore = async function() {
+    const msg = document.getElementById('holidaySyncMsg');
+    if (msg) msg.textContent = '동기화 중...';
+    try {
+      const res = await fetchWithRetry(`${BOOKING_URL}?action=syncHolidaysToFirestore`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        if (msg) msg.textContent = `동기화 완료 (${data.count}건)`;
+        await loadAdminHolidays();
+        setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+      } else {
+        if (msg) msg.textContent = '실패: ' + (data.message || '알 수 없는 오류');
+      }
+    } catch(e) {
+      if (msg) msg.textContent = '오류: ' + e.message;
+    }
   };
 
   // 초기 슬롯 그리드 렌더 — 공휴일 데이터를 먼저 불러온 뒤 오늘 날짜 기준으로 표시
@@ -4902,10 +4940,21 @@ function csDateInputValue(val) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
+  async function _fetchNoticesFromFirestore() {
+    const [noticeSnap, replySnap] = await Promise.all([
+      window.FB.getDocs(window.FB.collection(window.FB.db, 'notices')),
+      window.FB.getDocs(window.FB.collection(window.FB.db, 'noticeReplies'))
+    ]);
+    const rows = [];
+    noticeSnap.forEach(d => { const v = d.data(); rows.push({ id: d.id, title: v.title, content: v.content, author: v.author, date: v.date, category: v.category || '일반', attachments: v.attachments || [] }); });
+    const reps = [];
+    replySnap.forEach(d => { const v = d.data(); reps.push({ noticeId: v.noticeId, author: v.author, content: v.content, date: v.date }); });
+    return { rows, replies: reps };
+  }
+
   window.loadNotices = async function() {
     try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getNotices`);
-      const data = await res.json();
+      const data = await _fetchNoticesFromFirestore();
       notices = data.rows || [];
       replies = data.replies || [];
       renderNotices();
@@ -4926,8 +4975,7 @@ function csDateInputValue(val) {
     // 게시판: 캐시 없으면 불러온 뒤 재렌더
     if (!notices.length) {
       try {
-        const res = await fetchWithRetry(`${RESERVE_URL}?action=getNotices`);
-        const data = await res.json();
+        const data = await _fetchNoticesFromFirestore();
         notices = data.rows || []; replies = data.replies || [];
         _renderHomeNotices();
       } catch(e) {}
@@ -5685,10 +5733,16 @@ function csDateInputValue(val) {
 <!-- ============================================================ -->
 <section id="smsTab" class="tab-panel" style="display:none;">
 <style>
-  .sms-wrap { max-width:860px; margin:0 auto; padding:10px 0; overflow-x:clip; }
+  .sms-wrap { max-width:1400px; margin:0 auto; padding:10px 0; overflow-x:clip; }
   .sms-header { font-size:20px; font-weight:800; color:#222; margin-bottom:6px; }
   .sms-desc { font-size:13px; color:#888; margin-bottom:20px; }
+  .sms-template-row { display:block; }
   .sms-template-card { background:#fff; border:1px solid #e8e8e8; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
+  @media (min-width:900px) {
+    .sms-template-row { display:flex; align-items:stretch; gap:16px; }
+    .sms-template-row .sms-template-card { flex:1; min-width:0; margin-bottom:0; display:flex; flex-direction:column; }
+    .sms-template-row .sms-textarea { flex:1; }
+  }
   .sms-template-title { font-size:14px; font-weight:800; color:var(--brand); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
   .sms-vars { font-size:11.5px; color:#aaa; margin-bottom:10px; }
   .sms-vars span { background:var(--cream-2); color:var(--brand); border-radius:4px; padding:2px 7px; margin-right:4px; font-weight:700; }
@@ -5705,6 +5759,7 @@ function csDateInputValue(val) {
   <div class="sms-header"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>문자 발송 관리</div>
   <div class="sms-desc">문자 템플릿을 수정하고 저장하세요. 저장된 템플릿은 자동 발송 시 사용됩니다.</div>
 
+  <div class="sms-template-row">
   <!-- 예약확정 -->
   <div class="sms-template-card">
     <div class="sms-template-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a7a45" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="20 6 9 17 4 12"></polyline></svg>예약확정 문자</div>
@@ -5739,6 +5794,7 @@ function csDateInputValue(val) {
       <span class="sms-saved-msg" id="smsSaved_today"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a7a45" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="20 6 9 17 4 12"></polyline></svg>저장됨</span>
       <button class="sms-save-btn" onclick="saveSmsTemplate('today')">저장</button>
     </div>
+  </div>
   </div>
 
   <!-- 발송 내역 -->
@@ -8229,12 +8285,9 @@ function csDateInputValue(val) {
 
     async function loadMonthlyNoticeEditor() {
       try {
-        // ★ 월별 휴무안내만 구글시트에서 읽는다 (예약페이지와 동일 출처).
-        const url = `${window.BOOKING_URL}?action=getMonthlyNotice`;
-        const res = await window.fetchWithRetry(url, undefined, 1, 30000);
-        const data = await res.json();
-        if (!data || data.status !== 'ok') throw new Error((data && data.message) || '조회 실패');
-        _monthlyData = data.notices || {};
+        // ★ 저장은 구글시트에(직원용 열람), 조회는 Firestore에서 한다 — 저장 시 서버(예약스크립트)가 두 곳을 동기화해준다.
+        const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'settings', 'monthlyNotice'));
+        _monthlyData = snap.exists() ? snap.data() : {};
         const ed = document.getElementById('monthlyNoticeEditor');
         const key = `${_noticeYear}_${_selectedMonth}`;
         if (ed) ed.innerHTML = _monthlyData[key] || '';
@@ -10059,6 +10112,10 @@ async function fetchStockData(forceRefresh = false) {
             <button onclick="fetchStockData()" style="margin-top:10px;padding:6px 16px;background:#111;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">다시 시도</button>
             </td></tr>`;
     }
+    // ★ 재고 표는 로딩→실패/재시도 과정에서 늦게, 크게 높이가 바뀔 수 있어
+    //   윅스 iframe 리사이즈(ResizeObserver+800ms 폴링)가 따라잡기 전 순간적으로 이중스크롤이 보일 수 있다.
+    //   렌더 직후 즉시 한 번 더 높이를 강제로 재전송해 그 틈을 없앤다.
+    if (window._sendIframeHeight) window._sendIframeHeight();
 }
 
 // ============================================================
