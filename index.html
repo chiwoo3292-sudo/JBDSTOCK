@@ -68,6 +68,22 @@
       }, 30);
     });
   };
+
+  // ★ 윅스 iframe 안에서 position:fixed 오버레이는 "iframe 자체의 맨 위" 기준으로 고정돼버려서,
+  //   바깥 윅스 페이지를 스크롤한 만큼 화면 밖으로 밀려 안 보이거나 잘리는 문제가 있었다
+  //   (게스트메뉴/허용메뉴 모달, 재고 상세 팝업 등). 모달을 여는 시점의 실제 스크롤 위치를 기준으로
+  //   절대 위치를 잡아, 이중스크롤 여부와 무관하게 항상 현재 보이는 화면에 뜨게 한다.
+  window._positionModalAtScroll = function(modalEl) {
+    if (!modalEl) return;
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    modalEl.style.position = 'absolute';
+    modalEl.style.top = scrollY + 'px';
+    modalEl.style.left = '0';
+    modalEl.style.right = '0';
+    modalEl.style.bottom = 'auto';
+    modalEl.style.height = (window.innerHeight || document.documentElement.clientHeight || 800) + 'px';
+    modalEl.style.display = 'flex';
+  };
 </script>
 
 <script>
@@ -2475,9 +2491,9 @@
     const results = [];
     let hadError = false;
 
-    async function runSync(label, url) {
+    async function runSync(label, url, retries, timeoutMs) {
       try {
-        const res = await fetchWithRetry(url);
+        const res = await fetchWithRetry(url, undefined, retries, timeoutMs);
         const data = await res.json();
         if (data.status === 'ok') {
           const parts = [];
@@ -2498,6 +2514,8 @@
     await runSync('슬롯', `${BOOKING_URL}?action=syncSlotsToFirestore`);
     await runSync('월별휴무안내', `${BOOKING_URL}?action=syncMonthlyNoticeToFirestore`);
     await runSync('전사게시판', `${RESERVE_URL}?action=syncNoticesToFirestore`);
+    // 직원정보는 인원 수에 따라 오래 걸릴 수 있어 재시도 없이 타임아웃만 넉넉하게(2분)
+    await runSync('직원정보', `${RESERVE_URL}?action=syncEmployeesToFirestore`, 0, 120000);
 
     if (msg) msg.textContent = results.join(' / ');
     await loadAdminHolidays();
@@ -6068,6 +6086,10 @@ function csDateInputValue(val) {
     .admin-row-2col { display:flex; align-items:flex-start; gap:20px; }
     .admin-row-2col > .admin-card { flex:1; min-width:0; margin-top:0 !important; margin-bottom:0; }
   }
+  /* 화면이 아주 넓을 땐 관리자 페이지 전체 폭도 같이 넓혀서, 연차현황이 3열로도 카드가 눌리지 않게 함 */
+  @media (min-width:1600px) {
+    .admin-wrap { max-width:1500px; }
+  }
 </style>
 <div class="admin-wrap">
   <div class="admin-header">
@@ -6078,7 +6100,7 @@ function csDateInputValue(val) {
   <div class="admin-row-2col">
   <div class="admin-card">
     <div class="admin-section-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>Firestore 동기화</div>
-    <div style="font-size:12.5px;color:#888;margin-bottom:12px;">공휴일 시트를 직접 수정했거나, 예전(파이어스토어 도입 이전)부터 있던 슬롯·월별휴무안내·전사게시판 데이터를 한 번에 옮기고 싶을 때 누르세요. 여러 번 눌러도 중복 생성되지 않아 안전합니다.</div>
+    <div style="font-size:12.5px;color:#888;margin-bottom:12px;">공휴일·직원정보 시트를 직접 수정했거나, 예전(파이어스토어 도입 이전)부터 있던 슬롯·월별휴무안내·전사게시판 데이터를 한 번에 옮기고 싶을 때 누르세요. 여러 번 눌러도 중복 생성되지 않아 안전합니다.</div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button class="admin-btn primary" onclick="syncAllToFirestore()">Firestore 동기화</button>
       <span id="holidaySyncMsg" style="font-size:12.5px;color:#666;"></span>
@@ -6161,6 +6183,10 @@ function csDateInputValue(val) {
   @media (min-width:900px) {
     #orgLeaveList { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; }
     #orgLeaveList .leave-card { margin-bottom:0; }
+  }
+  /* 화면이 아주 넓을 땐(위 .admin-wrap도 같이 넓어짐) 3열까지 */
+  @media (min-width:1600px) {
+    #orgLeaveList { grid-template-columns:1fr 1fr 1fr; }
   }
   @media (max-width:560px) {
     #orgLeaveList .leave-row { flex-wrap:wrap; gap:10px 14px; }
@@ -6259,32 +6285,6 @@ function csDateInputValue(val) {
         </div>
         <button onclick="runConsultMigration()" class="admin-btn primary" style="padding:8px 20px;">전체 데이터 마이그레이션 실행</button>
         <div id="migrationProgress" style="font-size:12px;color:#888;margin-top:10px;"></div>
-      </div>
-
-      <!-- 직원정보 Firestore 동기화 (로그인·직원조회 속도 개선) -->
-      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          직원정보 Firestore 동기화
-        </div>
-        <div style="font-size:11px;color:#999;margin-bottom:14px;line-height:1.6;">
-          구글시트 [직원정보]를 Firestore로 복사합니다. 로그인·직원조회가 빨라집니다. 시트가 원본이며, <b>시트를 수정한 뒤 이 버튼을 누르면 최신 상태로 갱신</b>됩니다. (문서ID=직원 아이디라 중복 없음)
-        </div>
-        <button onclick="runEmployeeSync()" class="admin-btn primary" style="padding:8px 20px;">직원정보 동기화 실행</button>
-        <div id="empSyncProgress" style="font-size:12px;color:#888;margin-top:10px;"></div>
-      </div>
-
-      <!-- Google Gemini API -->
-      <div style="border:1px solid var(--border);border-radius:10px;padding:18px;">
-        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:14px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          Google Gemini API
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
-          <input type="password" id="adminGeminiKey" placeholder="AIza... 형태의 키 입력" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;">
-          <button onclick="adminSaveGeminiKey()" class="admin-btn primary" style="padding:8px 20px;white-space:nowrap;">저장</button>
-        </div>
-        <div id="adminGeminiStatus" style="font-size:11px;color:#aaa;"></div>
       </div>
 
       <!-- Apps Script URL (읽기 전용 — 코드 하드코딩 값만 사용, 화면에서 변경 불가) -->
@@ -7323,7 +7323,7 @@ function csDateInputValue(val) {
         document.getElementById('empModalIsHead').checked    = false;
         document.getElementById('empModalIsManager').checked = false;
       }
-      modal.style.display = 'flex';
+      window._positionModalAtScroll(modal);
     };
 
     window.closeEmpModal = function() {
@@ -7443,7 +7443,7 @@ function csDateInputValue(val) {
           </div>
         `;
       }).join('');
-      document.getElementById('tabPermModal').style.display = 'flex';
+      window._positionModalAtScroll(document.getElementById('tabPermModal'));
     };
 
     window.setTabPerm = function(tabId, isOn) {
@@ -7540,7 +7540,7 @@ function csDateInputValue(val) {
             </div>
           </div>`;
       }).join('');
-      document.getElementById('guestTabModal').style.display = 'flex';
+      window._positionModalAtScroll(document.getElementById('guestTabModal'));
     };
 
     window.setGuestTabPerm = function(tabId, isOn) {
@@ -7927,14 +7927,6 @@ function csDateInputValue(val) {
       }
     } catch(e) {}
 
-    // Gemini API Key 로드 (localStorage)
-    const geminiKey = localStorage.getItem('baram_gemini_key');
-    if (geminiKey && document.getElementById('adminGeminiKey')) {
-      document.getElementById('adminGeminiKey').value = geminiKey;
-      document.getElementById('adminGeminiStatus').textContent = '저장된 키가 있습니다.';
-      document.getElementById('adminGeminiStatus').style.color = '#4caf50';
-    }
-
     // Apps Script URL 표시 (읽기 전용 — 하드코딩 값만 사용)
     if (document.getElementById('adminReserveUrl')) document.getElementById('adminReserveUrl').textContent = RESERVE_URL;
     if (document.getElementById('adminErpUrl')) document.getElementById('adminErpUrl').textContent = ERP_URL;
@@ -7946,23 +7938,6 @@ function csDateInputValue(val) {
       localStorage.removeItem('baram_reserve_url');
       localStorage.removeItem('baram_erp_url');
     } catch (e) { /* 무시 */ }
-  };
-
-  // ── 직원정보 시트 → Firestore 동기화 ──
-  window.runEmployeeSync = async function() {
-    const prog = document.getElementById('empSyncProgress');
-    if (prog) { prog.style.color = '#888'; prog.textContent = '동기화 중... (직원 수에 따라 시간이 걸릴 수 있습니다)'; }
-    try {
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=syncEmployeesToFirestore`, undefined, 0, 120000);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        if (prog) { prog.style.color = '#1a7a45'; prog.textContent = `✓ 동기화 완료: 직원 ${data.count}명`; }
-      } else {
-        if (prog) { prog.style.color = '#c0392b'; prog.textContent = '실패: ' + (data.message || ''); }
-      }
-    } catch(e) {
-      if (prog) { prog.style.color = '#c0392b'; prog.textContent = '오류: ' + e.message; }
-    }
   };
 
   // ── 쇼룸상담 Firestore 초기 마이그레이션 ──//   구글시트 [쇼룸상담] 전체를 1회 조회(getConsultsFull)한 뒤 Firestore로 batch 업로드.
@@ -8285,14 +8260,6 @@ function csDateInputValue(val) {
       await fetchWithRetry(`${window.ERP_URL}?action=revokeGmailAccount&email=${encodeURIComponent(email)}`, undefined, 0, 30000);
       renderGmailAccountRows();
     } catch(e) { alert('해제 실패: ' + e.message); }
-  };
-
-  window.adminSaveGeminiKey = function() {
-    const key = document.getElementById('adminGeminiKey').value.trim();
-    const statusEl = document.getElementById('adminGeminiStatus');
-    if (!key) { if (statusEl) { statusEl.textContent = '키를 입력해주세요.'; statusEl.style.color = '#f44336'; } return; }
-    localStorage.setItem('baram_gemini_key', key);
-    if (statusEl) { statusEl.textContent = '저장 완료!'; statusEl.style.color = '#4caf50'; }
   };
 
   // ★ URL 변경/저장 기능 제거됨 — 하드코딩 값만 사용. (남은 참조 대비 안전한 no-op)
@@ -10253,8 +10220,12 @@ function _positionItemModal(clickY) {
   if (typeof clickY === 'number') {
     modal.style.position = 'absolute';
     modal.style.alignItems = 'flex-start';
-    let top = clickY - 40; // 클릭한 지점 바로 위쪽에서 살짝 아래로 시작
-    if (top < 20) top = 20;
+    // ★ clickY는 현재 화면(뷰포트) 기준 좌표라, absolute 위치(문서 맨 위=0 기준)로 바로 쓰면
+    //   스크롤을 내린 상태에서 클릭할수록 실제 문서 위치보다 한참 위에 그려져 화면 밖으로 벗어났다.
+    //   현재 스크롤 위치를 더해 "문서 기준 위치"로 정확히 환산한다.
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    let top = scrollY + clickY - 40; // 클릭한 지점 바로 위쪽에서 살짝 아래로 시작
+    if (top < scrollY + 20) top = scrollY + 20;
     box.style.marginTop = top + 'px';
     return;
   }
