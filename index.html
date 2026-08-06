@@ -1347,8 +1347,10 @@
     box-shadow: none !important;
     margin: 0 !important;
     padding: 84px 82px 82px !important;
-    /* 930px를 210mm(≈793px @96dpi)에 맞게 축소 */
-    transform: scale(0.853) !important;
+    /* 930px를 210mm(≈793px @96dpi)에 맞게 축소하는 배율. 항목이 많아 세로로 길어지면
+       printInvoice()가 --inv-print-scale을 그보다 더 작게 재계산해서 A4 한 장에 맞춘다
+       (고정값 0.853만 쓰면 기본 분량 기준으로 튜닝된 값이라 항목이 늘면 하단이 잘렸다). */
+    transform: scale(var(--inv-print-scale, 0.853)) !important;
     transform-origin: top left !important;
   }
 }
@@ -1928,6 +1930,10 @@
   async function loadAdminHolidays() {
     try {
       await window._waitForFirebase();
+      // ★ ERP의 익명 인증은 직원 로그인(unlock) 시점에만 트리거된다. 이 함수는 로그인 전
+      //   페이지 로드 즉시(initSlotGrid) 실행될 수도 있어서, 그때는 fbEnsureAuth가 아직 한 번도
+      //   호출된 적이 없다 — 여기서 직접 호출해 인증 완료까지 기다려야 Firestore 조회가 통과한다.
+      await window.fbEnsureAuth();
       const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'settings', 'holidays'));
       holidayMap = snap.exists() ? snap.data() : {};
     } catch (e) {
@@ -2379,6 +2385,7 @@
 
     try {
       await window._waitForFirebase();
+      await window.fbEnsureAuth();
       const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'slots', date));
       if (snap.exists()) {
         const data = snap.data();
@@ -4992,6 +4999,7 @@ function csDateInputValue(val) {
 
   async function _fetchNoticesFromFirestore() {
     await window._waitForFirebase();
+    await window.fbEnsureAuth();
     const [noticeSnap, replySnap] = await Promise.all([
       window.FB.getDocs(window.FB.collection(window.FB.db, 'notices')),
       window.FB.getDocs(window.FB.collection(window.FB.db, 'noticeReplies'))
@@ -7796,7 +7804,8 @@ function csDateInputValue(val) {
         } else if (data.message && data.message.indexOf('설정 없음') >= 0) {
           result = 'API미연동';
         } else {
-          result = '발송실패:' + (data.message || '');
+          // 발송내역 표에서 빨간색으로 이미 실패임을 알 수 있으므로 "발송실패:" 접두어는 생략
+          result = data.message || '발송실패';
         }
       } catch(e) {
         result = '발송오류:' + e.message;
@@ -8347,6 +8356,7 @@ function csDateInputValue(val) {
       try {
         // ★ 저장은 구글시트에(직원용 열람), 조회는 Firestore에서 한다 — 저장 시 서버(예약스크립트)가 두 곳을 동기화해준다.
         await window._waitForFirebase();
+        await window.fbEnsureAuth();
         const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'settings', 'monthlyNotice'));
         _monthlyData = snap.exists() ? snap.data() : {};
         const ed = document.getElementById('monthlyNoticeEditor');
@@ -11324,15 +11334,15 @@ function renderInvoice() {
         } else if (isFinal) {
             if (titleEl) titleEl.childNodes[0].textContent = 'STATEMENT';
             if (brandEl) brandEl.style.letterSpacing = '12.2px';
-            subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
+            subtitleEl.textContent = '';
         } else if (isDraft) {
             if (titleEl) titleEl.childNodes[0].textContent = 'ESTIMATE';
             if (brandEl) brandEl.style.letterSpacing = '16px';
-            subtitleEl.textContent = isMaterialMode ? '(자재만)' : '';
+            subtitleEl.textContent = '';
         } else {
             if (titleEl) titleEl.childNodes[0].textContent = 'INVOICE';
             if (brandEl) brandEl.style.letterSpacing = '12.2px';
-            subtitleEl.textContent = (allBox || isMaterialMode) ? '(자재만)' : '';
+            subtitleEl.textContent = '';
         }
         if (brandEl) brandEl.style.marginRight = '0px';
     }
@@ -11460,6 +11470,18 @@ function renderInvoice() {
 
 function printInvoice() {
     renderInvoice();
+    // ★ 930px 폭 기준 고정 배율(0.853)은 기본 분량(min-height:1312px)에 맞춰 튜닝된 값이라,
+    //   제품/공과잡비를 추가해 실제 내용이 더 길어지면 그 초과분이 A4 한 장 밖으로 넘쳐
+    //   overflow:hidden에 잘려나갔다. 인쇄 직전 실제 높이를 재서, 필요하면 그보다 더 작은
+    //   배율을 써서 세로로도 한 장에 들어가게 만든다(가로폭 배율 0.853은 그대로 상한선).
+    const doc = document.getElementById('invoiceDoc');
+    if (doc) {
+        const A4_HEIGHT_PX = 1122.52; // 297mm @ 96dpi
+        const WIDTH_SCALE = 0.853;    // 210mm / 930px 고정 상한
+        const rawH = doc.scrollHeight || 1312;
+        const scale = Math.min(WIDTH_SCALE, A4_HEIGHT_PX / rawH);
+        document.documentElement.style.setProperty('--inv-print-scale', scale.toFixed(4));
+    }
     document.body.classList.add('print-invoice');
     window.print();
     setTimeout(() => document.body.classList.remove('print-invoice'), 800);
