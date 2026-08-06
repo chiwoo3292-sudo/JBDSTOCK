@@ -213,7 +213,10 @@
 .grid-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
   .grid-tabs .quick-preview-trigger .secondary { width: 100%; min-height: 44px; padding: 0 4px; border: 1px solid #d8d8d8; border-radius: 8px; background: #fff; color: #444; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:'Pretendard','Noto Sans KR', sans-serif; background:var(--app-bg); color:#2B2521; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow-x:hidden; overflow-y:auto; }
+  /* ★ overflow-y는 visible로 둔다(auto 금지) — body가 자체 스크롤 영역이 되면 Wix에서
+     iframe 높이를 내용에 맞게 늘려줘도 body 안쪽에서 또 스크롤이 걸려 이중 스크롤이 생긴다.
+     스크롤은 항상 윅스 부모 페이지 하나에서만 일어나야 한다. */
+  body { margin:0; font-family:'Pretendard','Noto Sans KR', sans-serif; background:var(--app-bg); color:#2B2521; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow-x:hidden; overflow-y:visible; }
   [spellcheck], input, textarea, td, th, select { -webkit-spellcheck: false; }
   td, th { -webkit-user-modify: read-only; }
   .wrap { max-width:1880px; margin:0 auto; padding:10px; }
