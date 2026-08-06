@@ -2449,10 +2449,21 @@
       <span id="selectedMonthLabel" style="font-size:15px;font-weight:800;color:#222;"></span>
     </div>
 
-    <!-- 텍스트 입력 -->
-    <textarea id="monthlyNoticeEditor"
-      style="width:100%;min-height:100px;padding:14px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.8;box-sizing:border-box;"
-      placeholder=""></textarea>
+    <!-- 서식 툴바: 텍스트를 드래그로 선택한 뒤 눌러서 적용 -->
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+      <button type="button" onmousedown="event.preventDefault();document.execCommand('bold')" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-weight:800;font-size:13px;color:#333;">B</button>
+      <button type="button" onmousedown="event.preventDefault()" onclick="document.getElementById('noticeColorPicker').click()" style="width:30px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:14px;">🎨</button>
+      <input type="color" id="noticeColorPicker" value="#7a5c44" style="width:0;height:0;opacity:0;position:absolute;"
+        onmousedown="event.preventDefault()"
+        oninput="document.execCommand('foreColor', false, this.value)">
+      <button type="button" onmousedown="event.preventDefault();document.execCommand('removeFormat')" style="padding:0 10px;height:30px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;color:#888;">서식 지우기</button>
+      <span style="font-size:11px;color:#aaa;margin-left:4px;">강조할 부분을 드래그로 선택한 뒤 버튼을 눌러주세요</span>
+    </div>
+
+    <!-- 텍스트 입력 (리치텍스트: 드래그 선택 후 위 툴바로 굵게/색상 적용) -->
+    <div id="monthlyNoticeEditor" contenteditable="true"
+      style="width:100%;min-height:100px;padding:14px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;line-height:1.8;box-sizing:border-box;outline:none;"
+      data-placeholder=""></div>
 
     <!-- 미리보기 -->
     <div id="noticePreviewBox" style="display:none;margin-top:14px;padding:14px 16px;background:var(--cream);border:1px solid var(--border);border-radius:10px;">
@@ -8156,27 +8167,27 @@ function csDateInputValue(val) {
 
     window.changeNoticeYear = function(delta) {
       const ed = document.getElementById('monthlyNoticeEditor');
-      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
+      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.innerHTML;
       _noticeYear += delta;
       const key = `${_noticeYear}_${_selectedMonth}`;
-      if (ed) ed.value = _monthlyData[key] || '';
+      if (ed) ed.innerHTML = _monthlyData[key] || '';
       updateMonthBtns();
       renderNoticePreview();
     };
 
     window.selectNoticeMonth = function(m) {
       const ed = document.getElementById('monthlyNoticeEditor');
-      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
+      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.innerHTML;
       _selectedMonth = String(m);
       const key = `${_noticeYear}_${_selectedMonth}`;
-      if (ed) ed.value = _monthlyData[key] || '';
+      if (ed) ed.innerHTML = _monthlyData[key] || '';
       updateMonthBtns();
       renderNoticePreview();
     };
 
     window.saveMonthlyNotice = async function() {
       const ed = document.getElementById('monthlyNoticeEditor');
-      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.value;
+      if (ed) _monthlyData[`${_noticeYear}_${_selectedMonth}`] = ed.innerHTML;
       const savedEl = document.getElementById('monthlyNoticeSaved');
       try {
         // ★ 월별 휴무안내만 구글시트를 사용한다 (예약페이지가 구글시트를 읽어가므로).
@@ -8197,7 +8208,7 @@ function csDateInputValue(val) {
       const content = document.getElementById('noticePreviewContent');
       if (!box || !content) return;
       if (text) {
-        content.textContent = text;
+        content.innerHTML = text;
         box.style.display = 'block';
       } else {
         box.style.display = 'none';
@@ -8214,12 +8225,12 @@ function csDateInputValue(val) {
         _monthlyData = data.notices || {};
         const ed = document.getElementById('monthlyNoticeEditor');
         const key = `${_noticeYear}_${_selectedMonth}`;
-        if (ed) ed.value = _monthlyData[key] || '';
+        if (ed) ed.innerHTML = _monthlyData[key] || '';
       } catch(e) {
         // 조용히 사라지지 않도록 흔적을 남긴다 (편집기 화면에만 표시)
         console.warn('[월별휴무안내] 불러오기 실패:', e && e.message);
         const ed = document.getElementById('monthlyNoticeEditor');
-        if (ed && !ed.value) ed.placeholder = '휴무안내를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.';
+        if (ed && !ed.innerHTML) ed.innerHTML = '';
       }
       updateMonthBtns();
       // 데이터 로드 완료 후 미리보기 강제 렌더링
@@ -8229,7 +8240,7 @@ function csDateInputValue(val) {
       const content = document.getElementById('noticePreviewContent');
       if (box && content) {
         if (text) {
-          content.textContent = text;
+          content.innerHTML = text;
           box.style.display = 'block';
         } else {
           box.style.display = 'none';
@@ -8239,7 +8250,7 @@ function csDateInputValue(val) {
 
     document.addEventListener('input', function(e) {
       if (e.target.id === 'monthlyNoticeEditor') {
-        _monthlyData[`${_noticeYear}_${_selectedMonth}`] = e.target.value;
+        _monthlyData[`${_noticeYear}_${_selectedMonth}`] = e.target.innerHTML;
       }
     });
 
