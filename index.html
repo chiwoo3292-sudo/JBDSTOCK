@@ -1811,7 +1811,8 @@
       </div>
       <div id="slotMsg" style="font-size:12px;color:#555;margin-top:8px;text-align:center;"></div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;text-align:center;">
-        <button onclick="syncHolidaysToFirestore()" style="background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;">공휴일 시트 → 동기화</button>
+        <button onclick="syncAllToFirestore()" style="background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;">기존 데이터 → Firestore 동기화</button>
+        <div style="font-size:10px;color:#999;margin-top:4px;">공휴일·슬롯·월별휴무안내·전사게시판을 한 번에 옮깁니다. 여러 번 눌러도 안전합니다.</div>
         <div id="holidaySyncMsg" style="font-size:11px;color:#555;margin-top:6px;"></div>
       </div>
     </div>
@@ -2424,23 +2425,44 @@
     await saveSlots();
   };
 
-  // 공휴일 시트 편집 후 수동으로 눌러 Firestore에 반영 (공휴일은 직접 시트에서 관리하므로 자동 동기화 없음)
-  window.syncHolidaysToFirestore = async function() {
+  // ★ Firestore 마이그레이션 이전부터 시트에 있던 기존 데이터(공휴일/슬롯/월별휴무안내/전사게시판)를
+  //   한 번에 Firestore로 복사한다. 저장 로직이 이미 신규 데이터는 자동으로 Firestore에 동기화하므로,
+  //   이 버튼은 "그 이전에 이미 저장돼 있던" 과거 데이터를 처음 한 번 채워넣기 위한 용도.
+  //   전부 id 기반 PATCH라 여러 번 눌러도 중복되지 않는다.
+  window.syncAllToFirestore = async function() {
     const msg = document.getElementById('holidaySyncMsg');
     if (msg) msg.textContent = '동기화 중...';
-    try {
-      const res = await fetchWithRetry(`${BOOKING_URL}?action=syncHolidaysToFirestore`);
-      const data = await res.json();
-      if (data.status === 'ok') {
-        if (msg) msg.textContent = `동기화 완료 (${data.count}건)`;
-        await loadAdminHolidays();
-        setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
-      } else {
-        if (msg) msg.textContent = '실패: ' + (data.message || '알 수 없는 오류');
+    const results = [];
+    let hadError = false;
+
+    async function runSync(label, url) {
+      try {
+        const res = await fetchWithRetry(url);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          const parts = [];
+          if (typeof data.count === 'number') parts.push(data.count + '건');
+          if (typeof data.replyCount === 'number') parts.push('댓글 ' + data.replyCount + '건');
+          results.push(`${label} ${parts.join(' · ') || '완료'}`);
+        } else {
+          hadError = true;
+          results.push(`${label} 실패(${data.message || '알 수 없는 오류'})`);
+        }
+      } catch(e) {
+        hadError = true;
+        results.push(`${label} 오류(${e.message})`);
       }
-    } catch(e) {
-      if (msg) msg.textContent = '오류: ' + e.message;
     }
+
+    await runSync('공휴일', `${BOOKING_URL}?action=syncHolidaysToFirestore`);
+    await runSync('슬롯', `${BOOKING_URL}?action=syncSlotsToFirestore`);
+    await runSync('월별휴무안내', `${BOOKING_URL}?action=syncMonthlyNoticeToFirestore`);
+    await runSync('전사게시판', `${RESERVE_URL}?action=syncNoticesToFirestore`);
+
+    if (msg) msg.textContent = results.join(' / ');
+    await loadAdminHolidays();
+    if (typeof window.loadNotices === 'function') window.loadNotices().catch(() => {});
+    if (!hadError) setTimeout(() => { if (msg) msg.textContent = ''; }, 6000);
   };
 
   // 초기 슬롯 그리드 렌더 — 공휴일 데이터를 먼저 불러온 뒤 오늘 날짜 기준으로 표시
