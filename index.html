@@ -10494,8 +10494,9 @@ function renderStockTable(rows, orderRows, arrivalRows) {
 
     // 시리즈(품번의 "C#" 뒤 두 자리) 추출 — 예: "C#1504"→"15", "스모크 오크C#1801"→"18", 매칭 안 되면 "기타"
     function getStockSeries(itemCode) {
-        const m = String(itemCode).match(/C#(\d{2})/i);
-        return m ? m[1] : '기타';
+        // 품번/품명 안 어디에든 "#" 뒤에 두 자리 숫자가 있으면 그 시리즈로 분류 (앞에 붙는 글자는 무관)
+        const m = String(itemCode).match(/#(\d{2})/);
+        return m ? m[1] : 'ETC';
     }
     // 시리즈별 품번 개수(중복 LOT 제외, 실제 품번 기준) 미리 집계 — 헤더에 표시용
     const seriesItemCodeSets = {};
@@ -10523,7 +10524,7 @@ function renderStockTable(rows, orderRows, arrivalRows) {
             headerTr.className = 'stock-series-header';
             headerTr.style.cursor = 'pointer';
             headerTr.innerHTML = `<td colspan="6" style="background:#eef1f5;font-weight:800;padding:10px 14px;text-align:left;">
-                <svg class="stock-series-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px;transition:transform .15s;"><polyline points="9 18 15 12 9 6"></polyline></svg>${series === '기타' ? '기타' : 'C#' + series} 시리즈 (${itemCount}개 품번)
+                <svg class="stock-series-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px;transition:transform .15s;"><polyline points="9 18 15 12 9 6"></polyline></svg>${series === 'ETC' ? 'ETC' : series + '시리즈'} (${itemCount}개 품번)
             </td>`;
             headerTr.addEventListener('click', () => window.toggleStockSeries(headerTr, seriesGroupKey));
             tbody.appendChild(headerTr);
