@@ -2372,6 +2372,11 @@
     if (!date) { alert('날짜를 선택해주세요.'); return; }
     document.getElementById('slotMsg').textContent = '불러오는 중...';
 
+    // ★ holidayMap은 비동기로 채워지는데(Firestore+인증 왕복), 바로 아래 getSlotsForDate가
+    //   이걸 동기적으로 체크한다. 날짜를 빨리 누르면 아직 안 채워진 holidayMap을 보고
+    //   공휴일이 아닌 것처럼 통과되던 버그 — 체크 전에 항상 최신 상태를 기다린다.
+    await loadAdminHolidays();
+
     currentSlots = getSlotsForDate(date); // 평일14 / 토12 / 일요일·공휴일 0
     slotState = {};
     currentSlots.forEach(s => slotState[s] = 'open');
