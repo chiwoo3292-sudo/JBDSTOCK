@@ -8469,9 +8469,9 @@ function csDateInputValue(val) {
       // "내역이 없습니다" 빈 상태면 먼저 비움
       if (tbody.querySelector('.admin-empty')) tbody.innerHTML = '';
       tbody.insertAdjacentHTML('afterbegin', _renderSmsLogRow(r));
-      // 10건 초과분은 화면에서도 잘라내 실제 저장 상태(최근 10건)와 맞춤
+      // 5건 초과분은 화면에서도 잘라내 실제 저장 상태(최근 5건)와 맞춤
       const rowsEl = tbody.querySelectorAll('tr');
-      if (rowsEl.length > 10) { for (let i = 10; i < rowsEl.length; i++) rowsEl[i].remove(); }
+      if (rowsEl.length > 5) { for (let i = 5; i < rowsEl.length; i++) rowsEl[i].remove(); }
     };
 
     window.loadSmsLog = async function() {
@@ -8479,11 +8479,11 @@ function csDateInputValue(val) {
       if (!tbody) return;
       try {
         await window.fbEnsureAuth();
-        // 최신 10건만 조회 (읽기 최소화 — Firestore 이전 원칙)
+        // 최신 5건만 조회 (읽기 최소화 — Firestore 이전 원칙)
         const q = window.FB.query(
           window.FB.collection(window.FB.db, 'smsLog'),
           window.FB.orderBy('sentAtMs', 'desc'),
-          window.FB.limit(10)
+          window.FB.limit(5)
         );
         const snap = await window.FB.getDocs(q);
         const rows = snap.docs.map(d => d.data());
@@ -10492,11 +10492,43 @@ function renderStockTable(rows, orderRows, arrivalRows) {
         }
     });
 
-    // 2단계: 화면 렌더링
+    // 시리즈(품번의 "C#" 뒤 두 자리) 추출 — 예: "C#1504"→"15", "스모크 오크C#1801"→"18", 매칭 안 되면 "기타"
+    function getStockSeries(itemCode) {
+        const m = String(itemCode).match(/C#(\d{2})/i);
+        return m ? m[1] : '기타';
+    }
+    // 시리즈별 품번 개수(중복 LOT 제외, 실제 품번 기준) 미리 집계 — 헤더에 표시용
+    const seriesItemCodeSets = {};
+    processedRows.forEach(d => {
+        const s = getStockSeries(d.itemCode);
+        if (!seriesItemCodeSets[s]) seriesItemCodeSets[s] = new Set();
+        seriesItemCodeSets[s].add(d.itemCode);
+    });
+
+    // 2단계: 화면 렌더링 — 시리즈가 바뀔 때마다 접이식 헤더 행을 먼저 넣고, 그 아래 품번 행들은 기본 숨김
     let lastSeenItemCode = '';
     let isGrayGroup = false;
+    let lastSeries = null;
+    let seriesGroupKey = '';
+    let seriesSeq = 0;
 
     processedRows.forEach(d => {
+        const series = getStockSeries(d.itemCode);
+        if (series !== lastSeries) {
+            lastSeries = series;
+            seriesSeq++;
+            seriesGroupKey = 'series_' + series + '_' + seriesSeq;
+            const itemCount = seriesItemCodeSets[series] ? seriesItemCodeSets[series].size : 0;
+            const headerTr = document.createElement('tr');
+            headerTr.className = 'stock-series-header';
+            headerTr.style.cursor = 'pointer';
+            headerTr.innerHTML = `<td colspan="6" style="background:#eef1f5;font-weight:800;padding:10px 14px;text-align:left;">
+                <svg class="stock-series-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px;transition:transform .15s;"><polyline points="9 18 15 12 9 6"></polyline></svg>${series === '기타' ? '기타' : 'C#' + series} 시리즈 (${itemCount}개 품번)
+            </td>`;
+            headerTr.addEventListener('click', () => window.toggleStockSeries(headerTr, seriesGroupKey));
+            tbody.appendChild(headerTr);
+        }
+
         const isNewGroup = d.itemCode !== lastSeenItemCode;
         let displayItemCode = '';
         if (isNewGroup) {
@@ -10517,6 +10549,8 @@ function renderStockTable(rows, orderRows, arrivalRows) {
 
         const tr = document.createElement('tr');
         tr.className = (isGrayGroup ? 'bg-group-gray' : 'bg-group-white') + (isNewGroup ? ' group-first' : '');
+        tr.dataset.seriesGroup = seriesGroupKey;
+        tr.style.display = 'none'; // 기본 접힘 — 시리즈 헤더 클릭 시 펼침
 
         const totalRaw = String(d.totalM2);
       
@@ -10590,6 +10624,18 @@ tr.innerHTML = `
         tbody.appendChild(tr);
     });
 }
+
+// 재고현황 시리즈 헤더 클릭 시 그 시리즈에 속한 품번 행들을 펼치기/접기 (아이콘 회전도 같이 처리)
+window.toggleStockSeries = function(headerTr, seriesGroupKey) {
+    const tbody = document.getElementById('stockTableBody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll(`tr[data-series-group="${seriesGroupKey}"]`);
+    if (!rows.length) return;
+    const show = rows[0].style.display === 'none';
+    rows.forEach(r => { r.style.display = show ? '' : 'none'; });
+    const icon = headerTr.querySelector('.stock-series-toggle-icon');
+    if (icon) icon.style.transform = show ? 'rotate(90deg)' : 'rotate(0deg)';
+};
 
 
 // ── 재고부족 배너 업데이트 (전광판 애니메이션 제거, 정적 표시) ──
