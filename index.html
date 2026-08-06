@@ -2487,11 +2487,19 @@
   //   전부 id 기반 PATCH라 여러 번 눌러도 중복되지 않는다.
   window.syncAllToFirestore = async function() {
     const msg = document.getElementById('holidaySyncMsg');
-    if (msg) msg.textContent = '동기화 중...';
     const results = [];
     let hadError = false;
+    const steps = [
+      ['공휴일', `${BOOKING_URL}?action=syncHolidaysToFirestore`],
+      ['슬롯', `${BOOKING_URL}?action=syncSlotsToFirestore`],
+      ['월별휴무안내', `${BOOKING_URL}?action=syncMonthlyNoticeToFirestore`],
+      ['전사게시판', `${RESERVE_URL}?action=syncNoticesToFirestore`],
+      // 직원정보는 인원 수에 따라 오래 걸릴 수 있어 재시도 없이 타임아웃만 넉넉하게(2분)
+      ['직원정보', `${RESERVE_URL}?action=syncEmployeesToFirestore`, 0, 120000],
+    ];
 
-    async function runSync(label, url, retries, timeoutMs) {
+    async function runSync(idx, label, url, retries, timeoutMs) {
+      if (msg) msg.textContent = `(${idx}/${steps.length}) ${label} 동기화 중...`;
       try {
         const res = await fetchWithRetry(url, undefined, retries, timeoutMs);
         const data = await res.json();
@@ -2510,12 +2518,9 @@
       }
     }
 
-    await runSync('공휴일', `${BOOKING_URL}?action=syncHolidaysToFirestore`);
-    await runSync('슬롯', `${BOOKING_URL}?action=syncSlotsToFirestore`);
-    await runSync('월별휴무안내', `${BOOKING_URL}?action=syncMonthlyNoticeToFirestore`);
-    await runSync('전사게시판', `${RESERVE_URL}?action=syncNoticesToFirestore`);
-    // 직원정보는 인원 수에 따라 오래 걸릴 수 있어 재시도 없이 타임아웃만 넉넉하게(2분)
-    await runSync('직원정보', `${RESERVE_URL}?action=syncEmployeesToFirestore`, 0, 120000);
+    for (let i = 0; i < steps.length; i++) {
+      await runSync(i + 1, ...steps[i]);
+    }
 
     if (msg) msg.textContent = results.join(' / ');
     await loadAdminHolidays();
@@ -3074,7 +3079,7 @@
               style="border:none;outline:none;font-size:13px;background:transparent;width:100%;min-width:0;"
               oninput="formatDateInput(this)">
             <input type="date" id="cfDatePicker" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
-            <span onclick="document.getElementById('cfDatePicker').showPicker?document.getElementById('cfDatePicker').showPicker():document.getElementById('cfDatePicker').click()"
+            <span onclick="window._showDatePicker('cfDatePicker')"
               style="cursor:pointer;font-size:15px;color:#888;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
           </div>
           <div style="position:relative;display:inline-block;">
@@ -3207,7 +3212,7 @@
             style="border:none;outline:none;font-size:13px;background:transparent;width:100%;min-width:0;"
             oninput="formatDateInput(this)">
           <input type="date" id="cfWorkDatePicker" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
-          <span onclick="document.getElementById('cfWorkDatePicker').showPicker?document.getElementById('cfWorkDatePicker').showPicker():document.getElementById('cfWorkDatePicker').click()"
+          <span onclick="window._showDatePicker('cfWorkDatePicker')"
             style="cursor:pointer;font-size:15px;color:#888;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
         </div>
       </div>
@@ -3443,6 +3448,17 @@
     if (v.length > 4) v = v.slice(0,4) + '-' + v.slice(4);
     if (v.length > 7) v = v.slice(0,7) + '-' + v.slice(7);
     input.value = v.slice(0, 10);
+  };
+
+  // ★ showPicker()는 존재 여부만 확인하고 호출하면, 윅스 iframe 안에서 브라우저 보안 정책으로
+  //   조용히 실패(예외)할 수 있어 달력이 아예 안 뜨는 문제가 있었다. 실패 시 .click()으로 폴백한다.
+  window._showDatePicker = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    try {
+      if (el.showPicker) { el.showPicker(); return; }
+    } catch (e) { /* 폴백으로 진행 */ }
+    el.click();
   };
 
   document.addEventListener('change', function(e) {
@@ -4427,9 +4443,15 @@ function csDateInputValue(val) {
   });
 
   // ── 저장 (신규 등록 + 기존 수정 겸용) ──
+  // ★ 이 폼은 "저장" 버튼 외에도 성함/업체명/연락처/현장주소/제품 5개 입력창의 Enter 키로도
+  //   같은 함수가 호출된다. 재진입 방지 없이는 짧은 시간에 두 번 트리거되면 신규 등록이
+  //   중복 생성될 수 있어(문서 2개), 저장 진행 중엔 재호출을 막는다.
+  let _saveConsultBusy = false;
   window.saveConsultForm = async function() {
+    if (_saveConsultBusy) return;
     const name = document.getElementById('cfName').value.trim();
     if (!name) { alert('성함을 입력해주세요.'); return; }
+    _saveConsultBusy = true;
 
     const payload = {
       action: selectedConsult ? 'saveConsult' : 'createConsult',
@@ -4515,6 +4537,8 @@ function csDateInputValue(val) {
       closeConsultForm();
     } catch(e) {
       document.getElementById('cfMsg').textContent = '오류: ' + e.message;
+    } finally {
+      _saveConsultBusy = false;
     }
   };
 
