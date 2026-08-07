@@ -5080,14 +5080,6 @@ function csDateInputValue(val) {
     _renderHomeReservations(); // 예약관리
     _renderHomeEmails();    // 메일함(보낸메일)
 
-    // 게시판: 캐시 없으면 불러온 뒤 재렌더
-    if (!notices.length) {
-      try {
-        const data = await _fetchNoticesFromFirestore();
-        notices = data.rows || []; replies = data.replies || [];
-        _renderHomeNotices();
-      } catch(e) {}
-    }
     // 쇼룸상담: 캐시 없으면 로드
     if ((!window._consultsCache || !window._consultsCache.length) && typeof loadConsults === 'function') {
       try { await loadConsults(); _renderHomeConsults(); } catch(e){}
@@ -5095,6 +5087,14 @@ function csDateInputValue(val) {
     // 예약: 캐시 없으면 로드
     if ((!window.allReservations || !window.allReservations.length) && typeof loadReservations === 'function') {
       try { await loadReservations(); _renderHomeReservations(); } catch(e){}
+    }
+    // 게시판: 캐시 없으면 불러온 뒤 재렌더 — 우선순위를 뒤로 미룸(쇼룸상담/예약보다 나중)
+    if (!notices.length) {
+      try {
+        const data = await _fetchNoticesFromFirestore();
+        notices = data.rows || []; replies = data.replies || [];
+        _renderHomeNotices();
+      } catch(e) {}
     }
   };
 
@@ -10499,10 +10499,19 @@ function renderStockTable(rows, orderRows, arrivalRows) {
     //   숫자 포함)는 전부 ETC로 몰아서 잘못된 낱개 시리즈가 따로 생기지 않게 한다.
     const KNOWN_STOCK_SERIES = ['14','15','16','17','18','19','20'];
     function getStockSeries(itemCode) {
-        // 품번/품명 안 어디에든 "#" 뒤에 두 자리 숫자가 있으면 그 시리즈로 분류 (앞에 붙는 글자는 무관)
-        const m = String(itemCode).match(/#(\d{2})/);
-        const s = m ? m[1] : null;
-        return (s && KNOWN_STOCK_SERIES.includes(s)) ? s : 'ETC';
+        const str = String(itemCode);
+        // "#" 뒤에 공백이 있어도(예: "A# 1701") 숫자를 시리즈로 인식. 뒤에 더 이어지는 숫자가
+        // 있는지도 같이 캡처해서(예: "#1401"의 "01") 진짜 품번인지 판단하는 데 쓴다.
+        const m = str.match(/#\s*(\d{2})(\d*)/);
+        if (!m) return 'ETC';
+        const series = m[1];
+        const extraDigits = m[2];
+        if (!KNOWN_STOCK_SERIES.includes(series)) return 'ETC';
+        const hadSpace = /#\s+\d/.test(m[0]);
+        // "#14"처럼 시리즈 숫자 두 자리만 있고 뒤에 이어지는 숫자가 없으면 실제 품번이 아니라고 보고 제외.
+        // 단, "#" 뒤에 공백을 두고 쓰는 표기(예: "A# 17...")는 이 제외 규칙에서 예외로 둔다.
+        if (!extraDigits && !hadSpace) return 'ETC';
+        return series;
     }
     // ★ 시트 안에서 같은 시리즈 품목들이 한 군데 모여있지 않고 여러 군데 흩어져 있을 수 있어서,
     //   "바로 이전 행과 시리즈가 다르면 새 그룹" 방식으로는 같은 시리즈가 여러 번 쪼개져 나왔다.
