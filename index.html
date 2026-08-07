@@ -2708,6 +2708,7 @@
   .cscal-cell { border-right:1px solid var(--cream-2); border-bottom:1px solid var(--cream-2); padding:5px 5px 7px; min-height:118px; overflow:hidden; position:relative; background:#fff; }
   .cscal-cell.other { background:var(--surface-tint); }
   .cscal-daynum { font-size:12.5px; font-weight:700; color:#555; margin-bottom:4px; display:inline-block; }
+  .cscal-daycount { font-size:10.5px; font-weight:600; color:#999; margin-left:3px; }
   .cscal-cell.other .cscal-daynum { color:var(--border-2); }
   .cscal-cell.sun .cscal-daynum { color:#d6493f; }
   .cscal-cell.today .cscal-daynum { background:var(--brand); color:#fff; border-radius:50%; width:22px; height:22px; line-height:22px; text-align:center; }
@@ -3410,10 +3411,13 @@
   async function loadStaffList() {
     if (_staffListCache) return _staffListCache;
     try {
-      let rows = [];
-      const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
-      const data = await res.json();
-      rows = data.rows || [];
+      // ★ 로그인 시 이미 window._allEmployees로 직원 목록을 받아둔 경우 재사용 → 중복 네트워크 요청 없이 즉시 응답
+      let rows = (window._allEmployees && window._allEmployees.length) ? window._allEmployees : [];
+      if (!rows.length) {
+        const res = await fetchWithRetry(`${RESERVE_URL}?action=getEmployees`);
+        const data = await res.json();
+        rows = data.rows || [];
+      }
       const allActive = rows.filter(r => !r.leaveDate);
       // ★ 상담자 후보는 일단 영업부 + R&D + 대표님만 노출 (그 외 부서는 상담 배정 대상 아님)
       const eligible = allActive.filter(r => r.isHead || /영업|R&D/i.test(r.dept || ''));
@@ -3424,34 +3428,42 @@
     return _staffListCache;
   }
 
+  // ★ 상담자 드롭다운 전용 고정 명단/순서 — 명함전달 담당자 등 다른 곳의 전체 직원목록(_staffListCache)은 그대로 두고
+  //   이 드롭다운에서만 아래 6명을 지정된 순서로 걸러서 보여준다.
+  const COUNSELOR_DROPDOWN_ORDER = ['김호준', '최은용', '김진재', '심현보', '김희주', '김중수'];
+  function _getCounselorDropdownList(list) {
+    return COUNSELOR_DROPDOWN_ORDER
+      .map(n => list.find(full => full.startsWith(n)))
+      .filter(Boolean);
+  }
+  function _renderCounselorOptions(list) {
+    const opts = document.getElementById('cfCounselorOptions');
+    if (!opts) return;
+    const filtered = _getCounselorDropdownList(list);
+    if (filtered.length === 0) {
+      opts.innerHTML = '<div style="padding:10px;color:#aaa;font-size:12px;">직원 없음</div>';
+      return;
+    }
+    opts.innerHTML = filtered.map(name => `
+      <div onclick="addCounselorFromDropdown('${name}')"
+        style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;"
+        onmouseover="this.style.background='var(--cream-2)'" onmouseout="this.style.background=''">
+        ${name}
+      </div>
+    `).join('');
+  }
   function fillCounselorSelect() {
     const opts = document.getElementById('cfCounselorOptions');
     if (!opts) return;
     // 캐시가 있으면 즉시 렌더링
     if (_staffListCache && _staffListCache.length > 0) {
-      opts.innerHTML = _staffListCache.map(name => `
-        <div onclick="addCounselorFromDropdown('${name}')"
-          style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;"
-          onmouseover="this.style.background='var(--cream-2)'" onmouseout="this.style.background=''">
-          ${name}
-        </div>
-      `).join('');
+      _renderCounselorOptions(_staffListCache);
       return;
     }
     // 캐시 없으면 fetch 후 렌더링
     opts.innerHTML = '<div style="padding:10px;color:#aaa;font-size:12px;">불러오는 중...</div>';
     loadStaffList().then(list => {
-      if (list.length === 0) {
-        opts.innerHTML = '<div style="padding:10px;color:#aaa;font-size:12px;">직원 없음</div>';
-        return;
-      }
-      opts.innerHTML = list.map(name => `
-        <div onclick="addCounselorFromDropdown('${name}')"
-          style="padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f5f5f5;"
-          onmouseover="this.style.background='var(--cream-2)'" onmouseout="this.style.background=''">
-          ${name}
-        </div>
-      `).join('');
+      _renderCounselorOptions(list);
     });
   }
 
@@ -3824,7 +3836,7 @@
 
     // 나의상담내역은 최근 100건만이 아니라 전체를 대상으로 걸러야 하므로,
     // 검색어가 있을 때와 마찬가지로 전체 데이터를 온디맨드로 확보한다(캐시되어 재조회는 최초 1회뿐).
-    if (_myConsultsOnly) {
+    if (_myConsultsOnly || csCurrentFilter !== '전체') {
       allConsults = await ensureFullConsults();
       _consultsMode = 'searchResult'; // 최근100 모드가 아니므로 백그라운드 갱신에 덮어써지지 않도록
       _syncConsultRefs();
@@ -4106,13 +4118,14 @@ function csDateInputValue(val) {
     return iso ? iso[1] : s;
   }
 
-  // ★ 문자 발송(예약확정/취소/당일안내) 전용 날짜 표기. 단문(SMS) 유지를 위해 연도를 뺀 MM-DD 형식.
+  // ★ 문자 발송(예약확정/취소) 전용 날짜 표기. 연도를 뺀 "N월N일" 한글 형식.
   //   화면(목록·상세보기 등)에는 절대 쓰지 않는다 — 반드시 csDateDisplayFull(연도 포함)을 쓸 것.
+  //   당일안내는 이 함수를 쓰지 않고 서버(RESERVE스크립트.txt _sendSmsForDateStr)에서 별도로 만든다.
   function csDateDisplay(val) {
     if (!val) return '';
     const s = String(val).trim();
     const parts = s.slice(0, 10).split('-');
-    if (parts.length === 3) return parts[1] + '-' + parts[2]; // "07-10"
+    if (parts.length === 3) return parseInt(parts[1], 10) + '월' + parseInt(parts[2], 10) + '일'; // "8월8일"
     return s;
   }
   // ★ 화면 표시(쇼룸상담 목록 등)용 날짜 표기 — 연도 포함, fmtDateOnly와 동일한 형식으로 통일
@@ -4666,6 +4679,7 @@ function csDateInputValue(val) {
     const prevDays = new Date(_csCalYear, _csCalMonth, 0).getDate();
     const today = new Date();
     const isThisMonthToday = today.getFullYear() === _csCalYear && today.getMonth() === _csCalMonth;
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     const cells = [];
     for (let i = 0; i < firstDow; i++) cells.push({ other:true, day: prevDays - firstDow + 1 + i });
@@ -4685,7 +4699,16 @@ function csDateInputValue(val) {
       if (c.other) cls.push('other');
       if (dow === 0) cls.push('sun');
       if (!c.other && isThisMonthToday && c.day === today.getDate()) cls.push('today');
-      let inner = `<span class="cscal-daynum">${c.day}</span>`;
+      // ★ 오늘 이전 날짜는 그날 상담 총 건수를 날짜 옆에 같이 표시 (예: "5 (12건)")
+      let daycountHtml = '';
+      if (!c.other) {
+        const cellDate = new Date(_csCalYear, _csCalMonth, c.day);
+        const cnt = (byDay[c.day] || []).length;
+        if (cellDate < todayMidnight && cnt > 0) {
+          daycountHtml = `<span class="cscal-daycount">(${cnt}건)</span>`;
+        }
+      }
+      let inner = `<span class="cscal-daynum">${c.day}</span>${daycountHtml}`;
       if (!c.other && byDay[c.day]) {
         const items = byDay[c.day];
         // PC: 이벤트 나열 (기존)
@@ -5277,6 +5300,7 @@ function csDateInputValue(val) {
     renderNoticeReplies(n.id);
     const _dm = document.getElementById('noticeDetailModal');
     _dm.classList.add('open');
+    window._positionModalAtScroll(_dm);
     const _inner = _dm.querySelector('.notice-modal'); if (_inner) _inner.scrollTop = 0; // 항상 맨 위부터
     document.body.style.overflow = 'hidden';
   };
@@ -5324,6 +5348,7 @@ function csDateInputValue(val) {
     renderNoticeAttachList();
     document.getElementById('noticeWriteTitle').textContent = '전사게시판 글쓰기';
     document.getElementById('noticeWriteModal').classList.add('open');
+    window._positionModalAtScroll(document.getElementById('noticeWriteModal'));
     { const _w = document.querySelector('#noticeWriteModal .notice-modal'); if (_w) _w.scrollTop = 0; }
     document.body.style.overflow='hidden';
     document.getElementById('noticeContent').innerHTML = '';
@@ -5347,6 +5372,7 @@ function csDateInputValue(val) {
     document.getElementById('noticeDetailModal').classList.remove('open');
     document.getElementById('noticeWriteTitle').textContent = '전사게시판 글 수정';
     document.getElementById('noticeWriteModal').classList.add('open');
+    window._positionModalAtScroll(document.getElementById('noticeWriteModal'));
     { const _w = document.querySelector('#noticeWriteModal .notice-modal'); if (_w) _w.scrollTop = 0; }
     document.body.style.overflow='hidden';
     document.getElementById('noticeTitle').value = n.title || '';
@@ -5876,7 +5902,7 @@ function csDateInputValue(val) {
   <!-- 예약확정 -->
   <div class="sms-template-card">
     <div class="sms-template-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a7a45" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="20 6 9 17 4 12"></polyline></svg>예약확정 문자</div>
-    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span><span>{상담자}</span></div>
+    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span></div>
     <textarea class="sms-textarea" id="smsTemplate_confirm" oninput="updateSmsCharCount('confirm')" placeholder="Firestore에 저장된 템플릿을 불러오는 중..."></textarea>
     <div class="sms-footer">
       <span class="sms-char-count" id="smsCount_confirm">0자</span>
@@ -5888,7 +5914,7 @@ function csDateInputValue(val) {
   <!-- 예약취소 -->
   <div class="sms-template-card">
     <div class="sms-template-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>예약취소 문자</div>
-    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span><span>{상담자}</span></div>
+    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span></div>
     <textarea class="sms-textarea" id="smsTemplate_cancel" oninput="updateSmsCharCount('cancel')" placeholder="Firestore에 저장된 템플릿을 불러오는 중..."></textarea>
     <div class="sms-footer">
       <span class="sms-char-count" id="smsCount_cancel">0자</span>
@@ -5900,7 +5926,7 @@ function csDateInputValue(val) {
   <!-- 당일예약안내 -->
   <div class="sms-template-card">
     <div class="sms-template-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;flex-shrink:0;"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>당일예약안내 문자 <span style="font-size:11px;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-weight:700;">매일 09:00 자동발송 (일요일 제외)</span></div>
-    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span><span>{상담자}</span></div>
+    <div class="sms-vars">사용 가능 변수: <span>{이름}</span><span>{일정}</span><span>{연락처}</span></div>
     <textarea class="sms-textarea" id="smsTemplate_today" oninput="updateSmsCharCount('today')" placeholder="Firestore에 저장된 템플릿을 불러오는 중..."></textarea>
     <div class="sms-footer">
       <span class="sms-char-count" id="smsCount_today">0자</span>
@@ -5950,7 +5976,7 @@ function csDateInputValue(val) {
       </div>
       <div style="grid-column:1 / -1;">
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">일정</label>
-        <input id="smsTestSchedule" type="text" placeholder="01-15 14:00 (단문 유지를 위해 연도 생략 권장)" autocomplete="off"
+        <input id="smsTestSchedule" type="text" placeholder="8월15일 14:00" autocomplete="off"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
     </div>
@@ -6044,7 +6070,7 @@ function csDateInputValue(val) {
       </div>
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">생일</label>
-        <input id="empModalBirthday" type="date"
+        <input id="empModalBirthday" type="text" placeholder="1990-08-15" maxlength="10" oninput="formatDateInput(this)"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;">
       </div>
       <div>
@@ -7758,7 +7784,7 @@ function csDateInputValue(val) {
         }
       }
       const modal = document.getElementById('adminInfoReqModal');
-      if (modal) modal.style.display = 'flex';
+      if (modal) window._positionModalAtScroll(modal);
     };
     window.closeAdminInfoReqModal = function() {
       const modal = document.getElementById('adminInfoReqModal');
@@ -7915,6 +7941,10 @@ function csDateInputValue(val) {
         if (r.ok) {
           resultEl.style.color = '#1a7a45';
           resultEl.textContent = `✔ ${label} 발송 성공 (${phone})`;
+          // 발송 성공 시 다음 입력을 위해 폼 초기화
+          document.getElementById('smsTestPhone').value = '';
+          document.getElementById('smsTestName').value = '';
+          document.getElementById('smsTestSchedule').value = '';
         } else if (r.result === 'API미연동') {
           resultEl.style.color = '#a87900';
           resultEl.textContent = `⚠ API 미연동 상태입니다. 발송내역에 'API미연동'으로 기록되었습니다. (${phone})`;
@@ -8577,11 +8607,19 @@ function csDateInputValue(val) {
           return user ? (user.id || 'guest') : 'guest';
         }
 
+        // ★ 메모는 기기별이 아니라 사용자별로 같아야 한다(같은 계정이면 모바일/PC 어디서든 동일 내용).
+        //   근데 서버 응답이 오기 전에 기기별 로컬 캐시를 먼저 보여주고 편집을 허용하면, 다른 기기에서
+        //   그 사이 새로 저장한 내용을 이 기기의 옛 캐시로 덮어써버리는 경합이 생겼다. 서버 확인이
+        //   끝나기 전까지는 편집(저장)을 막아 이 문제를 없앤다.
+        let _memoServerSynced = false;
+
         // 1. 서버에서 메모 로드 (직원별)
         async function loadMemo() {
           const uid = getCurrentUserId();
-          // 로컬 캐시 먼저 표시
+          _memoServerSynced = false;
+          // 로컬 캐시 먼저 "미리보기"로만 표시 — 서버 확인 전까지는 편집 못 하게 잠근다
           memoArea.value = localStorage.getItem(`memo_${uid}`) || '';
+          memoArea.disabled = true;
           try {
             const res = await fetchWithRetry(`${RESERVE_URL}?action=getMemo&userId=${encodeURIComponent(uid)}`);
             const data = await res.json();
@@ -8589,11 +8627,14 @@ function csDateInputValue(val) {
               memoArea.value = data.memo;
               localStorage.setItem(`memo_${uid}`, data.memo);
             }
-          } catch(e) { /* 로컬 캐시 유지 */ }
+          } catch(e) { /* 서버 확인 실패 — 로컬 캐시로 계속 진행(오프라인 대비) */ }
+          _memoServerSynced = true;
+          memoArea.disabled = false;
         }
 
         // 2. 서버에 메모 저장
         async function saveMemo() {
+          if (!_memoServerSynced) return; // 서버 값 확인 전엔 저장 금지(기기별 옛 캐시로 덮어쓰기 방지)
           const uid = getCurrentUserId();
           const content = memoArea.value;
           localStorage.setItem(`memo_${uid}`, content);
@@ -8857,7 +8898,7 @@ function openCardViewer(src) {
   const img = document.getElementById('cardViewerImg');
   if (!overlay || !img) return;
   img.src = src;
-  overlay.style.display = 'flex';
+  window._positionModalAtScroll(overlay);
   document.body.style.overflow = 'hidden';
 }
 function closeCardViewer() {
@@ -12239,6 +12280,7 @@ if ('serviceWorker' in navigator) {
   };
   window.openCsvModal = function() {
     document.getElementById('csvModalOverlay').classList.add('open');
+    window._positionModalAtScroll(document.getElementById('csvModalOverlay'));
     document.getElementById('csvFileInput').value = '';
     document.getElementById('csvPreview').style.display = 'none';
     document.getElementById('csvImportBtn').disabled = true;
@@ -13622,7 +13664,7 @@ if ('serviceWorker' in navigator) {
       } catch(e) {}
     };
 
-    document.getElementById('emPreviewModal').style.display = 'flex';
+    window._positionModalAtScroll(document.getElementById('emPreviewModal'));
   };
 
   window.closeEmailPreview = function() {
