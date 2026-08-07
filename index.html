@@ -12569,6 +12569,7 @@ if ('serviceWorker' in navigator) {
     // 전사 휴가(전 직원) 날짜별 수집 — 신청 달력에도 함께 표시
     const typeColor = t => {
       const s = String(t || '');
+      if (s.indexOf('생일') !== -1) return '#C9A227';
       if (s.indexOf('건강검진') !== -1) return '#2E9E6B';
       if (s.indexOf('출산') !== -1) return '#E86AA6';
       if (s.indexOf('오전') !== -1) return '#3B82C4';
@@ -12584,6 +12585,15 @@ if ('serviceWorker' in navigator) {
         const key = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
         (leaveDates[key] = leaveDates[key] || []).push({ name: r.name, type: r.leaveType });
       }
+    });
+    // ★ 생일: 실제 휴가 기록이 아니라 화면에만 얹어서 보여준다 — 연차 차감 없음, 신청내역에도 안 남음.
+    (window._allEmployees || []).filter(emp => !emp.leaveDate && emp.birthday).forEach(emp => {
+      const bParts = String(emp.birthday).split('-');
+      if (bParts.length !== 3) return;
+      const bMonth = parseInt(bParts[1], 10), bDay = parseInt(bParts[2], 10);
+      if (bMonth !== _leaveMon + 1) return;
+      const key = _leaveYear + '-' + String(bMonth).padStart(2,'0') + '-' + String(bDay).padStart(2,'0');
+      (leaveDates[key] = leaveDates[key] || []).push({ name: emp.name, type: '생일' });
     });
 
     let html = days.map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:#aaa;padding:4px 0;">${d}</div>`).join('');
@@ -12898,9 +12908,21 @@ if ('serviceWorker' in navigator) {
         leaveDates[key].push({ name: r.name, type: r.leaveType || '연차' });
       }
     });
+    // ★ 생일: 실제 휴가 기록이 아니라, 이 달을 그릴 때마다 직원 생일(월/일)이 걸리는 날짜에
+    //   화면에만 얹어서 보여준다 — 연차 차감도 없고 신청내역에도 안 남는다.
+    (window._allEmployees || []).filter(emp => !emp.leaveDate && emp.birthday).forEach(emp => {
+      const bParts = String(emp.birthday).split('-');
+      if (bParts.length !== 3) return;
+      const bMonth = parseInt(bParts[1], 10), bDay = parseInt(bParts[2], 10);
+      if (bMonth !== _leaveSchedMon + 1) return;
+      const key = _leaveSchedYear + '-' + String(bMonth).padStart(2,'0') + '-' + String(bDay).padStart(2,'0');
+      if (!leaveDates[key]) leaveDates[key] = [];
+      leaveDates[key].push({ name: emp.name, type: '생일' });
+    });
     // 휴가 종류별 색상
     const typeColor = t => {
       const s = String(t || '');
+      if (s.indexOf('생일') !== -1) return '#C9A227';     // 생일=금색
       if (s.indexOf('건강검진') !== -1) return '#2E9E6B'; // 건강검진=초록
       if (s.indexOf('출산') !== -1) return '#E86AA6';     // 출산휴가=분홍
       if (s.indexOf('오전') !== -1) return '#3B82C4';     // 오전 반차/반반차=파랑
@@ -14457,6 +14479,7 @@ if ('serviceWorker' in navigator) {
       <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#E67E22;display:inline-block;"></i>오후(반차/반반차)</span>
       <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#2E9E6B;display:inline-block;"></i>건강검진</span>
       <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#E86AA6;display:inline-block;"></i>출산휴가</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><i style="width:9px;height:9px;border-radius:2px;background:#C9A227;display:inline-block;"></i>생일</span>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <button onclick="leaveCalPrev()" style="background:#fff;border:1px solid #ccc;border-radius:8px;width:38px;height:38px;cursor:pointer;font-size:18px;font-weight:700;color:#333;box-shadow:0 1px 3px rgba(0,0,0,0.12);">‹</button>
