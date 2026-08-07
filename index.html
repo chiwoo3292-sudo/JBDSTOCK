@@ -5189,7 +5189,7 @@ function csDateInputValue(val) {
     }
     try {
       const { msgs } = await window._gmailFetchPage(email, 'inbox');
-      const list = (msgs || []).slice(0, 5);
+      const list = (msgs || []).slice(0, 3);
       if (!list.length) { el.innerHTML = '<div class="home-dash-empty">받은 메일이 없습니다.</div>'; return; }
       el.innerHTML = list.map((m) => {
         const name = _mailFromName(m.from);
@@ -5686,6 +5686,11 @@ function csDateInputValue(val) {
         <span class="myi-row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span>
         <span class="myi-row-label">입사일</span>
         <span class="myi-row-val" id="myiJoinDate">-</span>
+      </div>
+      <div class="myi-row">
+        <span class="myi-row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span>
+        <span class="myi-row-label">생일</span>
+        <span class="myi-row-val" id="myiBirthday">-</span>
       </div>
       <div class="myi-row">
         <span class="myi-row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;flex-shrink:0;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
@@ -6873,6 +6878,17 @@ function csDateInputValue(val) {
             set('myiJoinDate', `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`);
         }
 
+        // 생일
+        if (u.birthday) {
+            const parts = String(u.birthday).split('-');
+            if (parts.length === 3) {
+                const [by, bm, bd] = parts;
+                set('myiBirthday', `${parseInt(bm)}월 ${parseInt(bd)}일`);
+            } else {
+                set('myiBirthday', u.birthday);
+            }
+        }
+
         // 퇴사일 / 재직중
         if (u.leaveDate) {
             const [y, m, d] = u.leaveDate.split('-');
@@ -7603,7 +7619,7 @@ function csDateInputValue(val) {
     window.openInfoRequestModal = function() {
       const modal = document.getElementById('infoRequestModal');
       if (modal) {
-        modal.style.display = 'flex';
+        window._positionModalAtScroll(modal);
         document.getElementById('infoRequestText').value = '';
         document.getElementById('infoRequestMsg').textContent = '';
       }
