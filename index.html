@@ -4546,6 +4546,12 @@ function csDateInputValue(val) {
         if (_consultsMode === 'recent') {
           allConsults.unshift(created);
         }
+        // ★ 신규 등록 시 연락처+일정이 모두 있으면 예약확정안내 문자 즉시발송 (예약접수 확정과 동일한 방식)
+        if (payload.phone && payload.date && typeof sendSMS === 'function') {
+          const dateFormatted = (typeof csDateDisplay === 'function') ? csDateDisplay(payload.date) : payload.date;
+          const schedule = `${dateFormatted} ${payload.time||''}`.trim();
+          sendSMS(payload.phone, payload.name||'', schedule, payload.counselor||'', 'confirm');
+        }
       }
       _syncConsultRefs();
       renderConsultList();
@@ -11061,20 +11067,25 @@ function initUiDensity() {
 }
 document.addEventListener('DOMContentLoaded', initUiDensity);
 
-// 모바일에서 A4 미리보기 scale 동적 계산
+// A4 미리보기 scale 동적 계산 (모바일: 너비에 맞춰 배율 계산 / PC: 고정 0.8배)
+//   어느 쪽이든 transform:scale()은 레이아웃 높이를 줄여주지 않으므로, 감싸는 박스 높이를
+//   실제 축소된 높이에 맞춰 직접 세팅해줘야 스케일 전 원본 높이만큼 빈 여백이 남지 않는다.
 function updateInvoiceScale() {
     const isMob = (window.screen && window.screen.width) ? window.screen.width <= 768 : window.innerWidth <= 768;
-    if (!isMob) return;
     // overflow-x:auto 인 div를 정확히 targeting
     const wrap = document.querySelector('#invoiceTab .inv-preview-wrap > div[style]');
     if (!wrap) return;
-    // 패딩 제외한 실제 너비
-    const containerW = wrap.clientWidth || (window.innerWidth - 44);
-    const scale = Math.max(0.15, Math.min(1, containerW / 930));
-    document.documentElement.style.setProperty('--inv-scale', scale.toFixed(4));
-    // invoiceDoc 실제 원본 높이(scale 전) 기준으로 컨테이너 높이 세팅
     const doc = document.getElementById('invoiceDoc');
     const rawH = doc ? doc.scrollHeight : 1312;
+    let scale;
+    if (isMob) {
+        // 패딩 제외한 실제 너비
+        const containerW = wrap.clientWidth || (window.innerWidth - 44);
+        scale = Math.max(0.15, Math.min(1, containerW / 930));
+        document.documentElement.style.setProperty('--inv-scale', scale.toFixed(4));
+    } else {
+        scale = 0.8; // PC 미리보기 고정 축소 비율 (CSS의 .inv-preview-wrap #invoiceDoc transform:scale(0.8)과 일치)
+    }
     const scaledH = Math.round(rawH * scale);
     wrap.style.height = scaledH + 'px';
     wrap.style.overflow = 'hidden';
@@ -11564,7 +11575,7 @@ function renderInvoice() {
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
         }
-        if ((window.screen && window.screen.width ? window.screen.width : window.innerWidth) <= 768) setTimeout(updateInvoiceScale, 30);
+        setTimeout(updateInvoiceScale, 30);
         return;
     }
 
@@ -11600,8 +11611,8 @@ function renderInvoice() {
 원목마루는 천연 원목을 사용하여 나무가 가지고 있는 색상, 나뭇결, 옹이 등 자연질감이 그대로 표현되므로 시공시<br>
 이색현상이나 옹이 여부등은 하자사항이 아님을 알려드립니다.`;
     }
-    // 모바일: 내용 변경 후 높이 재계산
-    if ((window.screen && window.screen.width ? window.screen.width : window.innerWidth) <= 768) setTimeout(updateInvoiceScale, 30);
+    // 내용 변경 후 높이 재계산
+    setTimeout(updateInvoiceScale, 30);
 }
 
 function printInvoice() {
