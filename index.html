@@ -3410,7 +3410,9 @@
       const data = await res.json();
       rows = data.rows || [];
       const allActive = rows.filter(r => !r.leaveDate);
-      _staffListCache = allActive.map(r => `${r.name} ${r.title}`.trim());
+      // ★ 상담자 후보는 일단 영업부 + R&D + 대표님만 노출 (그 외 부서는 상담 배정 대상 아님)
+      const eligible = allActive.filter(r => r.isHead || /영업|R&D/i.test(r.dept || ''));
+      _staffListCache = eligible.map(r => `${r.name} ${r.title}`.trim());
     } catch(e) {
       _staffListCache = [];
     }
