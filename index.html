@@ -100,12 +100,14 @@
       if (document.getElementById('wixExitOverlay')) return;
       var overlay = document.createElement('div');
       overlay.id = 'wixExitOverlay';
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:"Pretendard","Noto Sans KR",sans-serif;text-align:center;';
+      // ★ height:100dvh를 같이 지정 — 모바일 브라우저는 주소창이 접혔다 펴졌다 하면서
+      //   inset:0만으로는 실제 눈에 보이는 화면 높이와 fixed 영역 높이가 어긋나
+      //   콘텐츠가 아래로 쳐져 보이는 경우가 있어, 동적 뷰포트 단위로 보정한다.
+      overlay.style.cssText = 'position:fixed;inset:0;height:100dvh;z-index:999999;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:"Pretendard","Noto Sans KR",sans-serif;text-align:center;box-sizing:border-box;';
       overlay.innerHTML =
-        '<img src="https://raw.githubusercontent.com/chiwoo3292-sudo/JBDSTOCK/refs/heads/main/지복득마루메인로고.jpg" alt="지복득마루" style="width:120px;height:auto;margin-bottom:22px;">' +
-        '<div style="font-family:\'Pretendard\',\'Noto Sans KR\',sans-serif;font-size:22px;font-weight:500;color:#2B2521;letter-spacing:0.32em;margin-left:0.32em;margin-bottom:14px;">지복득마루</div>' +
-        '<div style="font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:28px;max-width:280px;">모바일에서는 더 넓고 편한 화면으로<br>보여드리기 위해 페이지를 이동합니다</div>' +
-        '<button id="wixExitBtn" style="background:var(--brand);color:#fff;border:none;padding:16px 36px;border-radius:12px;font-size:15px;font-weight:800;box-shadow:0 6px 18px rgba(162,105,62,0.35);cursor:pointer;font-family:inherit;">사내시스템에 접속합니다</button>';
+        '<img src="https://github.com/chiwoo3292-sudo/JBDSTOCK/blob/main/%EB%A1%9C%EA%B3%A0.png?raw=true" alt="지복득마루" style="width:120px;height:auto;margin-bottom:22px;">' +
+        '<div style="font-size:13.5px;color:#666;line-height:1.6;margin-bottom:28px;max-width:280px;">모바일에서는 더 넓고 편한 화면으로<br>보여드리기 위해 페이지를 이동합니다</div>' +
+        '<button id="wixExitBtn" style="background:#000;color:#fff;border:none;padding:16px 36px;border-radius:12px;font-size:15px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,0.2);cursor:pointer;font-family:inherit;">사내시스템에 접속합니다</button>';
       overlay.querySelector('#wixExitBtn').onclick = function () {
         window.top.location.href = 'https://chiwoo3292-sudo.github.io/JBDSTOCK/';
       };
@@ -10498,19 +10500,27 @@ function renderStockTable(rows, orderRows, arrivalRows) {
     // ★ 14~20 시리즈만 실제로 운영되는 시리즈라, 그 외(#10, #11, #13, #21처럼 우연히 매칭되는
     //   숫자 포함)는 전부 ETC로 몰아서 잘못된 낱개 시리즈가 따로 생기지 않게 한다.
     const KNOWN_STOCK_SERIES = ['14','15','16','17','18','19','20'];
+    // 규칙으로 못 잡는 개별 품번 수동 지정 (품번 안에 이 문자열이 포함되면 지정된 시리즈로)
+    const STOCK_SERIES_OVERRIDES = [
+        ['C#19G2', '19'],
+        ['D#2101', '20'],
+    ];
     function getStockSeries(itemCode) {
         const str = String(itemCode);
-        // "#" 뒤에 공백이 있어도(예: "A# 1701") 숫자를 시리즈로 인식. 뒤에 더 이어지는 숫자가
-        // 있는지도 같이 캡처해서(예: "#1401"의 "01") 진짜 품번인지 판단하는 데 쓴다.
-        const m = str.match(/#\s*(\d{2})(\d*)/);
+        for (const [needle, forcedSeries] of STOCK_SERIES_OVERRIDES) {
+            if (str.includes(needle)) return forcedSeries;
+        }
+        // "#" 뒤에 공백이 있어도(예: "A# 1701") 숫자를 시리즈로 인식. 뒤에 더 이어지는 문자(숫자든
+        // 글자든, 예: "#1401"의 "01", "#19G2"의 "G2")가 있는지도 같이 캡처해 진짜 품번인지 판단한다.
+        const m = str.match(/#\s*(\d{2})(\w*)/);
         if (!m) return 'ETC';
         const series = m[1];
-        const extraDigits = m[2];
+        const extraChars = m[2];
         if (!KNOWN_STOCK_SERIES.includes(series)) return 'ETC';
         const hadSpace = /#\s+\d/.test(m[0]);
-        // "#14"처럼 시리즈 숫자 두 자리만 있고 뒤에 이어지는 숫자가 없으면 실제 품번이 아니라고 보고 제외.
+        // "#14"처럼 시리즈 숫자 두 자리만 있고 뒤에 이어지는 문자가 없으면 실제 품번이 아니라고 보고 제외.
         // 단, "#" 뒤에 공백을 두고 쓰는 표기(예: "A# 17...")는 이 제외 규칙에서 예외로 둔다.
-        if (!extraDigits && !hadSpace) return 'ETC';
+        if (!extraChars && !hadSpace) return 'ETC';
         return series;
     }
     // ★ 시트 안에서 같은 시리즈 품목들이 한 군데 모여있지 않고 여러 군데 흩어져 있을 수 있어서,
@@ -13527,7 +13537,7 @@ if ('serviceWorker' in navigator) {
         <tr><td style="color:var(--brand);font-weight:700;padding-right:10px;">W.</td><td><a href="https://jibokdeukmaru.com" style="color:var(--brand);text-decoration:none;">jibokdeukmaru.com</a></td></tr>
       </table>
       <div style="margin-top:10px;">
-        <img src="https://chiwoo3292-sudo.github.io/logo.png" alt="지복득마루" style="height:28px;" onerror="this.style.display='none'">
+        <img src="https://github.com/chiwoo3292-sudo/JBDSTOCK/blob/main/%EB%A1%9C%EA%B3%A0.png?raw=true" alt="지복득마루" style="height:28px;" onerror="this.style.display='none'">
         <div style="font-size:11px;color:#bbb;margin-top:4px;">지복득마루</div>
       </div>
     </td>
