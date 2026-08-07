@@ -100,10 +100,12 @@
       if (document.getElementById('wixExitOverlay')) return;
       var overlay = document.createElement('div');
       overlay.id = 'wixExitOverlay';
-      // ★ height:100dvh를 같이 지정 — 모바일 브라우저는 주소창이 접혔다 펴졌다 하면서
-      //   inset:0만으로는 실제 눈에 보이는 화면 높이와 fixed 영역 높이가 어긋나
-      //   콘텐츠가 아래로 쳐져 보이는 경우가 있어, 동적 뷰포트 단위로 보정한다.
-      overlay.style.cssText = 'position:fixed;inset:0;height:100dvh;z-index:999999;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:"Pretendard","Noto Sans KR",sans-serif;text-align:center;box-sizing:border-box;';
+      // ★ 윅스 iframe 안에서 position:fixed는 "iframe 자체 좌표" 기준으로 고정돼버려서, 이 페이지가
+      //   iframe 안에서 실제로 얼마나 스크롤돼 있는지와 무관하게 위치가 어긋나 아래로 처져 보였다.
+      //   생성 시점의 실제 스크롤 위치를 기준으로 absolute 배치해 항상 현재 보이는 화면에 뜨게 한다.
+      var _scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      var _viewH = window.innerHeight || document.documentElement.clientHeight || 800;
+      overlay.style.cssText = 'position:absolute;top:' + _scrollY + 'px;left:0;right:0;height:' + _viewH + 'px;z-index:999999;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:"Pretendard","Noto Sans KR",sans-serif;text-align:center;box-sizing:border-box;';
       overlay.innerHTML =
         '<img src="https://github.com/chiwoo3292-sudo/JBDSTOCK/blob/main/%EB%A1%9C%EA%B3%A0.png?raw=true" alt="지복득마루" style="width:120px;height:auto;margin-bottom:22px;">' +
         '<div style="font-size:13.5px;color:#666;line-height:1.6;margin-bottom:28px;max-width:280px;">모바일에서는 더 넓고 편한 화면으로<br>보여드리기 위해 페이지를 이동합니다</div>' +
