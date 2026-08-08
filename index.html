@@ -2832,7 +2832,7 @@
     max-width: 900px;
     max-height: 88vh;
     overflow-y: auto;
-    padding: 28px 32px 40px;
+    padding: 24px 32px 24px;
     position: relative;
     box-shadow: 0 8px 40px rgba(0,0,0,0.18);
     will-change: transform;
@@ -2873,10 +2873,10 @@
   .dw-form-header h2 { font-size:16px; font-weight:700; color:#222; }
   .dw-form-header .dw-form-close { margin-left:auto; background:none; border:none; font-size:20px; cursor:pointer; color:#999; }
 
-  .dw-form-subtab { font-size:12px; color:#999; margin-bottom:22px; display:flex; gap:6px; align-items:center; }
+  .dw-form-subtab { font-size:12px; color:#999; margin-bottom:16px; display:flex; gap:6px; align-items:center; }
   .dw-form-subtab .dw-subtab-badge { font-size:10px; color:#999; background:#f1f1f3; border-radius:4px; padding:2px 6px; }
 
-  .dw-section-h { font-size:14px; font-weight:700; color:var(--brand); margin:26px 0 14px; }
+  .dw-section-h { font-size:14px; font-weight:700; color:var(--brand); margin:20px 0 10px; }
   .dw-section-h:first-of-type { margin-top:0; }
 
   .dw-field-row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:24px; margin-bottom:18px; align-items:start; }
@@ -5980,7 +5980,7 @@ function csDateInputValue(val) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
       <div>
         <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">연락처 <span style="color:#e74c3c;">*</span></label>
-        <input id="smsTestPhone" type="tel" placeholder="010-0000-0000" autocomplete="off"
+        <input id="smsTestPhone" type="tel" placeholder="010-0000-0000" autocomplete="off" onblur="formatSmsTestPhone(this)"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
       <div>
@@ -7923,6 +7923,20 @@ function csDateInputValue(val) {
       writeSmsLog(phone, name, typeLabel, result).catch(() => {});
 
       return { ok: result === '발송성공', msg, result, typeLabel };
+    };
+
+    // ── 예약확정 수동발송 연락처 입력란: 입력 끝나면(포커스 아웃) 자동으로 하이픈 포맷 ──
+    window.formatSmsTestPhone = function(input) {
+      const digits = input.value.replace(/\D/g, '');
+      if (digits.length === 11) {
+        input.value = digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+      } else if (digits.length === 10) {
+        input.value = digits.startsWith('02')
+          ? digits.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3')
+          : digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      } else if (digits.length === 9 && digits.startsWith('02')) {
+        input.value = digits.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+      }
     };
 
     // ── 문자 발송 테스트 (베타 검증용) ──
