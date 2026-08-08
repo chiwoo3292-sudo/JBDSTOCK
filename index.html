@@ -3061,7 +3061,6 @@
       <h2 id="csFormTitle">쇼룸 상담</h2>
       <button class="dw-form-close" onclick="closeConsultForm()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
     </div>
-    <div class="dw-form-subtab">상담일지 <span class="dw-subtab-badge">main</span></div>
 
     <div class="dw-section-h">예약정보</div>
 
@@ -3183,7 +3182,7 @@
       </div>
     </div>
 
-    <div class="dw-field-row cols-2">
+    <div class="dw-field-row">
       <div class="dw-field">
         <label>연락처</label>
         <input type="text" id="cfPhone" onkeydown="if(event.key===&#39;Enter&#39;){event.preventDefault();saveConsultForm();}">
@@ -3193,6 +3192,13 @@
         <div class="dw-unit-input" style="max-width:160px;">
           <input type="text" id="cfVisitCount">
           <span>명</span>
+        </div>
+      </div>
+      <div class="dw-field">
+        <label>엘리베이터</label>
+        <div class="dw-radio-group">
+          <label><input type="radio" name="cfElevator" value="유" checked> 유</label>
+          <label><input type="radio" name="cfElevator" value="무"> 무</label>
         </div>
       </div>
     </div>
@@ -3237,22 +3243,12 @@
         </div>
       </div>
       <div class="dw-field">
-        <label>공사 기간</label>
-        <input type="text" id="cfWorkPeriod">
-      </div>
-      <div class="dw-field">
-        <label>엘리베이터</label>
-        <div class="dw-radio-group">
-          <label><input type="radio" name="cfElevator" value="유" checked> 유</label>
-          <label><input type="radio" name="cfElevator" value="무"> 무</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="dw-field-row cols-1">
-      <div class="dw-field">
         <label>시공 예정 시기</label>
         <input type="text" id="cfWorkTiming">
+      </div>
+      <div class="dw-field">
+        <label>공사 기간</label>
+        <input type="text" id="cfWorkPeriod">
       </div>
     </div>
 
@@ -3274,9 +3270,6 @@
           <option value="업체가 안내">업체가 안내</option>
         </select>
       </div>
-    </div>
-
-    <div class="dw-field-row cols-1">
       <div class="dw-field">
         <label>요청사항</label>
         <div class="dw-checkbox-row">
