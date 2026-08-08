@@ -1439,6 +1439,10 @@
         단수정리
       </label>
       <label class="check-chip">
+        <input type="checkbox" id="invSeparateCheck" onchange="toggleInvDividerBtn()" />
+        단분리
+      </label>
+      <label class="check-chip">
         <input type="checkbox" id="invFinalCheck" onchange="renderInvoice()" />
         정산서
       </label>
@@ -1461,6 +1465,7 @@
 
     <div id="invAllItems"></div>
     <button type="button" id="invAddItemBtn" class="secondary inv-add-item">+ 제품 추가</button>
+    <button type="button" id="invAddDividerBtn" class="secondary inv-add-item" style="display:none;margin-top:8px;">+ 구분선 추가</button>
 
     <div class="inv-field">
       <div class="inv-label">공과잡비</div>
@@ -10824,7 +10829,7 @@ let invoiceInited = false;
 function fillInvoiceSelects() {
     document.querySelectorAll('.inv-product-select').forEach((sel, idx) => {
         const prev = sel.value;
-        sel.innerHTML = '<option value="">-- 제품 선택 --</option>';
+        sel.innerHTML = '<option value="">-- 제품 선택 --</option><option value="__EPOXY__">에폭시</option>';
         products.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.code;
@@ -10880,7 +10885,7 @@ function createInvoiceItem(index) {
         <div class="inv-auto-fields">
           <div class="inv-field">
             <div class="inv-label">제품 선택</div>
-            <select id="invProduct${index}" class="inv-product-select">
+            <select id="invProduct${index}" class="inv-product-select" onchange="if(this.value==='__EPOXY__'){const u=this.closest('.inv-item-box').querySelector('.inv-unit-select');if(u)u.value='KG';}">
               <option value="">-- 없음 --</option>
             </select>
           </div>
@@ -10891,6 +10896,7 @@ function createInvoiceItem(index) {
                 <option value="M2">M2</option>
                 <option value="PY">PY</option>
                 <option value="BOX">BOX</option>
+                <option value="KG">KG</option>
               </select>
             </div>
             <div class="inv-field">
@@ -10994,6 +11000,37 @@ function addInvoiceItem() {
     document.getElementById('invAllItems')?.appendChild(item);
     fillInvoiceSelects();
     bindInvoiceFieldEvents(item);
+    renderInvoice();
+}
+
+// ── "단분리" 체크 시에만 "+ 구분선 추가" 버튼 노출 ──
+function toggleInvDividerBtn() {
+    const on = !!document.getElementById('invSeparateCheck')?.checked;
+    const btn = document.getElementById('invAddDividerBtn');
+    if (btn) btn.style.display = on ? '' : 'none';
+    renderInvoice();
+}
+
+// ── 제품 목록 사이 구분선(빨간 텍스트) 항목 — 가격 계산 없이 견적서에 강조 문구만 표시 ──
+function createDividerItem() {
+    const wrap = document.createElement('div');
+    wrap.className = 'inv-divider-wrap';
+    wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:12px;';
+    wrap.innerHTML = `
+      <input type="text" class="inv-divider-text" placeholder="예: 자재만 납품" style="flex:1;color:#e11d48;font-weight:700;padding:9px 12px;border:1px solid #f3c6ce;border-radius:8px;font-size:13px;box-sizing:border-box;" data-inv-divider="1">
+      <button type="button" class="inv-remove-item secondary" style="min-height:36px;padding:0 10px;font-size:11px;border-radius:8px;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> 삭제</button>
+    `.trim();
+    wrap.querySelector('.inv-remove-item').addEventListener('click', () => {
+        wrap.remove();
+        renderInvoice();
+    });
+    wrap.querySelector('.inv-divider-text').addEventListener('input', renderInvoice);
+    return wrap;
+}
+
+function addDividerItem() {
+    const item = createDividerItem();
+    document.getElementById('invAllItems')?.appendChild(item);
     renderInvoice();
 }
 
@@ -11188,6 +11225,7 @@ function initInvoiceTab() {
         document.getElementById('invSaveImgBtn').addEventListener('click', saveInvoiceImage);
         document.getElementById('invSavePdfBtn').addEventListener('click', saveInvoicePdf);
         document.getElementById('invAddItemBtn')?.addEventListener('click', addInvoiceItem);
+        document.getElementById('invAddDividerBtn')?.addEventListener('click', addDividerItem);
 
         // 모바일 scale 계산 + resize 대응
         window.addEventListener('resize', updateInvoiceScale);
@@ -11208,6 +11246,13 @@ function formatInvSize(spec='') {
 }
 
 function getInvItemFromBox(box, splitCosts=false) {
+
+    // ── 구분선 항목 (제품 목록 사이 빨간 강조 문구, 가격 계산 없음) ──
+    if (box.dataset.invDivider === '1') {
+        const label = (box.value || '').trim();
+        if (!label) return null;
+        return { isDivider: true, label };
+    }
 
     // ── 직접입력 모드 체크 (토글은 box 바깥 wrap에 있으므로 closest로 탐색) ──
     const wrap = box.closest('.inv-extra-item-wrap') || box;
@@ -11237,6 +11282,14 @@ function getInvItemFromBox(box, splitCosts=false) {
     const partyRaw  = box.querySelector('.inv-party-select')?.value || 'consumer';
     const lossRate  = parseFloat(box.querySelector('.inv-loss-input')?.value) || 0;
     if (!code) return null;
+
+    // ── 에폭시 (재고 품목이 아닌 자재 — 재고 가격조회 없이 KG당 3,000원 고정 계산) ──
+    if (code === '__EPOXY__') {
+        if (qty <= 0) return null;
+        const epoxyPrice = 3000;
+        return { name: '에폭시', size: '', unit: 'KG', qty, unitPrice: epoxyPrice, total: Math.round(qty * epoxyPrice) };
+    }
+
     const p = products.find(x => x.code === code);
     if (!p) return null;
 
@@ -11338,7 +11391,7 @@ function renderInvoice() {
 
     const splitCosts = !!document.getElementById('invSplitCostCheck')?.checked;
     const mergeLaborCosts = splitCosts && !!document.getElementById('invMergeLaborCheck')?.checked;
-    let invoiceItems = [...document.querySelectorAll('[data-inv-item]')]
+    let invoiceItems = [...document.querySelectorAll('[data-inv-item], [data-inv-divider]')]
         .flatMap(box => {
             const item = getInvItemFromBox(box, splitCosts);
             return Array.isArray(item) ? item : [item];
@@ -11375,6 +11428,12 @@ function renderInvoice() {
 
     function addItemRow(item) {
         if (!item) return;
+        if (item.isDivider) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="8" style="color:#ff0000;font-weight:700;text-align:left;">${item.label}</td>`;
+            tbody.appendChild(tr);
+            return;
+        }
         subTotal += item.total;
         const qtyDisplay = item.qty === '' || item.qty === null || item.qty === undefined
             ? ''
